@@ -475,5 +475,252 @@ def update_demographics():
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
 
+@app.route('/api/adgroup/create', methods=['POST', 'OPTIONS'])
+def create_ad_group():
+    """Crea un nuevo grupo de anuncios en una campaña"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId')
+        campaign_id = data.get('campaignId')
+        ad_group_name = data.get('name')
+        cpc_bid_micros = data.get('cpcBidMicros')  # En micros (1 USD = 1,000,000 micros)
+        
+        # Validaciones
+        if not all([customer_id, campaign_id, ad_group_name]):
+            return jsonify({
+                "success": False,
+                "message": "Faltan campos requeridos: customerId, campaignId, name"
+            }), 400
+        
+        # Si no se proporciona CPC, usar valor por defecto (1 USD = 1,000,000 micros)
+        if not cpc_bid_micros:
+            cpc_bid_micros = 1000000
+        
+        print(f"📝 Creando Ad Group:")
+        print(f"   Customer ID: {customer_id}")
+        print(f"   Campaign ID: {campaign_id}")
+        print(f"   Nombre: {ad_group_name}")
+        print(f"   CPC Bid: ${cpc_bid_micros / 1000000:.2f}")
+        
+        # Crear cliente
+        client = get_google_ads_client()
+        ad_group_service = client.get_service("AdGroupService")
+        
+        # Crear operación
+        ad_group_operation = client.get_type("AdGroupOperation")
+        ad_group = ad_group_operation.create
+        
+        # Configurar ad group
+        ad_group.name = ad_group_name
+        ad_group.campaign = client.get_service("CampaignService").campaign_path(customer_id, campaign_id)
+        ad_group.status = client.enums.AdGroupStatusEnum.ENABLED
+        ad_group.type_ = client.enums.AdGroupTypeEnum.SEARCH_STANDARD
+        ad_group.cpc_bid_micros = int(cpc_bid_micros)
+        
+        # Ejecutar operación
+        response = ad_group_service.mutate_ad_groups(
+            customer_id=customer_id,
+            operations=[ad_group_operation]
+        )
+        
+        # Extraer ID del ad group creado
+        ad_group_resource_name = response.results[0].resource_name
+        ad_group_id = ad_group_resource_name.split('/')[-1]
+        
+        print(f"✅ Ad Group creado exitosamente: {ad_group_id}")
+        
+        result = jsonify({
+            "success": True,
+            "message": "Ad Group creado exitosamente",
+            "adGroupId": ad_group_id,
+            "resourceName": ad_group_resource_name
+        })
+        
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        error_details = []
+        
+        for error in ex.failure.errors:
+            error_details.append({
+                "message": error.message,
+                "error_code": error.error_code.to_json() if hasattr(error, 'error_code') else None
+            })
+        
+        print(f"❌ GoogleAdsException creando Ad Group: {errors}")
+        print(f"❌ Request ID: {ex.request_id}")
+        
+        result = jsonify({
+            "success": False,
+            "message": "Error creando Ad Group",
+            "errors": errors,
+            "error_details": error_details,
+            "request_id": ex.request_id
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as ex:
+        print(f"❌ Error inesperado: {str(ex)}")
+        result = jsonify({
+            "success": False,
+            "message": str(ex)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/keywords/add', methods=['POST', 'OPTIONS'])
+def add_keywords():
+    """Agrega keywords a un grupo de anuncios"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId')
+        ad_group_id = data.get('adGroupId')
+        keywords = data.get('keywords', [])  # Array de objetos: [{text: "keyword", matchType: "BROAD"}]
+        
+        # Validaciones
+        if not all([customer_id, ad_group_id]):
+            return jsonify({
+                "success": False,
+                "message": "Faltan campos requeridos: customerId, adGroupId"
+            }), 400
+        
+        if not keywords or len(keywords) == 0:
+            return jsonify({
+                "success": False,
+                "message": "Debes proporcionar al menos una keyword"
+            }), 400
+        
+        print(f"📝 Agregando {len(keywords)} keywords al Ad Group {ad_group_id}")
+        
+        # Crear cliente
+        client = get_google_ads_client()
+        ad_group_criterion_service = client.get_service("AdGroupCriterionService")
+        ad_group_service = client.get_service("AdGroupService")
+        
+        operations = []
+        
+        # Crear operación para cada keyword
+        for kw in keywords:
+            keyword_text = kw.get('text', '')
+            match_type = kw.get('matchType', 'BROAD')  # BROAD, PHRASE, EXACT
+            cpc_bid_micros = kw.get('cpcBidMicros')  # Opcional: bid específico para esta keyword
+            
+            if not keyword_text:
+                continue
+            
+            # Crear operación
+            ad_group_criterion_operation = client.get_type("AdGroupCriterionOperation")
+            criterion = ad_group_criterion_operation.create
+            
+            criterion.ad_group = ad_group_service.ad_group_path(customer_id, ad_group_id)
+            criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+            criterion.keyword.text = keyword_text
+            
+            # Match type
+            if match_type.upper() == 'BROAD':
+                criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
+            elif match_type.upper() == 'PHRASE':
+                criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.PHRASE
+            elif match_type.upper() == 'EXACT':
+                criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.EXACT
+            else:
+                criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
+            
+            # CPC bid específico (opcional)
+            if cpc_bid_micros:
+                criterion.cpc_bid_micros = int(cpc_bid_micros)
+            
+            operations.append(ad_group_criterion_operation)
+            
+            print(f"   - '{keyword_text}' ({match_type})")
+        
+        if not operations:
+            return jsonify({
+                "success": False,
+                "message": "No se proporcionaron keywords válidas"
+            }), 400
+        
+        # Ejecutar operaciones en batch
+        response = ad_group_criterion_service.mutate_ad_group_criteria(
+            customer_id=customer_id,
+            operations=operations
+        )
+        
+        # Recopilar IDs de keywords creadas
+        keyword_ids = []
+        for result in response.results:
+            criterion_id = result.resource_name.split('~')[-1]
+            keyword_ids.append(criterion_id)
+        
+        print(f"✅ {len(keyword_ids)} keywords agregadas exitosamente")
+        
+        result = jsonify({
+            "success": True,
+            "message": f"{len(keyword_ids)} keywords agregadas exitosamente",
+            "keywordsAdded": len(keyword_ids),
+            "keywordIds": keyword_ids
+        })
+        
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        error_details = []
+        
+        for error in ex.failure.errors:
+            error_details.append({
+                "message": error.message,
+                "error_code": error.error_code.to_json() if hasattr(error, 'error_code') else None,
+                "trigger": error.trigger.string_value if hasattr(error, 'trigger') else None
+            })
+        
+        print(f"❌ GoogleAdsException agregando keywords: {errors}")
+        print(f"❌ Request ID: {ex.request_id}")
+        
+        result = jsonify({
+            "success": False,
+            "message": "Error agregando keywords",
+            "errors": errors,
+            "error_details": error_details,
+            "request_id": ex.request_id
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as ex:
+        print(f"❌ Error inesperado: {str(ex)}")
+        result = jsonify({
+            "success": False,
+            "message": str(ex)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
