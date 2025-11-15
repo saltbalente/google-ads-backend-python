@@ -86,7 +86,7 @@ def create_ad():
         ad_group_ad_operation = client.get_type("AdGroupAdOperation")
         ad_group_ad = ad_group_ad_operation.create
         ad_group_ad.ad_group = ad_group_service.ad_group_path(customer_id, ad_group_id)
-        ad_group_ad.status = client.enums.AdGroupAdStatusEnum.PAUSED
+        ad_group_ad.status = client.enums.AdGroupAdStatusEnum.ENABLED
         
         # Configurar anuncio
         ad_group_ad.ad.final_urls.append(final_url)
@@ -114,13 +114,13 @@ def create_ad():
         result = jsonify({
             "success": True,
             "resourceName": resource_name,
-            "message": "Anuncio creado exitosamente en Google Ads (pausado para revisión)",
+            "message": "Anuncio creado exitosamente en Google Ads (activado y listo)",
             "details": {
                 "customerId": customer_id,
                 "adGroupId": ad_group_id,
                 "headlinesCount": len(headlines),
                 "descriptionsCount": len(descriptions),
-                "status": "PAUSED"
+                "status": "ENABLED"
             }
         })
         
