@@ -337,7 +337,15 @@ def update_demographics():
             criterion = operation.create
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.gender.type_ = int(gender_id)
+            criterion.negative = False
+            # Para gender, usar el enum correcto
+            gender_enum = client.enums.GenderTypeEnum
+            if str(gender_id) == "10":
+                criterion.gender.type_ = gender_enum.FEMALE
+            elif str(gender_id) == "11":
+                criterion.gender.type_ = gender_enum.MALE
+            elif str(gender_id) == "20":
+                criterion.gender.type_ = gender_enum.UNDETERMINED
             operations.append(operation)
         
         # Agregar nuevos criterios de edad
@@ -346,7 +354,20 @@ def update_demographics():
             criterion = operation.create
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.age_range.type_ = int(age_id)
+            criterion.negative = False
+            # Para age_range, usar el enum correcto
+            age_enum = client.enums.AgeRangeTypeEnum
+            age_map = {
+                "503001": age_enum.AGE_RANGE_18_24,
+                "503002": age_enum.AGE_RANGE_25_34,
+                "503003": age_enum.AGE_RANGE_35_44,
+                "503004": age_enum.AGE_RANGE_45_54,
+                "503005": age_enum.AGE_RANGE_55_64,
+                "503006": age_enum.AGE_RANGE_65_UP,
+                "503999": age_enum.AGE_RANGE_UNDETERMINED
+            }
+            if str(age_id) in age_map:
+                criterion.age_range.type_ = age_map[str(age_id)]
             operations.append(operation)
         
         # Agregar nuevos criterios de ingreso
@@ -355,7 +376,20 @@ def update_demographics():
             criterion = operation.create
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.income_range.type_ = int(income_id)
+            criterion.negative = False
+            # Para income_range, usar el enum correcto
+            income_enum = client.enums.IncomeRangeTypeEnum
+            income_map = {
+                "31000": income_enum.INCOME_RANGE_0_50,
+                "31001": income_enum.INCOME_RANGE_50_60,
+                "31002": income_enum.INCOME_RANGE_60_70,
+                "31003": income_enum.INCOME_RANGE_70_80,
+                "31004": income_enum.INCOME_RANGE_80_90,
+                "31005": income_enum.INCOME_RANGE_90_UP,
+                "31006": income_enum.INCOME_RANGE_UNDETERMINED
+            }
+            if str(income_id) in income_map:
+                criterion.income_range.type_ = income_map[str(income_id)]
             operations.append(operation)
         
         # Ejecutar todas las operaciones
