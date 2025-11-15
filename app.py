@@ -338,7 +338,7 @@ def update_demographics():
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
             criterion.negative = False
-            # Para gender, usar el enum correcto
+            # Mapear los criterion IDs a los enums de Gender
             gender_enum = client.enums.GenderTypeEnum
             if str(gender_id) == "10":
                 criterion.gender.type_ = gender_enum.FEMALE
@@ -346,16 +346,18 @@ def update_demographics():
                 criterion.gender.type_ = gender_enum.MALE
             elif str(gender_id) == "20":
                 criterion.gender.type_ = gender_enum.UNDETERMINED
+            else:
+                continue  # Skip invalid IDs
             operations.append(operation)
         
-        # Agregar nuevos criterios de edad
+        # Agregar nuevos criterios de edad  
         for age_id in age_ids:
             operation = client.get_type("AdGroupCriterionOperation")
             criterion = operation.create
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
             criterion.negative = False
-            # Para age_range, usar el enum correcto
+            # Mapear los criterion IDs a los enums de AgeRange
             age_enum = client.enums.AgeRangeTypeEnum
             age_map = {
                 "503001": age_enum.AGE_RANGE_18_24,
@@ -368,7 +370,7 @@ def update_demographics():
             }
             if str(age_id) in age_map:
                 criterion.age_range.type_ = age_map[str(age_id)]
-            operations.append(operation)
+                operations.append(operation)
         
         # Agregar nuevos criterios de ingreso
         for income_id in income_ids:
@@ -377,7 +379,7 @@ def update_demographics():
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
             criterion.negative = False
-            # Para income_range, usar el enum correcto
+            # Mapear los criterion IDs a los enums de IncomeRange
             income_enum = client.enums.IncomeRangeTypeEnum
             income_map = {
                 "31000": income_enum.INCOME_RANGE_0_50,
@@ -390,7 +392,7 @@ def update_demographics():
             }
             if str(income_id) in income_map:
                 criterion.income_range.type_ = income_map[str(income_id)]
-            operations.append(operation)
+                operations.append(operation)
         
         # Ejecutar todas las operaciones
         if operations:
@@ -419,11 +421,22 @@ def update_demographics():
         
     except GoogleAdsException as ex:
         errors = [error.message for error in ex.failure.errors]
+        error_details = []
+        for error in ex.failure.errors:
+            error_details.append({
+                "message": error.message,
+                "error_code": error.error_code.to_json() if hasattr(error, 'error_code') else None
+            })
+        
+        print(f"❌ GoogleAdsException: {errors}")
+        print(f"❌ Request ID: {ex.request_id}")
+        print(f"❌ Error details: {error_details}")
         
         result = jsonify({
             "success": False,
             "message": "Error actualizando demografía",
             "errors": errors,
+            "error_details": error_details,
             "request_id": ex.request_id
         }), 500
         
