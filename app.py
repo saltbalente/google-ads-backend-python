@@ -761,28 +761,6 @@ def get_demographic_stats():
         date_start = start_date.strftime("%Y-%m-%d")
         date_end = end_date.strftime("%Y-%m-%d")
         
-        # Query para obtener estadísticas por criterio demográfico
-        query = f"""
-            SELECT
-                ad_group_criterion.criterion_id,
-                ad_group_criterion.type,
-                ad_group_criterion.gender.type,
-                ad_group_criterion.age_range.type,
-                ad_group_criterion.income_range.type,
-                ad_group_criterion.negative,
-                metrics.conversions,
-                metrics.conversions_value,
-                metrics.clicks,
-                metrics.impressions,
-                metrics.cost_micros
-            FROM ad_group_criterion
-            WHERE ad_group_criterion.ad_group = 'customers/{customer_id}/adGroups/{ad_group_id}'
-                AND ad_group_criterion.type IN ('GENDER', 'AGE_RANGE', 'INCOME_RANGE')
-                AND segments.date BETWEEN '{date_start}' AND '{date_end}'
-        """
-        
-        response = google_ads_service.search(customer_id=customer_id, query=query)
-        
         # Organizar estadísticas por tipo
         stats = {
             "gender": {},
@@ -790,23 +768,36 @@ def get_demographic_stats():
             "income": {}
         }
         
-        for row in response:
-            criterion = row.ad_group_criterion
-            metrics = row.metrics
+        # Query 1: Obtener estadísticas de GÉNERO
+        gender_query = f"""
+            SELECT
+                ad_group_criterion.gender.type,
+                ad_group_criterion.negative,
+                metrics.conversions,
+                metrics.conversions_value,
+                metrics.clicks,
+                metrics.impressions,
+                metrics.cost_micros
+            FROM gender_view
+            WHERE ad_group.id = {ad_group_id}
+                AND segments.date BETWEEN '{date_start}' AND '{date_end}'
+        """
+        
+        try:
+            gender_response = google_ads_service.search(customer_id=customer_id, query=gender_query)
             
-            # Crear objeto de stats
-            stat_data = {
-                "conversions": metrics.conversions,
-                "conversionsValue": metrics.conversions_value,
-                "clicks": metrics.clicks,
-                "impressions": metrics.impressions,
-                "cost": metrics.cost_micros / 1_000_000,  # Convertir a USD
-                "isNegative": criterion.negative
-            }
-            
-            # Clasificar por tipo
-            if criterion.type_.name == "GENDER":
-                gender_id = str(criterion.gender.type.value)
+            for row in gender_response:
+                gender_id = str(row.ad_group_criterion.gender.type.value)
+                
+                stat_data = {
+                    "conversions": row.metrics.conversions,
+                    "conversionsValue": row.metrics.conversions_value,
+                    "clicks": row.metrics.clicks,
+                    "impressions": row.metrics.impressions,
+                    "cost": row.metrics.cost_micros / 1_000_000,
+                    "isNegative": row.ad_group_criterion.negative
+                }
+                
                 if gender_id not in stats["gender"]:
                     stats["gender"][gender_id] = stat_data
                 else:
@@ -816,9 +807,39 @@ def get_demographic_stats():
                     stats["gender"][gender_id]["clicks"] += stat_data["clicks"]
                     stats["gender"][gender_id]["impressions"] += stat_data["impressions"]
                     stats["gender"][gender_id]["cost"] += stat_data["cost"]
+        except Exception as e:
+            print(f"⚠️ No se pudieron obtener stats de género: {str(e)}")
+        
+        # Query 2: Obtener estadísticas de EDAD
+        age_query = f"""
+            SELECT
+                ad_group_criterion.age_range.type,
+                ad_group_criterion.negative,
+                metrics.conversions,
+                metrics.conversions_value,
+                metrics.clicks,
+                metrics.impressions,
+                metrics.cost_micros
+            FROM age_range_view
+            WHERE ad_group.id = {ad_group_id}
+                AND segments.date BETWEEN '{date_start}' AND '{date_end}'
+        """
+        
+        try:
+            age_response = google_ads_service.search(customer_id=customer_id, query=age_query)
             
-            elif criterion.type_.name == "AGE_RANGE":
-                age_id = str(criterion.age_range.type.value)
+            for row in age_response:
+                age_id = str(row.ad_group_criterion.age_range.type.value)
+                
+                stat_data = {
+                    "conversions": row.metrics.conversions,
+                    "conversionsValue": row.metrics.conversions_value,
+                    "clicks": row.metrics.clicks,
+                    "impressions": row.metrics.impressions,
+                    "cost": row.metrics.cost_micros / 1_000_000,
+                    "isNegative": row.ad_group_criterion.negative
+                }
+                
                 if age_id not in stats["age"]:
                     stats["age"][age_id] = stat_data
                 else:
@@ -827,9 +848,41 @@ def get_demographic_stats():
                     stats["age"][age_id]["clicks"] += stat_data["clicks"]
                     stats["age"][age_id]["impressions"] += stat_data["impressions"]
                     stats["age"][age_id]["cost"] += stat_data["cost"]
+        except Exception as e:
+            print(f"⚠️ No se pudieron obtener stats de edad: {str(e)}")
+        
+        # Query 3: Obtener estadísticas de INGRESO (Parental Status como proxy)
+        # Nota: Google Ads no tiene income_range_view, usaremos parental_status_view como aproximación
+        income_query = f"""
+            SELECT
+                ad_group_criterion.parental_status.type,
+                ad_group_criterion.negative,
+                metrics.conversions,
+                metrics.conversions_value,
+                metrics.clicks,
+                metrics.impressions,
+                metrics.cost_micros
+            FROM parental_status_view
+            WHERE ad_group.id = {ad_group_id}
+                AND segments.date BETWEEN '{date_start}' AND '{date_end}'
+        """
+        
+        try:
+            income_response = google_ads_service.search(customer_id=customer_id, query=income_query)
             
-            elif criterion.type_.name == "INCOME_RANGE":
-                income_id = str(criterion.income_range.type.value)
+            for row in income_response:
+                # Mapear parental status a income aproximado
+                income_id = str(row.ad_group_criterion.parental_status.type.value)
+                
+                stat_data = {
+                    "conversions": row.metrics.conversions,
+                    "conversionsValue": row.metrics.conversions_value,
+                    "clicks": row.metrics.clicks,
+                    "impressions": row.metrics.impressions,
+                    "cost": row.metrics.cost_micros / 1_000_000,
+                    "isNegative": row.ad_group_criterion.negative
+                }
+                
                 if income_id not in stats["income"]:
                     stats["income"][income_id] = stat_data
                 else:
@@ -838,6 +891,10 @@ def get_demographic_stats():
                     stats["income"][income_id]["clicks"] += stat_data["clicks"]
                     stats["income"][income_id]["impressions"] += stat_data["impressions"]
                     stats["income"][income_id]["cost"] += stat_data["cost"]
+        except Exception as e:
+            print(f"⚠️ No se pudieron obtener stats de ingreso: {str(e)}")
+        
+        print(f"✅ Stats obtenidas: {len(stats['gender'])} gender, {len(stats['age'])} age, {len(stats['income'])} income")
         
         result = jsonify({
             "success": True,
