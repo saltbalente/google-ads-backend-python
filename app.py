@@ -722,5 +722,169 @@ def add_keywords():
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
 
+@app.route('/api/demographics/stats', methods=['POST', 'OPTIONS'])
+def get_demographic_stats():
+    """Obtiene estadísticas de conversiones por segmento demográfico
+    
+    Retorna conversiones por género, edad e ingresos para un ad group y rango de fechas específico.
+    """
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId')
+        ad_group_id = data.get('adGroupId')
+        days = data.get('days', 7)  # Por defecto 7 días
+        
+        if not all([customer_id, ad_group_id]):
+            return jsonify({
+                "success": False,
+                "message": "Faltan customerId o adGroupId"
+            }), 400
+        
+        # Crear cliente
+        client = get_google_ads_client()
+        google_ads_service = client.get_service("GoogleAdsService")
+        
+        # Calcular fecha de inicio
+        from datetime import datetime, timedelta
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        date_start = start_date.strftime("%Y-%m-%d")
+        date_end = end_date.strftime("%Y-%m-%d")
+        
+        # Query para obtener estadísticas por criterio demográfico
+        query = f"""
+            SELECT
+                ad_group_criterion.criterion_id,
+                ad_group_criterion.type,
+                ad_group_criterion.gender.type,
+                ad_group_criterion.age_range.type,
+                ad_group_criterion.income_range.type,
+                ad_group_criterion.negative,
+                metrics.conversions,
+                metrics.conversions_value,
+                metrics.clicks,
+                metrics.impressions,
+                metrics.cost_micros
+            FROM ad_group_criterion
+            WHERE ad_group_criterion.ad_group = 'customers/{customer_id}/adGroups/{ad_group_id}'
+                AND ad_group_criterion.type IN ('GENDER', 'AGE_RANGE', 'INCOME_RANGE')
+                AND segments.date BETWEEN '{date_start}' AND '{date_end}'
+        """
+        
+        response = google_ads_service.search(customer_id=customer_id, query=query)
+        
+        # Organizar estadísticas por tipo
+        stats = {
+            "gender": {},
+            "age": {},
+            "income": {}
+        }
+        
+        for row in response:
+            criterion = row.ad_group_criterion
+            metrics = row.metrics
+            
+            # Crear objeto de stats
+            stat_data = {
+                "conversions": metrics.conversions,
+                "conversionsValue": metrics.conversions_value,
+                "clicks": metrics.clicks,
+                "impressions": metrics.impressions,
+                "cost": metrics.cost_micros / 1_000_000,  # Convertir a USD
+                "isNegative": criterion.negative
+            }
+            
+            # Clasificar por tipo
+            if criterion.type_.name == "GENDER":
+                gender_id = str(criterion.gender.type.value)
+                if gender_id not in stats["gender"]:
+                    stats["gender"][gender_id] = stat_data
+                else:
+                    # Sumar métricas si ya existe
+                    stats["gender"][gender_id]["conversions"] += stat_data["conversions"]
+                    stats["gender"][gender_id]["conversionsValue"] += stat_data["conversionsValue"]
+                    stats["gender"][gender_id]["clicks"] += stat_data["clicks"]
+                    stats["gender"][gender_id]["impressions"] += stat_data["impressions"]
+                    stats["gender"][gender_id]["cost"] += stat_data["cost"]
+            
+            elif criterion.type_.name == "AGE_RANGE":
+                age_id = str(criterion.age_range.type.value)
+                if age_id not in stats["age"]:
+                    stats["age"][age_id] = stat_data
+                else:
+                    stats["age"][age_id]["conversions"] += stat_data["conversions"]
+                    stats["age"][age_id]["conversionsValue"] += stat_data["conversionsValue"]
+                    stats["age"][age_id]["clicks"] += stat_data["clicks"]
+                    stats["age"][age_id]["impressions"] += stat_data["impressions"]
+                    stats["age"][age_id]["cost"] += stat_data["cost"]
+            
+            elif criterion.type_.name == "INCOME_RANGE":
+                income_id = str(criterion.income_range.type.value)
+                if income_id not in stats["income"]:
+                    stats["income"][income_id] = stat_data
+                else:
+                    stats["income"][income_id]["conversions"] += stat_data["conversions"]
+                    stats["income"][income_id]["conversionsValue"] += stat_data["conversionsValue"]
+                    stats["income"][income_id]["clicks"] += stat_data["clicks"]
+                    stats["income"][income_id]["impressions"] += stat_data["impressions"]
+                    stats["income"][income_id]["cost"] += stat_data["cost"]
+        
+        result = jsonify({
+            "success": True,
+            "stats": stats,
+            "dateRange": {
+                "start": date_start,
+                "end": date_end,
+                "days": days
+            }
+        })
+        
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        errors = []
+        error_details = []
+        
+        for error in ex.failure.errors:
+            error_string = f'Error code: {error.error_code} | Message: {error.message}'
+            errors.append(error_string)
+            error_details.append({
+                'error_code': str(error.error_code),
+                'message': error.message
+            })
+        
+        print(f"❌ GoogleAdsException obteniendo demographic stats: {errors}")
+        
+        result = jsonify({
+            "success": False,
+            "message": "Error obteniendo estadísticas demográficas",
+            "errors": errors,
+            "error_details": error_details
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as ex:
+        print(f"❌ Error inesperado: {str(ex)}")
+        result = jsonify({
+            "success": False,
+            "message": str(ex)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
