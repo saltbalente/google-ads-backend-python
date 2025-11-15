@@ -270,7 +270,11 @@ def get_demographics():
 
 @app.route('/api/demographics/update', methods=['POST', 'OPTIONS'])
 def update_demographics():
-    """Actualiza la configuración demográfica de un grupo de anuncios"""
+    """Actualiza la configuración demográfica de un grupo de anuncios
+    
+    Los criterios activados se crean como targeting positivo (mostrar anuncios)
+    Los criterios desactivados se crean como targeting negativo (excluir)
+    """
     
     # CORS preflight
     if request.method == 'OPTIONS':
@@ -284,9 +288,11 @@ def update_demographics():
         data = request.json
         customer_id = data.get('customerId')
         ad_group_id = data.get('adGroupId')
-        gender_ids = data.get('genderCriteriaIds', [])
-        age_ids = data.get('ageRangeCriteriaIds', [])
-        income_ids = data.get('householdIncomeCriteriaIds', [])
+        
+        # Recibir estados de todos los criterios (true = incluir, false = excluir)
+        gender_states = data.get('genderStates', {})  # {"10": true, "11": false, "20": true}
+        age_states = data.get('ageStates', {})
+        income_states = data.get('incomeStates', {})
         
         if not all([customer_id, ad_group_id]):
             return jsonify({
@@ -295,7 +301,7 @@ def update_demographics():
             }), 400
         
         # Validar que hay al menos un criterio
-        if not (gender_ids or age_ids or income_ids):
+        if not (gender_states or age_states or income_states):
             return jsonify({
                 "success": False,
                 "message": "Debes proporcionar al menos un criterio demográfico"
@@ -331,68 +337,88 @@ def update_demographics():
         # Crear path del ad group
         ad_group_path = f"customers/{customer_id}/adGroups/{ad_group_id}"
         
-        # Agregar nuevos criterios de género
-        for gender_id in gender_ids:
+        # Contadores
+        positive_count = 0
+        negative_count = 0
+        
+        # Agregar criterios de género (positivos y negativos)
+        gender_enum = client.enums.GenderTypeEnum
+        gender_map = {"10": gender_enum.FEMALE, "11": gender_enum.MALE, "20": gender_enum.UNDETERMINED}
+        
+        for gender_id, is_enabled in gender_states.items():
+            if str(gender_id) not in gender_map:
+                continue
+                
             operation = client.get_type("AdGroupCriterionOperation")
             criterion = operation.create
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.negative = False
-            # Mapear los criterion IDs a los enums de Gender
-            gender_enum = client.enums.GenderTypeEnum
-            if str(gender_id) == "10":
-                criterion.gender.type_ = gender_enum.FEMALE
-            elif str(gender_id) == "11":
-                criterion.gender.type_ = gender_enum.MALE
-            elif str(gender_id) == "20":
-                criterion.gender.type_ = gender_enum.UNDETERMINED
-            else:
-                continue  # Skip invalid IDs
+            criterion.negative = not is_enabled  # false = incluir (positive), true = excluir (negative)
+            criterion.gender.type_ = gender_map[str(gender_id)]
             operations.append(operation)
+            
+            if is_enabled:
+                positive_count += 1
+            else:
+                negative_count += 1
         
-        # Agregar nuevos criterios de edad  
-        for age_id in age_ids:
+        # Agregar criterios de edad (positivos y negativos)
+        age_enum = client.enums.AgeRangeTypeEnum
+        age_map = {
+            "503001": age_enum.AGE_RANGE_18_24,
+            "503002": age_enum.AGE_RANGE_25_34,
+            "503003": age_enum.AGE_RANGE_35_44,
+            "503004": age_enum.AGE_RANGE_45_54,
+            "503005": age_enum.AGE_RANGE_55_64,
+            "503006": age_enum.AGE_RANGE_65_UP,
+            "503999": age_enum.AGE_RANGE_UNDETERMINED
+        }
+        
+        for age_id, is_enabled in age_states.items():
+            if str(age_id) not in age_map:
+                continue
+                
             operation = client.get_type("AdGroupCriterionOperation")
             criterion = operation.create
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.negative = False
-            # Mapear los criterion IDs a los enums de AgeRange
-            age_enum = client.enums.AgeRangeTypeEnum
-            age_map = {
-                "503001": age_enum.AGE_RANGE_18_24,
-                "503002": age_enum.AGE_RANGE_25_34,
-                "503003": age_enum.AGE_RANGE_35_44,
-                "503004": age_enum.AGE_RANGE_45_54,
-                "503005": age_enum.AGE_RANGE_55_64,
-                "503006": age_enum.AGE_RANGE_65_UP,
-                "503999": age_enum.AGE_RANGE_UNDETERMINED
-            }
-            if str(age_id) in age_map:
-                criterion.age_range.type_ = age_map[str(age_id)]
-                operations.append(operation)
+            criterion.negative = not is_enabled  # false = incluir (positive), true = excluir (negative)
+            criterion.age_range.type_ = age_map[str(age_id)]
+            operations.append(operation)
+            
+            if is_enabled:
+                positive_count += 1
+            else:
+                negative_count += 1
         
-        # Agregar nuevos criterios de ingreso
-        for income_id in income_ids:
+        # Agregar criterios de ingreso (positivos y negativos)
+        income_enum = client.enums.IncomeRangeTypeEnum
+        income_map = {
+            "31000": income_enum.INCOME_RANGE_0_50,
+            "31001": income_enum.INCOME_RANGE_50_60,
+            "31002": income_enum.INCOME_RANGE_60_70,
+            "31003": income_enum.INCOME_RANGE_70_80,
+            "31004": income_enum.INCOME_RANGE_80_90,
+            "31005": income_enum.INCOME_RANGE_90_UP,
+            "31006": income_enum.INCOME_RANGE_UNDETERMINED
+        }
+        
+        for income_id, is_enabled in income_states.items():
+            if str(income_id) not in income_map:
+                continue
+                
             operation = client.get_type("AdGroupCriterionOperation")
             criterion = operation.create
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.negative = False
-            # Mapear los criterion IDs a los enums de IncomeRange
-            income_enum = client.enums.IncomeRangeTypeEnum
-            income_map = {
-                "31000": income_enum.INCOME_RANGE_0_50,
-                "31001": income_enum.INCOME_RANGE_50_60,
-                "31002": income_enum.INCOME_RANGE_60_70,
-                "31003": income_enum.INCOME_RANGE_70_80,
-                "31004": income_enum.INCOME_RANGE_80_90,
-                "31005": income_enum.INCOME_RANGE_90_UP,
-                "31006": income_enum.INCOME_RANGE_UNDETERMINED
-            }
-            if str(income_id) in income_map:
-                criterion.income_range.type_ = income_map[str(income_id)]
-                operations.append(operation)
+            criterion.negative = not is_enabled  # false = incluir (positive), true = excluir (negative)
+            criterion.income_range.type_ = income_map[str(income_id)]
+            operations.append(operation)
+            
+            if is_enabled:
+                positive_count += 1
+            else:
+                negative_count += 1
         
         # Ejecutar todas las operaciones
         if operations:
@@ -410,9 +436,9 @@ def update_demographics():
             "message": f"Segmentación demográfica actualizada exitosamente",
             "updatedCount": updated_count,
             "details": {
-                "gendersUpdated": len(gender_ids),
-                "agesUpdated": len(age_ids),
-                "incomesUpdated": len(income_ids)
+                "positiveTargeting": positive_count,
+                "negativeTargeting": negative_count,
+                "totalCriteria": positive_count + negative_count
             }
         })
         
