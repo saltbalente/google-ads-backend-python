@@ -867,41 +867,87 @@ def get_demographic_stats():
             print(f"   Age criteria: {age_criteria}")
             print(f"   Income criteria: {income_criteria}")
             
-            if gender_count > 0:
-                for criterion in gender_criteria:
-                    stats["gender"][criterion["id"]] = {
-                        "conversions": total_conversions / gender_count if not criterion["negative"] else 0,
-                        "conversionsValue": total_conversions_value / gender_count if not criterion["negative"] else 0,
-                        "clicks": total_clicks / gender_count,
-                        "impressions": total_impressions / gender_count,
-                        "cost": total_cost / gender_count,
-                        "isNegative": criterion["negative"]
+            # Si no hay criterios configurados, mostrar métricas totales en los segmentos por defecto
+            if gender_count == 0 and age_count == 0 and income_count == 0:
+                print("⚠️ No hay criterios demográficos configurados")
+                print("💡 Mostrando stats totales distribuidas en segmentos por defecto")
+                
+                # Crear stats por defecto con las métricas totales divididas equitativamente
+                # Gender por defecto: Mujer (10), Hombre (11), Desconocido (20)
+                default_genders = ["10", "11", "20"]
+                for gender_id in default_genders:
+                    stats["gender"][gender_id] = {
+                        "conversions": total_conversions / 3,
+                        "conversionsValue": total_conversions_value / 3,
+                        "clicks": total_clicks / 3,
+                        "impressions": total_impressions / 3,
+                        "cost": total_cost / 3,
+                        "isNegative": False
                     }
-                    print(f"   ✅ Gender {criterion['id']}: {stats['gender'][criterion['id']]}")
-            
-            if age_count > 0:
-                for criterion in age_criteria:
-                    stats["age"][criterion["id"]] = {
-                        "conversions": total_conversions / age_count if not criterion["negative"] else 0,
-                        "conversionsValue": total_conversions_value / age_count if not criterion["negative"] else 0,
-                        "clicks": total_clicks / age_count,
-                        "impressions": total_impressions / age_count,
-                        "cost": total_cost / age_count,
-                        "isNegative": criterion["negative"]
+                
+                # Age por defecto: todos los rangos
+                default_ages = ["503001", "503002", "503003", "503004", "503005", "503006", "503999"]
+                for age_id in default_ages:
+                    stats["age"][age_id] = {
+                        "conversions": total_conversions / 7,
+                        "conversionsValue": total_conversions_value / 7,
+                        "clicks": total_clicks / 7,
+                        "impressions": total_impressions / 7,
+                        "cost": total_cost / 7,
+                        "isNegative": False
                     }
-            
-            if income_count > 0:
-                for criterion in income_criteria:
-                    stats["income"][criterion["id"]] = {
-                        "conversions": total_conversions / income_count if not criterion["negative"] else 0,
-                        "conversionsValue": total_conversions_value / income_count if not criterion["negative"] else 0,
-                        "clicks": total_clicks / income_count,
-                        "impressions": total_impressions / income_count,
-                        "cost": total_cost / income_count,
-                        "isNegative": criterion["negative"]
+                
+                # Income por defecto: todos los rangos
+                default_incomes = ["31000", "31001", "31002", "31003", "31004", "31005", "31006"]
+                for income_id in default_incomes:
+                    stats["income"][income_id] = {
+                        "conversions": total_conversions / 7,
+                        "conversionsValue": total_conversions_value / 7,
+                        "clicks": total_clicks / 7,
+                        "impressions": total_impressions / 7,
+                        "cost": total_cost / 7,
+                        "isNegative": False
                     }
+                
+                print(f"✅ Stats por defecto creadas: {len(stats['gender'])} gender, {len(stats['age'])} age, {len(stats['income'])} income")
             
-            print(f"✅ Stats distribuidas: {len(stats['gender'])} gender, {len(stats['age'])} age, {len(stats['income'])} income")
+            else:
+                # Hay algunos criterios configurados, distribuir solo entre esos
+                if gender_count > 0:
+                    for criterion in gender_criteria:
+                        stats["gender"][criterion["id"]] = {
+                            "conversions": total_conversions / gender_count if not criterion["negative"] else 0,
+                            "conversionsValue": total_conversions_value / gender_count if not criterion["negative"] else 0,
+                            "clicks": total_clicks / gender_count,
+                            "impressions": total_impressions / gender_count,
+                            "cost": total_cost / gender_count,
+                            "isNegative": criterion["negative"]
+                        }
+                        print(f"   ✅ Gender {criterion['id']}: {stats['gender'][criterion['id']]}")
+                
+                if age_count > 0:
+                    for criterion in age_criteria:
+                        stats["age"][criterion["id"]] = {
+                            "conversions": total_conversions / age_count if not criterion["negative"] else 0,
+                            "conversionsValue": total_conversions_value / age_count if not criterion["negative"] else 0,
+                            "clicks": total_clicks / age_count,
+                            "impressions": total_impressions / age_count,
+                            "cost": total_cost / age_count,
+                            "isNegative": criterion["negative"]
+                        }
+                
+                if income_count > 0:
+                    for criterion in income_criteria:
+                        stats["income"][criterion["id"]] = {
+                            "conversions": total_conversions / income_count if not criterion["negative"] else 0,
+                            "conversionsValue": total_conversions_value / income_count if not criterion["negative"] else 0,
+                            "clicks": total_clicks / income_count,
+                            "impressions": total_impressions / income_count,
+                            "cost": total_cost / income_count,
+                            "isNegative": criterion["negative"]
+                        }
+                
+                print(f"✅ Stats distribuidas: {len(stats['gender'])} gender, {len(stats['age'])} age, {len(stats['income'])} income")
             
         except Exception as e:
             print(f"⚠️ Error obteniendo stats: {str(e)}")
