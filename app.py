@@ -862,6 +862,11 @@ def get_demographic_stats():
             # Nota: Esta es una aproximación ya que Google Ads no reporta métricas
             # individuales por criterio demográfico en queries GAQL estándar
             
+            print(f"📊 Distribuyendo métricas entre criterios:")
+            print(f"   Gender criteria: {gender_criteria}")
+            print(f"   Age criteria: {age_criteria}")
+            print(f"   Income criteria: {income_criteria}")
+            
             if gender_count > 0:
                 for criterion in gender_criteria:
                     stats["gender"][criterion["id"]] = {
@@ -872,6 +877,7 @@ def get_demographic_stats():
                         "cost": total_cost / gender_count,
                         "isNegative": criterion["negative"]
                     }
+                    print(f"   ✅ Gender {criterion['id']}: {stats['gender'][criterion['id']]}")
             
             if age_count > 0:
                 for criterion in age_criteria:
