@@ -272,8 +272,11 @@ def get_demographics():
 def update_demographics():
     """Actualiza la configuración demográfica de un grupo de anuncios
     
-    Los criterios activados se crean como targeting positivo (mostrar anuncios)
-    Los criterios desactivados se crean como targeting negativo (excluir)
+    Los criterios activados (true) se crean como targeting positivo.
+    Los criterios desactivados (false) NO se crean - significa "sin restricción para ese segmento".
+    
+    Nota: Google Ads NO permite negative targeting de demografía a nivel de ad group.
+    Solo se pueden crear criterios positivos (incluir segmentos específicos).
     """
     
     # CORS preflight
@@ -289,7 +292,7 @@ def update_demographics():
         customer_id = data.get('customerId')
         ad_group_id = data.get('adGroupId')
         
-        # Recibir estados de todos los criterios (true = incluir, false = excluir)
+        # Recibir estados de todos los criterios (true = incluir, false = no incluir)
         gender_states = data.get('genderStates', {})  # {"10": true, "11": false, "20": true}
         age_states = data.get('ageStates', {})
         income_states = data.get('incomeStates', {})
@@ -300,12 +303,7 @@ def update_demographics():
                 "message": "Faltan customerId o adGroupId"
             }), 400
         
-        # Validar que hay al menos un criterio
-        if not (gender_states or age_states or income_states):
-            return jsonify({
-                "success": False,
-                "message": "Debes proporcionar al menos un criterio demográfico"
-            }), 400
+        # No validar si hay criterios - permitir vacío para remover todos
         
         # Crear cliente
         client = get_google_ads_client()
@@ -337,32 +335,28 @@ def update_demographics():
         # Crear path del ad group
         ad_group_path = f"customers/{customer_id}/adGroups/{ad_group_id}"
         
-        # Contadores
-        positive_count = 0
-        negative_count = 0
+        # Contador de criterios creados
+        created_count = 0
         
-        # Agregar criterios de género (positivos y negativos)
+        # Agregar criterios de género (solo los activados)
         gender_enum = client.enums.GenderTypeEnum
         gender_map = {"10": gender_enum.FEMALE, "11": gender_enum.MALE, "20": gender_enum.UNDETERMINED}
         
         for gender_id, is_enabled in gender_states.items():
             if str(gender_id) not in gender_map:
                 continue
-                
-            operation = client.get_type("AdGroupCriterionOperation")
-            criterion = operation.create
-            criterion.ad_group = ad_group_path
-            criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.negative = not is_enabled  # false = incluir (positive), true = excluir (negative)
-            criterion.gender.type_ = gender_map[str(gender_id)]
-            operations.append(operation)
             
+            # Solo crear criterios para los segmentos ACTIVADOS
             if is_enabled:
-                positive_count += 1
-            else:
-                negative_count += 1
+                operation = client.get_type("AdGroupCriterionOperation")
+                criterion = operation.create
+                criterion.ad_group = ad_group_path
+                criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+                criterion.gender.type_ = gender_map[str(gender_id)]
+                operations.append(operation)
+                created_count += 1
         
-        # Agregar criterios de edad (positivos y negativos)
+        # Agregar criterios de edad (solo los activados)
         age_enum = client.enums.AgeRangeTypeEnum
         age_map = {
             "503001": age_enum.AGE_RANGE_18_24,
@@ -377,21 +371,18 @@ def update_demographics():
         for age_id, is_enabled in age_states.items():
             if str(age_id) not in age_map:
                 continue
-                
-            operation = client.get_type("AdGroupCriterionOperation")
-            criterion = operation.create
-            criterion.ad_group = ad_group_path
-            criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.negative = not is_enabled  # false = incluir (positive), true = excluir (negative)
-            criterion.age_range.type_ = age_map[str(age_id)]
-            operations.append(operation)
             
+            # Solo crear criterios para los segmentos ACTIVADOS
             if is_enabled:
-                positive_count += 1
-            else:
-                negative_count += 1
+                operation = client.get_type("AdGroupCriterionOperation")
+                criterion = operation.create
+                criterion.ad_group = ad_group_path
+                criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+                criterion.age_range.type_ = age_map[str(age_id)]
+                operations.append(operation)
+                created_count += 1
         
-        # Agregar criterios de ingreso (positivos y negativos)
+        # Agregar criterios de ingreso (solo los activados)
         income_enum = client.enums.IncomeRangeTypeEnum
         income_map = {
             "31000": income_enum.INCOME_RANGE_0_50,
@@ -406,19 +397,16 @@ def update_demographics():
         for income_id, is_enabled in income_states.items():
             if str(income_id) not in income_map:
                 continue
-                
-            operation = client.get_type("AdGroupCriterionOperation")
-            criterion = operation.create
-            criterion.ad_group = ad_group_path
-            criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.negative = not is_enabled  # false = incluir (positive), true = excluir (negative)
-            criterion.income_range.type_ = income_map[str(income_id)]
-            operations.append(operation)
             
+            # Solo crear criterios para los segmentos ACTIVADOS
             if is_enabled:
-                positive_count += 1
-            else:
-                negative_count += 1
+                operation = client.get_type("AdGroupCriterionOperation")
+                criterion = operation.create
+                criterion.ad_group = ad_group_path
+                criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+                criterion.income_range.type_ = income_map[str(income_id)]
+                operations.append(operation)
+                created_count += 1
         
         # Ejecutar todas las operaciones
         if operations:
@@ -436,9 +424,8 @@ def update_demographics():
             "message": f"Segmentación demográfica actualizada exitosamente",
             "updatedCount": updated_count,
             "details": {
-                "positiveTargeting": positive_count,
-                "negativeTargeting": negative_count,
-                "totalCriteria": positive_count + negative_count
+                "criteriaCreated": created_count,
+                "note": "Solo se crean criterios para segmentos activados. Desactivados = sin restricción."
             }
         })
         
