@@ -164,5 +164,246 @@ def create_ad():
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
 
+@app.route('/api/demographics/get', methods=['POST', 'OPTIONS'])
+def get_demographics():
+    """Obtiene la configuración demográfica actual de un grupo de anuncios"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId')
+        ad_group_id = data.get('adGroupId')
+        
+        if not all([customer_id, ad_group_id]):
+            return jsonify({
+                "success": False,
+                "message": "Faltan customerId o adGroupId"
+            }), 400
+        
+        # Crear cliente
+        client = get_google_ads_client()
+        google_ads_service = client.get_service("GoogleAdsService")
+        
+        # Query para obtener criterios demográficos actuales
+        query = f"""
+            SELECT
+                ad_group_criterion.criterion_id,
+                ad_group_criterion.type,
+                ad_group_criterion.gender.type,
+                ad_group_criterion.age_range.type,
+                ad_group_criterion.income_range.type,
+                ad_group_criterion.negative
+            FROM ad_group_criterion
+            WHERE ad_group_criterion.ad_group = 'customers/{customer_id}/adGroups/{ad_group_id}'
+                AND ad_group_criterion.type IN ('GENDER', 'AGE_RANGE', 'INCOME_RANGE')
+                AND ad_group_criterion.status = 'ENABLED'
+        """
+        
+        response = google_ads_service.search(customer_id=customer_id, query=query)
+        
+        genders = []
+        age_ranges = []
+        household_incomes = []
+        
+        for row in response:
+            criterion = row.ad_group_criterion
+            
+            # Solo criterios positivos (no negativos)
+            if criterion.negative:
+                continue
+            
+            if criterion.type_.name == 'GENDER':
+                gender_id = str(criterion.gender.type.value)
+                if gender_id not in genders:
+                    genders.append(gender_id)
+            
+            elif criterion.type_.name == 'AGE_RANGE':
+                age_id = str(criterion.age_range.type.value)
+                if age_id not in age_ranges:
+                    age_ranges.append(age_id)
+            
+            elif criterion.type_.name == 'INCOME_RANGE':
+                income_id = str(criterion.income_range.type.value)
+                if income_id not in household_incomes:
+                    household_incomes.append(income_id)
+        
+        result = jsonify({
+            "success": True,
+            "message": "Configuración demográfica obtenida",
+            "demographics": {
+                "genders": genders,
+                "ageRanges": age_ranges,
+                "householdIncomes": household_incomes
+            }
+        })
+        
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        errors = [{"message": error.message} for error in ex.failure.errors]
+        
+        result = jsonify({
+            "success": False,
+            "message": "Error obteniendo demografía",
+            "errors": errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as ex:
+        result = jsonify({
+            "success": False,
+            "message": str(ex)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/demographics/update', methods=['POST', 'OPTIONS'])
+def update_demographics():
+    """Actualiza la configuración demográfica de un grupo de anuncios"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId')
+        ad_group_id = data.get('adGroupId')
+        gender_ids = data.get('genderCriteriaIds', [])
+        age_ids = data.get('ageRangeCriteriaIds', [])
+        income_ids = data.get('householdIncomeCriteriaIds', [])
+        
+        if not all([customer_id, ad_group_id]):
+            return jsonify({
+                "success": False,
+                "message": "Faltan customerId o adGroupId"
+            }), 400
+        
+        # Validar que hay al menos un criterio
+        if not (gender_ids or age_ids or income_ids):
+            return jsonify({
+                "success": False,
+                "message": "Debes proporcionar al menos un criterio demográfico"
+            }), 400
+        
+        # Crear cliente
+        client = get_google_ads_client()
+        ad_group_criterion_service = client.get_service("AdGroupCriterionService")
+        google_ads_service = client.get_service("GoogleAdsService")
+        
+        # Primero, obtener todos los criterios actuales
+        query = f"""
+            SELECT
+                ad_group_criterion.criterion_id,
+                ad_group_criterion.resource_name,
+                ad_group_criterion.type
+            FROM ad_group_criterion
+            WHERE ad_group_criterion.ad_group = 'customers/{customer_id}/adGroups/{ad_group_id}'
+                AND ad_group_criterion.type IN ('GENDER', 'AGE_RANGE', 'INCOME_RANGE')
+        """
+        
+        current_response = google_ads_service.search(customer_id=customer_id, query=query)
+        current_criteria = [row.ad_group_criterion.resource_name for row in current_response]
+        
+        operations = []
+        
+        # Eliminar todos los criterios actuales
+        for resource_name in current_criteria:
+            operation = client.get_type("AdGroupCriterionOperation")
+            operation.remove = resource_name
+            operations.append(operation)
+        
+        # Crear path del ad group
+        ad_group_path = f"customers/{customer_id}/adGroups/{ad_group_id}"
+        
+        # Agregar nuevos criterios de género
+        for gender_id in gender_ids:
+            operation = client.get_type("AdGroupCriterionOperation")
+            criterion = operation.create
+            criterion.ad_group = ad_group_path
+            criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+            criterion.gender.type_ = int(gender_id)
+            operations.append(operation)
+        
+        # Agregar nuevos criterios de edad
+        for age_id in age_ids:
+            operation = client.get_type("AdGroupCriterionOperation")
+            criterion = operation.create
+            criterion.ad_group = ad_group_path
+            criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+            criterion.age_range.type_ = int(age_id)
+            operations.append(operation)
+        
+        # Agregar nuevos criterios de ingreso
+        for income_id in income_ids:
+            operation = client.get_type("AdGroupCriterionOperation")
+            criterion = operation.create
+            criterion.ad_group = ad_group_path
+            criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+            criterion.income_range.type_ = int(income_id)
+            operations.append(operation)
+        
+        # Ejecutar todas las operaciones
+        if operations:
+            response = ad_group_criterion_service.mutate_ad_group_criteria(
+                customer_id=customer_id,
+                operations=operations
+            )
+            
+            updated_count = len(response.results)
+        else:
+            updated_count = 0
+        
+        result = jsonify({
+            "success": True,
+            "message": f"Segmentación demográfica actualizada exitosamente",
+            "updatedCount": updated_count,
+            "details": {
+                "gendersUpdated": len(gender_ids),
+                "agesUpdated": len(age_ids),
+                "incomesUpdated": len(income_ids)
+            }
+        })
+        
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        
+        result = jsonify({
+            "success": False,
+            "message": "Error actualizando demografía",
+            "errors": errors,
+            "request_id": ex.request_id
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as ex:
+        result = jsonify({
+            "success": False,
+            "message": str(ex)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
