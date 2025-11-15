@@ -234,6 +234,22 @@ def get_demographics():
                 if income_id not in household_incomes:
                     household_incomes.append(income_id)
         
+        # Si no hay criterios configurados, significa que TODOS están activos por defecto
+        # (Google Ads sin restricciones = targeting a todos)
+        if len(genders) == 0 and len(age_ranges) == 0 and len(household_incomes) == 0:
+            print("⚠️ No hay criterios demográficos configurados - usando defaults (todos activos)")
+            
+            # Todos los géneros por defecto
+            genders = ["10", "11", "20"]  # Mujer, Hombre, Desconocido
+            
+            # Todas las edades por defecto
+            age_ranges = ["503001", "503002", "503003", "503004", "503005", "503006", "503999"]
+            
+            # Todos los ingresos por defecto
+            household_incomes = ["31000", "31001", "31002", "31003", "31004", "31005", "31006"]
+        
+        print(f"✅ Demographics cargadas: {len(genders)} genders, {len(age_ranges)} ages, {len(household_incomes)} incomes")
+        
         result = jsonify({
             "success": True,
             "message": "Configuración demográfica obtenida",
