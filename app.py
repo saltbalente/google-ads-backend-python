@@ -130,15 +130,26 @@ def create_ad():
     except GoogleAdsException as ex:
         errors = []
         for error in ex.failure.errors:
-            errors.append({
+            error_info = {
                 "message": error.message,
-                "error_code": error.error_code
-            })
+                "error_code": str(error.error_code)
+            }
+            # Agregar detalles de políticas si existen
+            if error.details and hasattr(error.details, 'policy_finding_details'):
+                policy_topics = []
+                for entry in error.details.policy_finding_details.policy_topic_entries:
+                    policy_topics.append({
+                        "type": str(entry.type_),
+                        "topic": entry.topic
+                    })
+                error_info["policy_violations"] = policy_topics
+            errors.append(error_info)
         
         result = jsonify({
             "success": False,
             "error": "Error de Google Ads API",
-            "errors": errors
+            "errors": errors,
+            "request_id": ex.request_id
         }), 500
         
         result[0].headers.add('Access-Control-Allow-Origin', '*')
