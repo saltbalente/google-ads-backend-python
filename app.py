@@ -884,6 +884,7 @@ def get_demographic_stats():
                         "cost": total_cost / 3,
                         "isNegative": False
                     }
+                    print(f"   🔹 Gender {gender_id}: {total_conversions / 3:.2f} conv, {total_clicks / 3:.0f} clicks")
                 
                 # Age por defecto: todos los rangos
                 default_ages = ["503001", "503002", "503003", "503004", "503005", "503006", "503999"]
@@ -896,6 +897,7 @@ def get_demographic_stats():
                         "cost": total_cost / 7,
                         "isNegative": False
                     }
+                    print(f"   🔹 Age {age_id}: {total_conversions / 7:.2f} conv, {total_clicks / 7:.0f} clicks")
                 
                 # Income por defecto: todos los rangos
                 default_incomes = ["31000", "31001", "31002", "31003", "31004", "31005", "31006"]
