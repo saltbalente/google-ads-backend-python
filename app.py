@@ -231,30 +231,44 @@ def get_demographics():
         response = google_ads_service.search(customer_id=customer_id, query=query)
         
         genders = []
+        genders_excluded = []
         age_ranges = []
+        age_ranges_excluded = []
         household_incomes = []
+        household_incomes_excluded = []
         
         for row in response:
             criterion = row.ad_group_criterion
             
-            # Solo criterios positivos (no negativos)
-            if criterion.negative:
-                continue
+            # Separar criterios positivos y negativos
+            is_excluded = criterion.negative
             
             if criterion.type_.name == 'GENDER':
                 gender_id = str(criterion.gender.type.value)
-                if gender_id not in genders:
-                    genders.append(gender_id)
+                if is_excluded:
+                    if gender_id not in genders_excluded:
+                        genders_excluded.append(gender_id)
+                else:
+                    if gender_id not in genders:
+                        genders.append(gender_id)
             
             elif criterion.type_.name == 'AGE_RANGE':
                 age_id = str(criterion.age_range.type.value)
-                if age_id not in age_ranges:
-                    age_ranges.append(age_id)
+                if is_excluded:
+                    if age_id not in age_ranges_excluded:
+                        age_ranges_excluded.append(age_id)
+                else:
+                    if age_id not in age_ranges:
+                        age_ranges.append(age_id)
             
             elif criterion.type_.name == 'INCOME_RANGE':
                 income_id = str(criterion.income_range.type.value)
-                if income_id not in household_incomes:
-                    household_incomes.append(income_id)
+                if is_excluded:
+                    if income_id not in household_incomes_excluded:
+                        household_incomes_excluded.append(income_id)
+                else:
+                    if income_id not in household_incomes:
+                        household_incomes.append(income_id)
         
         # Si no hay criterios configurados, significa que TODOS están activos por defecto
         # (Google Ads sin restricciones = targeting a todos)
@@ -270,15 +284,21 @@ def get_demographics():
             # Todos los ingresos por defecto
             household_incomes = ["31000", "31001", "31002", "31003", "31004", "31005", "31006"]
         
-        print(f"✅ Demographics cargadas: {len(genders)} genders, {len(age_ranges)} ages, {len(household_incomes)} incomes")
+        print(f"✅ Demographics cargadas:")
+        print(f"   Genders: {len(genders)} included, {len(genders_excluded)} excluded")
+        print(f"   Ages: {len(age_ranges)} included, {len(age_ranges_excluded)} excluded")
+        print(f"   Incomes: {len(household_incomes)} included, {len(household_incomes_excluded)} excluded")
         
         result = jsonify({
             "success": True,
             "message": "Configuración demográfica obtenida",
             "demographics": {
                 "genders": genders,
+                "gendersExcluded": genders_excluded,
                 "ageRanges": age_ranges,
-                "householdIncomes": household_incomes
+                "ageRangesExcluded": age_ranges_excluded,
+                "householdIncomes": household_incomes,
+                "householdIncomesExcluded": household_incomes_excluded
             }
         })
         
@@ -329,8 +349,8 @@ def update_demographics():
         customer_id = data.get('customerId')
         ad_group_id = data.get('adGroupId')
         
-        # Recibir estados de todos los criterios (true = incluir, false = excluir)
-        gender_states = data.get('genderStates', {})  # {"10": true, "11": false, "20": true}
+        # Recibir estados de todos los criterios ("included" = incluir, "excluded" = excluir, "notSet" = sin configurar)
+        gender_states = data.get('genderStates', {})  # {"10": "included", "11": "excluded", "20": "notSet"}
         age_states = data.get('ageStates', {})
         income_states = data.get('incomeStates', {})
         
@@ -380,19 +400,23 @@ def update_demographics():
         gender_enum = client.enums.GenderTypeEnum
         gender_map = {"10": gender_enum.FEMALE, "11": gender_enum.MALE, "20": gender_enum.UNDETERMINED}
         
-        for gender_id, is_enabled in gender_states.items():
+        for gender_id, state in gender_states.items():
             if str(gender_id) not in gender_map:
+                continue
+            
+            # Solo crear criterios para "included" y "excluded", ignorar "notSet"
+            if state == "notSet":
                 continue
             
             operation = client.get_type("AdGroupCriterionOperation")
             criterion = operation.create
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.negative = not is_enabled  # true = incluir (negative=False), false = excluir (negative=True)
+            criterion.negative = (state == "excluded")  # "excluded" = negative=True, "included" = negative=False
             criterion.gender.type_ = gender_map[str(gender_id)]
             operations.append(operation)
             
-            if is_enabled:
+            if state == "included":
                 positive_count += 1
             else:
                 negative_count += 1
@@ -409,19 +433,23 @@ def update_demographics():
             "503999": age_enum.AGE_RANGE_UNDETERMINED
         }
         
-        for age_id, is_enabled in age_states.items():
+        for age_id, state in age_states.items():
             if str(age_id) not in age_map:
+                continue
+            
+            # Solo crear criterios para "included" y "excluded", ignorar "notSet"
+            if state == "notSet":
                 continue
             
             operation = client.get_type("AdGroupCriterionOperation")
             criterion = operation.create
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.negative = not is_enabled  # true = incluir (negative=False), false = excluir (negative=True)
+            criterion.negative = (state == "excluded")  # "excluded" = negative=True, "included" = negative=False
             criterion.age_range.type_ = age_map[str(age_id)]
             operations.append(operation)
             
-            if is_enabled:
+            if state == "included":
                 positive_count += 1
             else:
                 negative_count += 1
@@ -438,19 +466,23 @@ def update_demographics():
             "31006": income_enum.INCOME_RANGE_UNDETERMINED
         }
         
-        for income_id, is_enabled in income_states.items():
+        for income_id, state in income_states.items():
             if str(income_id) not in income_map:
+                continue
+            
+            # Solo crear criterios para "included" y "excluded", ignorar "notSet"
+            if state == "notSet":
                 continue
             
             operation = client.get_type("AdGroupCriterionOperation")
             criterion = operation.create
             criterion.ad_group = ad_group_path
             criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.negative = not is_enabled  # true = incluir (negative=False), false = excluir (negative=True)
+            criterion.negative = (state == "excluded")  # "excluded" = negative=True, "included" = negative=False
             criterion.income_range.type_ = income_map[str(income_id)]
             operations.append(operation)
             
-            if is_enabled:
+            if state == "included":
                 positive_count += 1
             else:
                 negative_count += 1
