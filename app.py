@@ -58,6 +58,28 @@ def create_ad():
         descriptions = data.get('descriptions', [])
         final_url = data.get('finalUrl')
         
+        # Eliminar duplicados manteniendo el orden
+        # Google Ads API rechaza assets duplicados en la misma operación
+        seen_headlines = set()
+        unique_headlines = []
+        for h in headlines:
+            if h not in seen_headlines:
+                seen_headlines.add(h)
+                unique_headlines.append(h)
+        
+        seen_descriptions = set()
+        unique_descriptions = []
+        for d in descriptions:
+            if d not in seen_descriptions:
+                seen_descriptions.add(d)
+                unique_descriptions.append(d)
+        
+        headlines = unique_headlines
+        descriptions = unique_descriptions
+        
+        print(f"📝 Headlines después de eliminar duplicados: {len(headlines)} (originales: {len(data.get('headlines', []))})")
+        print(f"📝 Descriptions después de eliminar duplicados: {len(descriptions)} (originales: {len(data.get('descriptions', []))})")
+        
         # Validaciones
         if not all([customer_id, ad_group_id, headlines, descriptions, final_url]):
             return jsonify({
