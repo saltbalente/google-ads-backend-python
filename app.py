@@ -1605,3 +1605,166 @@ def pause_ad():
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
 
+
+
+# ==========================================
+# ENDPOINT: Buscar Anuncios RSA
+# ==========================================
+
+@app.route('/api/search-ads', methods=['POST', 'OPTIONS'])
+def search_ads():
+    """
+    Busca todos los anuncios RSA activos de una cuenta
+    
+    Request Body:
+    {
+        "customerId": "1234567890",
+        "limit": 200  // opcional, default 200
+    }
+    
+    Response:
+    {
+        "success": true,
+        "ads": [
+            {
+                "id": "12345678",
+                "adGroupId": "98765432",
+                "adGroupName": "Grupo de Anuncios 1",
+                "campaignId": "11111111",
+                "campaignName": "Campaña Test",
+                "headlines": ["Titulo 1", "Titulo 2", ...],
+                "descriptions": ["Descripcion 1", "Descripcion 2", ...],
+                "finalUrl": "https://example.com",
+                "status": "ENABLED"
+            },
+            ...
+        ],
+        "count": 42
+    }
+    """
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId')
+        limit = data.get('limit', 200)
+        
+        # Validar
+        if not customer_id:
+            result = jsonify({
+                'success': False,
+                'error': 'Falta parámetro requerido: customerId'
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        # Crear cliente
+        client = get_google_ads_client()
+        ga_service = client.get_service("GoogleAdsService")
+        
+        # Limpiar customer_id
+        customer_id = customer_id.replace('-', '')
+        
+        print(f"🔍 Buscando anuncios RSA para customer {customer_id}")
+        
+        # Query GAQL para obtener anuncios RSA
+        query = f"""
+            SELECT 
+                ad_group_ad.ad.id,
+                ad_group_ad.ad.name,
+                ad_group_ad.ad.responsive_search_ad.headlines,
+                ad_group_ad.ad.responsive_search_ad.descriptions,
+                ad_group_ad.ad.final_urls,
+                ad_group_ad.status,
+                ad_group.id,
+                ad_group.name,
+                campaign.id,
+                campaign.name
+            FROM ad_group_ad
+            WHERE ad_group_ad.ad.type = 'RESPONSIVE_SEARCH_AD'
+                AND ad_group_ad.status != 'REMOVED'
+            ORDER BY ad_group_ad.ad.id DESC
+            LIMIT {limit}
+        """
+        
+        response = ga_service.search(
+            customer_id=customer_id,
+            query=query
+        )
+        
+        ads = []
+        for row in response:
+            ad = row.ad_group_ad.ad
+            ad_group = row.ad_group
+            campaign = row.campaign
+            status = row.ad_group_ad.status
+            
+            # Extraer headlines
+            headlines = []
+            if ad.responsive_search_ad and ad.responsive_search_ad.headlines:
+                headlines = [h.text for h in ad.responsive_search_ad.headlines]
+            
+            # Extraer descriptions
+            descriptions = []
+            if ad.responsive_search_ad and ad.responsive_search_ad.descriptions:
+                descriptions = [d.text for d in ad.responsive_search_ad.descriptions]
+            
+            # Extraer final URL
+            final_url = ad.final_urls[0] if ad.final_urls else ""
+            
+            ads.append({
+                'id': str(ad.id),
+                'adGroupId': str(ad_group.id),
+                'adGroupName': ad_group.name,
+                'campaignId': str(campaign.id),
+                'campaignName': campaign.name,
+                'headlines': headlines,
+                'descriptions': descriptions,
+                'finalUrl': final_url,
+                'status': status.name
+            })
+        
+        print(f"✅ Encontrados {len(ads)} anuncios RSA")
+        
+        result = jsonify({
+            'success': True,
+            'ads': ads,
+            'count': len(ads)
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        error_message = f"Google Ads API Error: {ex.error.code().name}"
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': error_message,
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
