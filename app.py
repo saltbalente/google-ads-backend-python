@@ -1106,5 +1106,271 @@ def get_demographic_stats():
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
 
+
+# ==========================================
+# AGREGAR ESTE ENDPOINT AL FINAL DE app.py
+# (Antes de "if __name__ == '__main__':")
+# ==========================================
+
+@app.route('/api/analytics/campaign', methods=['POST', 'OPTIONS'])
+def get_campaign_analytics():
+    """
+    Obtiene analytics completo de una campaña
+    
+    Request Body:
+    {
+        "customer_id": "1234567890",
+        "campaign_id": "9876543210",
+        "start_date": "2025-01-01",
+        "end_date": "2025-01-31"
+    }
+    """
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        # Obtener datos del request
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        campaign_id = data.get('campaign_id')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        
+        # Validar
+        if not all([customer_id, campaign_id, start_date, end_date]):
+            result = jsonify({
+                'success': False,
+                'error': 'Faltan parámetros requeridos',
+                'required': ['customer_id', 'campaign_id', 'start_date', 'end_date']
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        # Crear cliente
+        client = get_google_ads_client()
+        ga_service = client.get_service("GoogleAdsService")
+        
+        # Limpiar customer_id
+        customer_id = customer_id.replace('-', '')
+        
+        print(f"📊 Fetching analytics for campaign {campaign_id}")
+        
+        # 1. Obtener keywords
+        keywords_query = f"""
+            SELECT
+              ad_group_criterion.criterion_id,
+              ad_group_criterion.keyword.text,
+              ad_group_criterion.keyword.match_type,
+              ad_group_criterion.quality_info.quality_score,
+              metrics.impressions,
+              metrics.clicks,
+              metrics.conversions,
+              metrics.cost_micros,
+              metrics.ctr,
+              metrics.conversions_from_interactions_rate
+            FROM keyword_view
+            WHERE campaign.id = '{campaign_id}'
+              AND segments.date BETWEEN '{start_date}' AND '{end_date}'
+              AND ad_group_criterion.status = 'ENABLED'
+            ORDER BY metrics.impressions DESC
+            LIMIT 100
+        """
+        
+        keywords_response = ga_service.search(
+            customer_id=customer_id,
+            query=keywords_query
+        )
+        
+        keywords = []
+        for row in keywords_response:
+            criterion = row.ad_group_criterion
+            metrics = row.metrics
+            
+            keywords.append({
+                'id': str(criterion.criterion_id),
+                'keyword': criterion.keyword.text,
+                'match_type': criterion.keyword.match_type.name,
+                'quality_score': criterion.quality_info.quality_score if criterion.quality_info else None,
+                'impressions': int(metrics.impressions),
+                'clicks': int(metrics.clicks),
+                'conversions': float(metrics.conversions),
+                'cost': float(metrics.cost_micros) / 1_000_000,
+                'ctr': float(metrics.ctr) * 100,
+                'conversion_rate': float(metrics.conversions_from_interactions_rate) * 100
+            })
+        
+        print(f"✅ Found {len(keywords)} keywords")
+        
+        # 2. Obtener ads
+        ads_query = f"""
+            SELECT
+              ad_group_ad.ad.id,
+              ad_group.name,
+              ad_group_ad.ad.responsive_search_ad.headlines,
+              ad_group_ad.status,
+              metrics.impressions,
+              metrics.clicks,
+              metrics.conversions,
+              metrics.cost_micros,
+              metrics.ctr,
+              metrics.conversions_from_interactions_rate
+            FROM ad_group_ad
+            WHERE campaign.id = '{campaign_id}'
+              AND segments.date BETWEEN '{start_date}' AND '{end_date}'
+              AND ad_group_ad.status = 'ENABLED'
+            ORDER BY metrics.impressions DESC
+            LIMIT 50
+        """
+        
+        ads_response = ga_service.search(
+            customer_id=customer_id,
+            query=ads_query
+        )
+        
+        ads = []
+        for row in ads_response:
+            ad = row.ad_group_ad.ad
+            ad_group = row.ad_group
+            metrics = row.metrics
+            
+            # Extraer headlines
+            headlines = []
+            if ad.responsive_search_ad and ad.responsive_search_ad.headlines:
+                headlines = [h.text for h in ad.responsive_search_ad.headlines]
+            
+            ads.append({
+                'id': str(ad.id),
+                'ad_group_name': ad_group.name,
+                'headlines': headlines,
+                'status': row.ad_group_ad.status.name,
+                'impressions': int(metrics.impressions),
+                'clicks': int(metrics.clicks),
+                'conversions': float(metrics.conversions),
+                'cost': float(metrics.cost_micros) / 1_000_000,
+                'ctr': float(metrics.ctr) * 100,
+                'conversion_rate': float(metrics.conversions_from_interactions_rate) * 100
+            })
+        
+        print(f"✅ Found {len(ads)} ads")
+        
+        # 3. Obtener hourly performance
+        hourly_query = f"""
+            SELECT
+              segments.hour,
+              metrics.impressions,
+              metrics.clicks,
+              metrics.conversions,
+              metrics.cost_micros,
+              metrics.ctr
+            FROM campaign
+            WHERE campaign.id = '{campaign_id}'
+              AND segments.date BETWEEN '{start_date}' AND '{end_date}'
+        """
+        
+        hourly_response = ga_service.search(
+            customer_id=customer_id,
+            query=hourly_query
+        )
+        
+        # Agregar por hora
+        hourly_data = {}
+        for row in hourly_response:
+            hour = row.segments.hour
+            metrics = row.metrics
+            
+            if hour not in hourly_data:
+                hourly_data[hour] = {
+                    'impressions': 0,
+                    'clicks': 0,
+                    'conversions': 0,
+                    'cost': 0
+                }
+            
+            hourly_data[hour]['impressions'] += int(metrics.impressions)
+            hourly_data[hour]['clicks'] += int(metrics.clicks)
+            hourly_data[hour]['conversions'] += float(metrics.conversions)
+            hourly_data[hour]['cost'] += float(metrics.cost_micros) / 1_000_000
+        
+        # Convertir a lista
+        hourly_performance = []
+        for hour in range(24):
+            data = hourly_data.get(hour, {'impressions': 0, 'clicks': 0, 'conversions': 0, 'cost': 0})
+            ctr = (data['clicks'] / data['impressions'] * 100) if data['impressions'] > 0 else 0
+            
+            hourly_performance.append({
+                'hour': hour,
+                'impressions': data['impressions'],
+                'clicks': data['clicks'],
+                'conversions': data['conversions'],
+                'cost': data['cost'],
+                'ctr': ctr
+            })
+        
+        print(f"✅ Generated hourly performance data")
+        
+        # Obtener nombre de campaña
+        campaign_query = f"""
+            SELECT campaign.id, campaign.name
+            FROM campaign
+            WHERE campaign.id = '{campaign_id}'
+        """
+        
+        campaign_response = ga_service.search(
+            customer_id=customer_id,
+            query=campaign_query
+        )
+        
+        campaign_name = "Unknown Campaign"
+        for row in campaign_response:
+            campaign_name = row.campaign.name
+            break
+        
+        # Respuesta completa
+        result = jsonify({
+            'success': True,
+            'campaign_name': campaign_name,
+            'date_range': f"{start_date} to {end_date}",
+            'keywords': keywords,
+            'ads': ads,
+            'hourly_performance': hourly_performance
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        error_message = f"Google Ads API Error: {ex.error.code().name}"
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': error_message,
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
