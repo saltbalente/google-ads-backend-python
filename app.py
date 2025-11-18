@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
+from google.protobuf import field_mask_pb2 as protobuf_helpers
 from dotenv import load_dotenv
 import os
 
@@ -1163,6 +1164,7 @@ def get_campaign_analytics():
         # 1. Obtener keywords
         keywords_query = f"""
             SELECT
+              ad_group.id,
               ad_group_criterion.criterion_id,
               ad_group_criterion.keyword.text,
               ad_group_criterion.keyword.match_type,
@@ -1193,6 +1195,7 @@ def get_campaign_analytics():
             
             keywords.append({
                 'id': str(criterion.criterion_id),
+                'ad_group_id': str(row.ad_group.id),
                 'keyword': criterion.keyword.text,
                 'match_type': criterion.keyword.match_type.name,
                 'quality_score': criterion.quality_info.quality_score if criterion.quality_info else None,
@@ -1209,6 +1212,7 @@ def get_campaign_analytics():
         # 2. Obtener ads
         ads_query = f"""
             SELECT
+              ad_group.id,
               ad_group_ad.ad.id,
               ad_group.name,
               ad_group_ad.ad.responsive_search_ad.headlines,
@@ -1245,6 +1249,7 @@ def get_campaign_analytics():
             
             ads.append({
                 'id': str(ad.id),
+                'ad_group_id': str(ad_group.id),
                 'ad_group_name': ad_group.name,
                 'headlines': headlines,
                 'status': row.ad_group_ad.status.name,
@@ -1374,3 +1379,221 @@ def get_campaign_analytics():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
+# ==========================================
+# ENDPOINTS DE ACCIONES: PAUSAR KEYWORDS Y ADS
+# ==========================================
+
+@app.route('/api/keyword/pause', methods=['POST', 'OPTIONS'])
+def pause_keyword():
+    """
+    Pausa una keyword específica
+    
+    Request Body:
+    {
+        "customer_id": "1234567890",
+        "ad_group_id": "9876543210",
+        "criterion_id": "12345678901234"
+    }
+    """
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        ad_group_id = data.get('ad_group_id')
+        criterion_id = data.get('criterion_id')
+        
+        if not all([customer_id, ad_group_id, criterion_id]):
+            result = jsonify({
+                'success': False,
+                'error': 'Faltan parámetros requeridos',
+                'required': ['customer_id', 'ad_group_id', 'criterion_id']
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        # Crear cliente
+        client = get_google_ads_client()
+        ad_group_criterion_service = client.get_service("AdGroupCriterionService")
+        
+        # Limpiar customer_id
+        customer_id = customer_id.replace('-', '')
+        
+        # Crear resource name
+        resource_name = ad_group_criterion_service.ad_group_criterion_path(
+            customer_id,
+            ad_group_id,
+            criterion_id
+        )
+        
+        print(f"⏸️  Pausing keyword: {resource_name}")
+        
+        # Crear operación de actualización
+        ad_group_criterion_operation = client.get_type("AdGroupCriterionOperation")
+        ad_group_criterion = ad_group_criterion_operation.update
+        ad_group_criterion.resource_name = resource_name
+        ad_group_criterion.status = client.enums.AdGroupCriterionStatusEnum.PAUSED
+        
+        # Field mask
+        client.copy_from(
+            ad_group_criterion_operation.update_mask,
+            protobuf_helpers.field_mask(None, ad_group_criterion._pb)
+        )
+        
+        # Ejecutar
+        response = ad_group_criterion_service.mutate_ad_group_criteria(
+            customer_id=customer_id,
+            operations=[ad_group_criterion_operation]
+        )
+        
+        print(f"✅ Keyword paused successfully")
+        
+        result = jsonify({
+            'success': True,
+            'message': 'Keyword pausada exitosamente',
+            'resource_name': response.results[0].resource_name
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        error_message = f"Google Ads API Error: {ex.error.code().name}"
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': error_message,
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+
+@app.route('/api/ad/pause', methods=['POST', 'OPTIONS'])
+def pause_ad():
+    """
+    Pausa un ad específico
+    
+    Request Body:
+    {
+        "customer_id": "1234567890",
+        "ad_group_id": "9876543210",
+        "ad_id": "12345678901234"
+    }
+    """
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        ad_group_id = data.get('ad_group_id')
+        ad_id = data.get('ad_id')
+        
+        if not all([customer_id, ad_group_id, ad_id]):
+            result = jsonify({
+                'success': False,
+                'error': 'Faltan parámetros requeridos',
+                'required': ['customer_id', 'ad_group_id', 'ad_id']
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        # Crear cliente
+        client = get_google_ads_client()
+        ad_group_ad_service = client.get_service("AdGroupAdService")
+        
+        # Limpiar customer_id
+        customer_id = customer_id.replace('-', '')
+        
+        # Crear resource name
+        resource_name = ad_group_ad_service.ad_group_ad_path(
+            customer_id,
+            ad_group_id,
+            ad_id
+        )
+        
+        print(f"⏸️  Pausing ad: {resource_name}")
+        
+        # Crear operación de actualización
+        ad_group_ad_operation = client.get_type("AdGroupAdOperation")
+        ad_group_ad = ad_group_ad_operation.update
+        ad_group_ad.resource_name = resource_name
+        ad_group_ad.status = client.enums.AdGroupAdStatusEnum.PAUSED
+        
+        # Field mask
+        client.copy_from(
+            ad_group_ad_operation.update_mask,
+            protobuf_helpers.field_mask(None, ad_group_ad._pb)
+        )
+        
+        # Ejecutar
+        response = ad_group_ad_service.mutate_ad_group_ads(
+            customer_id=customer_id,
+            operations=[ad_group_ad_operation]
+        )
+        
+        print(f"✅ Ad paused successfully")
+        
+        result = jsonify({
+            'success': True,
+            'message': 'Anuncio pausado exitosamente',
+            'resource_name': response.results[0].resource_name
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        error_message = f"Google Ads API Error: {ex.error.code().name}"
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': error_message,
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
