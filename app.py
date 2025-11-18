@@ -3,6 +3,7 @@ from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
 from google.protobuf.field_mask_pb2 import FieldMask
 from dotenv import load_dotenv
+from circuit_breaker import circuit_breaker_bp, start_circuit_breaker_scheduler
 import os
 
 # Cargar variables de entorno
@@ -1110,7 +1111,13 @@ def get_demographic_stats():
 
 # ==========================================
 # AGREGAR ESTE ENDPOINT AL FINAL DE app.py
-# (Antes de "if __name__ == '__main__':")
+# (Antes de "# Register Circuit Breaker blueprint
+app.register_blueprint(circuit_breaker_bp)
+
+# Start Circuit Breaker scheduler
+start_circuit_breaker_scheduler()
+
+if __name__ == '__main__':")
 # ==========================================
 
 @app.route('/api/analytics/campaign', methods=['POST', 'OPTIONS'])
