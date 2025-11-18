@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from google.ads.googleads.client import GoogleAdsClient
+from datetime import date, timedelta
 from google.ads.googleads.errors import GoogleAdsException
 from google.protobuf.field_mask_pb2 import FieldMask
 from circuit_breaker import circuit_breaker_bp, start_circuit_breaker_scheduler
@@ -1614,7 +1615,7 @@ def pause_ad():
 @app.route('/api/search-ads', methods=['POST', 'OPTIONS'])
 def search_ads():
     """
-    Busca todos los anuncios RSA activos de una cuenta
+    Busca todos los anuncios RSA activos de una cuenta con métricas de los últimos 90 días
     
     Request Body:
     {
@@ -1635,7 +1636,12 @@ def search_ads():
                 "headlines": ["Titulo 1", "Titulo 2", ...],
                 "descriptions": ["Descripcion 1", "Descripcion 2", ...],
                 "finalUrl": "https://example.com",
-                "status": "ENABLED"
+                "status": "ENABLED",
+                "metrics": {
+                    "conversions": 42.5,
+                    "clicks": 1234,
+                    "conversionRate": 3.44
+                }
             },
             ...
         ],
@@ -1672,9 +1678,14 @@ def search_ads():
         # Limpiar customer_id
         customer_id = customer_id.replace('-', '')
         
-        print(f"🔍 Buscando anuncios RSA para customer {customer_id}")
+        print(f"🔍 Buscando anuncios RSA con métricas para customer {customer_id}")
         
-        # Query GAQL para obtener anuncios RSA
+        # Calcular últimos 90 días
+        end_date = date.today()
+        start_date = end_date - timedelta(days=90)
+        date_range = f"segments.date BETWEEN '{start_date.strftime('%Y-%m-%d')}' AND '{end_date.strftime('%Y-%m-%d')}'"
+        
+        # Query GAQL para obtener anuncios RSA con métricas
         query = f"""
             SELECT 
                 ad_group_ad.ad.id,
@@ -1686,10 +1697,14 @@ def search_ads():
                 ad_group.id,
                 ad_group.name,
                 campaign.id,
-                campaign.name
+                campaign.name,
+                metrics.conversions,
+                metrics.clicks,
+                metrics.conversions_from_interactions_rate
             FROM ad_group_ad
             WHERE ad_group_ad.ad.type = 'RESPONSIVE_SEARCH_AD'
                 AND ad_group_ad.status != 'REMOVED'
+                AND {date_range}
             ORDER BY ad_group_ad.ad.id DESC
             LIMIT {limit}
         """
@@ -1705,6 +1720,7 @@ def search_ads():
             ad_group = row.ad_group
             campaign = row.campaign
             status = row.ad_group_ad.status
+            metrics = row.metrics
             
             # Extraer headlines
             headlines = []
@@ -1719,6 +1735,11 @@ def search_ads():
             # Extraer final URL
             final_url = ad.final_urls[0] if ad.final_urls else ""
             
+            # Extraer métricas
+            conversions = float(metrics.conversions) if hasattr(metrics, 'conversions') else 0
+            clicks = int(metrics.clicks) if hasattr(metrics, 'clicks') else 0
+            conversion_rate = float(metrics.conversions_from_interactions_rate) * 100 if hasattr(metrics, 'conversions_from_interactions_rate') else 0
+            
             ads.append({
                 'id': str(ad.id),
                 'adGroupId': str(ad_group.id),
@@ -1728,10 +1749,15 @@ def search_ads():
                 'headlines': headlines,
                 'descriptions': descriptions,
                 'finalUrl': final_url,
-                'status': status.name
+                'status': status.name,
+                'metrics': {
+                    'conversions': round(conversions, 1),
+                    'clicks': clicks,
+                    'conversionRate': round(conversion_rate, 2)
+                }
             })
         
-        print(f"✅ Encontrados {len(ads)} anuncios RSA")
+        print(f"✅ Encontrados {len(ads)} anuncios RSA con métricas")
         
         result = jsonify({
             'success': True,
