@@ -1768,3 +1768,199 @@ def search_ads():
         
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
+
+
+# ==========================================
+# ENDPOINT: Listar Campañas
+# ==========================================
+
+@app.route('/api/campaigns', methods=['POST', 'OPTIONS'])
+def list_campaigns():
+    """
+    Lista todas las campañas de una cuenta
+    """
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId')
+        
+        if not customer_id:
+            result = jsonify({
+                'success': False,
+                'error': 'Falta parámetro requerido: customerId'
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        client = get_google_ads_client()
+        ga_service = client.get_service("GoogleAdsService")
+        customer_id = customer_id.replace('-', '')
+        
+        print(f"📋 Listando campañas para customer {customer_id}")
+        
+        query = """
+            SELECT 
+                campaign.id,
+                campaign.name,
+                campaign.status
+            FROM campaign
+            WHERE campaign.status != 'REMOVED'
+            ORDER BY campaign.name
+        """
+        
+        response = ga_service.search(
+            customer_id=customer_id,
+            query=query
+        )
+        
+        campaigns = []
+        for row in response:
+            campaigns.append({
+                'id': str(row.campaign.id),
+                'name': row.campaign.name,
+                'status': row.campaign.status.name
+            })
+        
+        print(f"✅ Encontradas {len(campaigns)} campañas")
+        
+        result = jsonify({
+            'success': True,
+            'campaigns': campaigns,
+            'count': len(campaigns)
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': 'Google Ads API Error',
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+
+# ==========================================
+# ENDPOINT: Listar Grupos de Anuncios
+# ==========================================
+
+@app.route('/api/adgroups', methods=['POST', 'OPTIONS'])
+def list_adgroups():
+    """
+    Lista todos los grupos de anuncios de una campaña
+    """
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId')
+        campaign_id = data.get('campaignId')
+        
+        if not customer_id or not campaign_id:
+            result = jsonify({
+                'success': False,
+                'error': 'Faltan parámetros requeridos: customerId, campaignId'
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        client = get_google_ads_client()
+        ga_service = client.get_service("GoogleAdsService")
+        customer_id = customer_id.replace('-', '')
+        
+        print(f"📋 Listando grupos de anuncios para campaña {campaign_id}")
+        
+        query = f"""
+            SELECT 
+                ad_group.id,
+                ad_group.name,
+                ad_group.status
+            FROM ad_group
+            WHERE campaign.id = {campaign_id}
+                AND ad_group.status != 'REMOVED'
+            ORDER BY ad_group.name
+        """
+        
+        response = ga_service.search(
+            customer_id=customer_id,
+            query=query
+        )
+        
+        ad_groups = []
+        for row in response:
+            ad_groups.append({
+                'id': str(row.ad_group.id),
+                'name': row.ad_group.name,
+                'status': row.ad_group.status.name
+            })
+        
+        print(f"✅ Encontrados {len(ad_groups)} grupos de anuncios")
+        
+        result = jsonify({
+            'success': True,
+            'adGroups': ad_groups,
+            'count': len(ad_groups)
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': 'Google Ads API Error',
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
