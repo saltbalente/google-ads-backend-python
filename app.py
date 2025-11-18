@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
-from google.protobuf import field_mask_pb2 as protobuf_helpers
 from dotenv import load_dotenv
 import os
 
@@ -1440,11 +1439,10 @@ def pause_keyword():
         ad_group_criterion.resource_name = resource_name
         ad_group_criterion.status = client.enums.AdGroupCriterionStatusEnum.PAUSED
         
-        # Field mask
-        client.copy_from(
-            ad_group_criterion_operation.update_mask,
-            protobuf_helpers.field_mask(None, ad_group_criterion._pb)
-        )
+        # Field mask - solo especificar el campo que cambia
+        field_mask = client.get_type("FieldMask")
+        field_mask.paths.append("status")
+        ad_group_criterion_operation.update_mask.CopyFrom(field_mask)
         
         # Ejecutar
         response = ad_group_criterion_service.mutate_ad_group_criteria(
@@ -1547,11 +1545,10 @@ def pause_ad():
         ad_group_ad.resource_name = resource_name
         ad_group_ad.status = client.enums.AdGroupAdStatusEnum.PAUSED
         
-        # Field mask
-        client.copy_from(
-            ad_group_ad_operation.update_mask,
-            protobuf_helpers.field_mask(None, ad_group_ad._pb)
-        )
+        # Field mask - solo especificar el campo que cambia
+        field_mask = client.get_type("FieldMask")
+        field_mask.paths.append("status")
+        ad_group_ad_operation.update_mask.CopyFrom(field_mask)
         
         # Ejecutar
         response = ad_group_ad_service.mutate_ad_group_ads(
