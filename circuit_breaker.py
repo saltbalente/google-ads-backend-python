@@ -536,3 +536,131 @@ def stop_circuit_breaker_scheduler():
     """Detiene el scheduler"""
     scheduler.shutdown()
     print("⏹️ Circuit Breaker Scheduler stopped")
+
+# ==========================================
+# ENDPOINTS DE ACTIVACIÓN/DESACTIVACIÓN
+# ==========================================
+
+@circuit_breaker_bp.route('/accounts/<customer_id>/disable', methods=['POST'])
+def disable_account(customer_id):
+    '''Desactivar Circuit Breaker para una cuenta'''
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar si existe
+        cursor.execute(
+            'SELECT customer_id FROM account_limits WHERE customer_id = ?',
+            (customer_id,)
+        )
+        
+        if not cursor.fetchone():
+            return jsonify({
+                'success': False,
+                'error': 'Cuenta no encontrada en Circuit Breaker'
+            }), 404
+        
+        # Desactivar
+        cursor.execute(
+            'UPDATE account_limits SET enabled = 0 WHERE customer_id = ?',
+            (customer_id,)
+        )
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Circuit Breaker desactivado para cuenta {customer_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Circuit Breaker desactivado para cuenta {customer_id}'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error desactivando Circuit Breaker: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@circuit_breaker_bp.route('/accounts/<customer_id>/enable', methods=['POST'])
+def enable_account(customer_id):
+    '''Reactivar Circuit Breaker para una cuenta'''
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar si existe
+        cursor.execute(
+            'SELECT customer_id FROM account_limits WHERE customer_id = ?',
+            (customer_id,)
+        )
+        
+        if not cursor.fetchone():
+            return jsonify({
+                'success': False,
+                'error': 'Cuenta no encontrada en Circuit Breaker'
+            }), 404
+        
+        # Reactivar
+        cursor.execute(
+            'UPDATE account_limits SET enabled = 1 WHERE customer_id = ?',
+            (customer_id,)
+        )
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Circuit Breaker reactivado para cuenta {customer_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Circuit Breaker reactivado para cuenta {customer_id}'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error reactivando Circuit Breaker: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@circuit_breaker_bp.route('/accounts/<customer_id>', methods=['GET'])
+def get_account_config(customer_id):
+    '''Obtener configuración de una cuenta'''
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT customer_id, max_spend_per_hour_cop, max_spend_per_day_cop, enabled, created_at
+            FROM account_limits
+            WHERE customer_id = ?
+        ''', (customer_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({
+                'success': False,
+                'error': 'Cuenta no encontrada',
+                'is_configured': False
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'is_configured': True,
+            'config': {
+                'customer_id': row[0],
+                'max_spend_per_hour_cop': row[1],
+                'max_spend_per_day_cop': row[2],
+                'enabled': bool(row[3]),
+                'created_at': row[4]
+            }
+        })
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo configuración: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
