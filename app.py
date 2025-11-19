@@ -521,7 +521,7 @@ def update_demographics():
         for error in ex.failure.errors:
             error_details.append({
                 "message": error.message,
-                "error_code": error.error_code.to_json() if hasattr(error, 'error_code') else None
+                "error_code": str(error.error_code) if hasattr(error, 'error_code') else None
             })
         
         print(f"❌ GoogleAdsException: {errors}")
@@ -628,7 +628,7 @@ def create_ad_group():
         for error in ex.failure.errors:
             error_details.append({
                 "message": error.message,
-                "error_code": error.error_code.to_json() if hasattr(error, 'error_code') else None
+                "error_code": str(error.error_code) if hasattr(error, 'error_code') else None
             })
         
         print(f"❌ GoogleAdsException creando Ad Group: {errors}")
@@ -767,7 +767,7 @@ def add_keywords():
         for error in ex.failure.errors:
             error_details.append({
                 "message": error.message,
-                "error_code": error.error_code.to_json() if hasattr(error, 'error_code') else None,
+                "error_code": str(error.error_code) if hasattr(error, 'error_code') else None,
                 "trigger": error.trigger.string_value if hasattr(error, 'trigger') else None
             })
         
