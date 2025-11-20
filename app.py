@@ -1990,3 +1990,362 @@ def list_adgroups():
         
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
+
+# ============================================================================
+# CAMPAIGN CREATION ENDPOINTS
+# ============================================================================
+
+@app.route('/api/create-budget', methods=['POST', 'OPTIONS'])
+def create_campaign_budget():
+    """Crea un presupuesto de campaña"""
+    
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId', '').replace('-', '')
+        name = data.get('name')
+        amount_micros = int(data.get('amountMicros', 0))
+        
+        if not all([customer_id, name, amount_micros]):
+            result = jsonify({
+                'success': False,
+                'error': 'Faltan parámetros requeridos'
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        print(f"💰 Creando budget: {name} con ${amount_micros/1_000_000} COP")
+        
+        client = get_google_ads_client()
+        campaign_budget_service = client.get_service("CampaignBudgetService")
+        
+        campaign_budget_operation = client.get_type("CampaignBudgetOperation")
+        campaign_budget = campaign_budget_operation.create
+        
+        campaign_budget.name = name
+        campaign_budget.amount_micros = amount_micros
+        campaign_budget.delivery_method = client.enums.BudgetDeliveryMethodEnum.STANDARD
+        
+        response = campaign_budget_service.mutate_campaign_budgets(
+            customer_id=customer_id,
+            operations=[campaign_budget_operation]
+        )
+        
+        resource_name = response.results[0].resource_name
+        print(f"✅ Budget creado: {resource_name}")
+        
+        result = jsonify({
+            'success': True,
+            'resourceName': resource_name
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': 'Google Ads API Error',
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/create-campaign', methods=['POST', 'OPTIONS'])
+def create_campaign():
+    """Crea una campaña de búsqueda"""
+    
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId', '').replace('-', '')
+        name = data.get('name')
+        budget_resource_name = data.get('budgetResourceName')
+        status = data.get('status', 'PAUSED')
+        
+        if not all([customer_id, name, budget_resource_name]):
+            result = jsonify({
+                'success': False,
+                'error': 'Faltan parámetros requeridos'
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        print(f"🚀 Creando campaña: {name}")
+        
+        client = get_google_ads_client()
+        campaign_service = client.get_service("CampaignService")
+        
+        campaign_operation = client.get_type("CampaignOperation")
+        campaign = campaign_operation.create
+        
+        campaign.name = name
+        campaign.campaign_budget = budget_resource_name
+        
+        if status == "ENABLED":
+            campaign.status = client.enums.CampaignStatusEnum.ENABLED
+        elif status == "PAUSED":
+            campaign.status = client.enums.CampaignStatusEnum.PAUSED
+        else:
+            campaign.status = client.enums.CampaignStatusEnum.PAUSED
+        
+        campaign.advertising_channel_type = client.enums.AdvertisingChannelTypeEnum.SEARCH
+        campaign.manual_cpc.enhanced_cpc_enabled = False
+        
+        campaign.network_settings.target_google_search = True
+        campaign.network_settings.target_search_network = True
+        campaign.network_settings.target_content_network = False
+        campaign.network_settings.target_partner_search_network = False
+        
+        response = campaign_service.mutate_campaigns(
+            customer_id=customer_id,
+            operations=[campaign_operation]
+        )
+        
+        resource_name = response.results[0].resource_name
+        campaign_id = resource_name.split('/')[-1]
+        
+        print(f"✅ Campaña creada: {resource_name}")
+        
+        result = jsonify({
+            'success': True,
+            'resourceName': resource_name,
+            'campaignId': campaign_id
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': 'Google Ads API Error',
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/create-adgroup', methods=['POST', 'OPTIONS'])
+def create_ad_group():
+    """Crea un grupo de anuncios"""
+    
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        name = data.get('name')
+        cpc_bid_micros = int(data.get('cpcBidMicros', 0))
+        
+        if not all([customer_id, campaign_id, name]):
+            result = jsonify({
+                'success': False,
+                'error': 'Faltan parámetros requeridos'
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        print(f"📂 Creando ad group: {name}")
+        
+        client = get_google_ads_client()
+        ad_group_service = client.get_service("AdGroupService")
+        
+        ad_group_operation = client.get_type("AdGroupOperation")
+        ad_group = ad_group_operation.create
+        
+        ad_group.name = name
+        ad_group.campaign = f"customers/{customer_id}/campaigns/{campaign_id}"
+        ad_group.status = client.enums.AdGroupStatusEnum.ENABLED
+        ad_group.type_ = client.enums.AdGroupTypeEnum.SEARCH_STANDARD
+        
+        if cpc_bid_micros > 0:
+            ad_group.cpc_bid_micros = cpc_bid_micros
+        
+        response = ad_group_service.mutate_ad_groups(
+            customer_id=customer_id,
+            operations=[ad_group_operation]
+        )
+        
+        resource_name = response.results[0].resource_name
+        ad_group_id = resource_name.split('/')[-1]
+        
+        print(f"✅ Ad Group creado: {resource_name}")
+        
+        result = jsonify({
+            'success': True,
+            'resourceName': resource_name,
+            'adGroupId': ad_group_id
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': 'Google Ads API Error',
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/create-keyword', methods=['POST', 'OPTIONS'])
+def create_keyword():
+    """Crea una keyword en un ad group"""
+    
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId', '').replace('-', '')
+        ad_group_id = data.get('adGroupId')
+        keyword_text = data.get('keywordText')
+        match_type = data.get('matchType', 'BROAD')
+        cpc_bid_micros = data.get('cpcBidMicros')
+        
+        if not all([customer_id, ad_group_id, keyword_text]):
+            result = jsonify({
+                'success': False,
+                'error': 'Faltan parámetros requeridos'
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        print(f"🔑 Creando keyword: {keyword_text} ({match_type})")
+        
+        client = get_google_ads_client()
+        ad_group_criterion_service = client.get_service("AdGroupCriterionService")
+        
+        operation = client.get_type("AdGroupCriterionOperation")
+        criterion = operation.create
+        
+        criterion.ad_group = f"customers/{customer_id}/adGroups/{ad_group_id}"
+        criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+        criterion.keyword.text = keyword_text
+        
+        if match_type == "EXACT":
+            criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.EXACT
+        elif match_type == "PHRASE":
+            criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.PHRASE
+        else:
+            criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
+        
+        if cpc_bid_micros and int(cpc_bid_micros) > 0:
+            criterion.cpc_bid_micros = int(cpc_bid_micros)
+        
+        response = ad_group_criterion_service.mutate_ad_group_criteria(
+            customer_id=customer_id,
+            operations=[operation]
+        )
+        
+        resource_name = response.results[0].resource_name
+        print(f"✅ Keyword creada: {resource_name}")
+        
+        result = jsonify({
+            'success': True,
+            'resourceName': resource_name
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': 'Google Ads API Error',
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
