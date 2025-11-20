@@ -2172,7 +2172,7 @@ def create_campaign():
         return result
 
 @app.route('/api/create-adgroup', methods=['POST', 'OPTIONS'])
-def create_ad_group():
+def create_ad_group_copy():
     """Crea un grupo de anuncios"""
     
     if request.method == 'OPTIONS':
