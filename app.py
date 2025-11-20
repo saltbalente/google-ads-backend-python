@@ -2226,8 +2226,9 @@ def create_ad_group_copy():
         ad_group.status = client.enums.AdGroupStatusEnum.ENABLED
         ad_group.type_ = client.enums.AdGroupTypeEnum.SEARCH_STANDARD
         
-        # Validar CPC mínimo (1 USD = 1,000,000 micros) y múltiplo de 10,000
-        min_cpc = 1_000_000
+        # Validar CPC mínimo para COP (Pesos Colombianos)
+        # Mínimo: 40 COP = 40,000,000 micros
+        min_cpc = 40_000_000
         if cpc_bid_micros > 0:
             # Asegurar mínimo
             if cpc_bid_micros < min_cpc:
