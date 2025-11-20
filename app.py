@@ -2226,8 +2226,20 @@ def create_ad_group_copy():
         ad_group.status = client.enums.AdGroupStatusEnum.ENABLED
         ad_group.type_ = client.enums.AdGroupTypeEnum.SEARCH_STANDARD
         
+        # Validar CPC mínimo (1 USD = 1,000,000 micros) y múltiplo de 10,000
+        min_cpc = 1_000_000
         if cpc_bid_micros > 0:
+            # Asegurar mínimo
+            if cpc_bid_micros < min_cpc:
+                cpc_bid_micros = min_cpc
+            # Redondear a múltiplo de 10,000
+            cpc_bid_micros = (cpc_bid_micros // 10_000) * 10_000
+            if cpc_bid_micros < min_cpc:
+                cpc_bid_micros = min_cpc
             ad_group.cpc_bid_micros = cpc_bid_micros
+        else:
+            # Si no se proporciona, usar mínimo por defecto
+            ad_group.cpc_bid_micros = min_cpc
         
         response = ad_group_service.mutate_ad_groups(
             customer_id=customer_id,
