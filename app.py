@@ -2131,6 +2131,11 @@ def create_campaign():
         campaign.network_settings.target_content_network = False
         campaign.network_settings.target_partner_search_network = False
         
+        
+        print(f"DEBUG - Campaign antes de mutation:")
+        print(f"  name: {campaign.name}")
+        print(f"  budget: {campaign.campaign_budget}")
+        print(f"  contains_eu_political_advertising: {campaign.contains_eu_political_advertising}")
         response = campaign_service.mutate_campaigns(
             customer_id=customer_id,
             operations=[campaign_operation]
@@ -2143,14 +2148,6 @@ def create_campaign():
         
         result = jsonify({
             'success': True,
-        print(f"📋 Campaign object before mutation:")
-        print(f"   - name: {campaign.name}")
-        print(f"   - budget: {campaign.campaign_budget}")
-        print(f"   - status: {campaign.status}")
-        print(f"   - channel: {campaign.advertising_channel_type}")
-        print(f"   - start_date: {campaign.start_date}")
-        print(f"   - contains_eu_political_advertising: {campaign.contains_eu_political_advertising}")
-        print(f"   - manual_cpc.enhanced_cpc_enabled: {campaign.manual_cpc.enhanced_cpc_enabled}")
             'resourceName': resource_name,
             'campaignId': campaign_id
         }), 200
