@@ -2119,6 +2119,9 @@ def create_campaign():
             campaign.status = client.enums.CampaignStatusEnum.PAUSED
         
         campaign.advertising_channel_type = client.enums.AdvertisingChannelTypeEnum.SEARCH
+        
+        # Campo start_date puede ser requerido en algunas versiones
+        campaign.start_date = (date.today()).strftime('%Y%m%d')
         campaign.manual_cpc.enhanced_cpc_enabled = False
         
         campaign.network_settings.target_google_search = True
