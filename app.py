@@ -2123,7 +2123,13 @@ def create_campaign():
         # Campo start_date puede ser requerido en algunas versiones
         campaign.start_date = (date.today()).strftime('%Y%m%d')
         # Campo requerido para cumplir con regulaciones EU
-        campaign.contains_eu_political_advertising = False
+        # Campo EU Political Advertising usando el enum correcto
+        try:
+            from google.ads.googleads.v22.enums.types.campaign_contains_eu_political_advertising import CampaignContainsEuPoliticalAdvertisingEnum
+            campaign.contains_eu_political_advertising = CampaignContainsEuPoliticalAdvertisingEnum.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING
+        except ImportError:
+            # Fallback: usar el valor numérico directamente (2 = DOES_NOT_CONTAIN)
+            campaign.contains_eu_political_advertising = 2
         campaign.manual_cpc.enhanced_cpc_enabled = False
         
         campaign.network_settings.target_google_search = True
