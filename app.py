@@ -814,40 +814,53 @@ def get_demographic_stats():
         data = request.json
         customer_id = data.get('customerId')
         ad_group_id = data.get('adGroupId')
-        days = data.get('days', 7)  # Por defecto 7 días
+        days = data.get('days', 7)
         
         if not all([customer_id, ad_group_id]):
-            return jsonify({
+            result = jsonify({
                 "success": False,
                 "message": "Faltan customerId o adGroupId"
             }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
         
         # Crear cliente
         client = get_google_ads_client()
         google_ads_service = client.get_service("GoogleAdsService")
         
-        # Calcular fecha de inicio
+        # Calcular rango de fechas
         from datetime import datetime, timedelta
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=days)
-        
+        start_date = end_date - timedelta(days=int(days))
         date_start = start_date.strftime("%Y-%m-%d")
         date_end = end_date.strftime("%Y-%m-%d")
         
-        # Organizar estadísticas por tipo
+        print(f"📊 [CORRECTED] Loading demographic stats for AdGroup {ad_group_id}, period: {date_start} to {date_end}")
+        
         stats = {
             "gender": {},
             "age": {},
             "income": {}
         }
         
-        print(f"📊 Obteniendo stats demográficas reales del ad group {ad_group_id}")
+        # ===== GÉNERO - Query por segmento usando segments.gender =====
+        gender_criteria = {
+            "10": "FEMALE",
+            "11": "MALE",
+            "20": "UNDETERMINED"
+        }
         
-        # Query 1: Estadísticas por GÉNERO usando segments.ad_network_type
         try:
+            # Mapeo de valores de enum a IDs
+            gender_enum_map = {
+                1: "10",   # UNKNOWN -> no usar
+                2: "11",   # MALE
+                3: "10",   # FEMALE
+                4: "20"    # UNDETERMINED
+            }
+            
             gender_query = f"""
                 SELECT
-                    ad_group.id,
                     segments.gender,
                     metrics.conversions,
                     metrics.conversions_value,
@@ -857,44 +870,89 @@ def get_demographic_stats():
                 FROM ad_group
                 WHERE ad_group.id = {ad_group_id}
                     AND segments.date BETWEEN '{date_start}' AND '{date_end}'
-                    AND segments.gender != 'UNSPECIFIED'
             """
             
             gender_response = google_ads_service.search(customer_id=customer_id, query=gender_query)
             
+            gender_accumulator = {}
+            
             for row in gender_response:
-                gender_enum = row.segments.gender
-                gender_id = str(gender_enum.value)  # Convertir enum a valor numérico
+                gender_enum_value = row.segments.gender.value
+                gender_id = gender_enum_map.get(gender_enum_value)
                 
-                print(f"   🔹 Gender segment: {gender_enum.name} (ID: {gender_id})")
+                if not gender_id:  # Skip UNSPECIFIED
+                    continue
                 
-                if gender_id not in stats["gender"]:
-                    stats["gender"][gender_id] = {
+                if gender_id not in gender_accumulator:
+                    gender_accumulator[gender_id] = {
                         "conversions": 0,
                         "conversionsValue": 0,
                         "clicks": 0,
                         "impressions": 0,
-                        "cost": 0,
-                        "isNegative": False
+                        "cost": 0
                     }
                 
-                stats["gender"][gender_id]["conversions"] += row.metrics.conversions
-                stats["gender"][gender_id]["conversionsValue"] += row.metrics.conversions_value
-                stats["gender"][gender_id]["clicks"] += row.metrics.clicks
-                stats["gender"][gender_id]["impressions"] += row.metrics.impressions
-                stats["gender"][gender_id]["cost"] += row.metrics.cost_micros / 1_000_000
-                
-                print(f"      Conv: {row.metrics.conversions}, Clicks: {row.metrics.clicks}")
+                gender_accumulator[gender_id]["conversions"] += row.metrics.conversions
+                gender_accumulator[gender_id]["conversionsValue"] += row.metrics.conversions_value
+                gender_accumulator[gender_id]["clicks"] += row.metrics.clicks
+                gender_accumulator[gender_id]["impressions"] += row.metrics.impressions
+                gender_accumulator[gender_id]["cost"] += row.metrics.cost_micros / 1_000_000.0
             
-            print(f"✅ Gender stats obtenidas: {len(stats['gender'])} segmentos")
-        except Exception as e:
-            print(f"⚠️ Error obteniendo gender stats: {str(e)}")
+            print(f"📊 Gender query returned {row_count} rows total")
+            print(f"📊 Gender accumulator has {len(gender_accumulator)} segments with data")
+            
+            # Convertir a formato final
+            for gender_id, data in gender_accumulator.items():
+                stats["gender"][gender_id] = {
+                    "conversions": float(data["conversions"]),
+                    "conversionsValue": float(data["conversionsValue"]),
+                    "clicks": float(data["clicks"]),
+                    "impressions": float(data["impressions"]),
+                    "cost": float(data["cost"]),
+                    "isNegative": False
+                }
+                print(f"  ✅ Gender {gender_id}: Conv={data['conversions']}, Clicks={data['clicks']}")
+            
+            # Llenar con 0s los que no tienen datos
+            for gender_id in ["10", "11", "20"]:
+                if gender_id not in stats["gender"]:
+                    stats["gender"][gender_id] = {
+                        "conversions": 0.0,
+                        "conversionsValue": 0.0,
+                        "clicks": 0.0,
+                        "impressions": 0.0,
+                        "cost": 0.0,
+                        "isNegative": False
+                    }
         
-        # Query 2: Estadísticas por EDAD
+        except Exception as e:
+            print(f"⚠️ Error loading gender stats: {str(e)}")
+            # Llenar con 0s en caso de error
+            for gender_id in ["10", "11", "20"]:
+                stats["gender"][gender_id] = {
+                    "conversions": 0.0,
+                    "conversionsValue": 0.0,
+                    "clicks": 0.0,
+                    "impressions": 0.0,
+                    "cost": 0.0,
+                    "isNegative": False
+                }
+        
+        # ===== EDAD - Query por segmento usando segments.age_range =====
         try:
+            # Mapeo de valores de enum a IDs de criterio
+            age_enum_map = {
+                1: "503999",   # UNKNOWN/UNDETERMINED
+                503001: "503001",  # AGE_RANGE_18_24
+                503002: "503002",  # AGE_RANGE_25_34
+                503003: "503003",  # AGE_RANGE_35_44
+                503004: "503004",  # AGE_RANGE_45_54
+                503005: "503005",  # AGE_RANGE_55_64
+                503006: "503006",  # AGE_RANGE_65_UP
+            }
+            
             age_query = f"""
                 SELECT
-                    ad_group.id,
                     segments.age_range,
                     metrics.conversions,
                     metrics.conversions_value,
@@ -904,44 +962,86 @@ def get_demographic_stats():
                 FROM ad_group
                 WHERE ad_group.id = {ad_group_id}
                     AND segments.date BETWEEN '{date_start}' AND '{date_end}'
-                    AND segments.age_range != 'UNSPECIFIED'
             """
             
             age_response = google_ads_service.search(customer_id=customer_id, query=age_query)
             
+            age_accumulator = {}
+            
             for row in age_response:
-                age_enum = row.segments.age_range
-                age_id = str(age_enum.value)
+                age_enum_value = row.segments.age_range.value
+                age_id = age_enum_map.get(age_enum_value, str(age_enum_value))
                 
-                print(f"   🔹 Age segment: {age_enum.name} (ID: {age_id})")
+                if age_id == "0":  # Skip UNSPECIFIED
+                    continue
                 
-                if age_id not in stats["age"]:
-                    stats["age"][age_id] = {
+                if age_id not in age_accumulator:
+                    age_accumulator[age_id] = {
                         "conversions": 0,
                         "conversionsValue": 0,
                         "clicks": 0,
                         "impressions": 0,
-                        "cost": 0,
-                        "isNegative": False
+                        "cost": 0
                     }
                 
-                stats["age"][age_id]["conversions"] += row.metrics.conversions
-                stats["age"][age_id]["conversionsValue"] += row.metrics.conversions_value
-                stats["age"][age_id]["clicks"] += row.metrics.clicks
-                stats["age"][age_id]["impressions"] += row.metrics.impressions
-                stats["age"][age_id]["cost"] += row.metrics.cost_micros / 1_000_000
-                
-                print(f"      Conv: {row.metrics.conversions}, Clicks: {row.metrics.clicks}")
+                age_accumulator[age_id]["conversions"] += row.metrics.conversions
+                age_accumulator[age_id]["conversionsValue"] += row.metrics.conversions_value
+                age_accumulator[age_id]["clicks"] += row.metrics.clicks
+                age_accumulator[age_id]["impressions"] += row.metrics.impressions
+                age_accumulator[age_id]["cost"] += row.metrics.cost_micros / 1_000_000.0
             
-            print(f"✅ Age stats obtenidas: {len(stats['age'])} segmentos")
-        except Exception as e:
-            print(f"⚠️ Error obteniendo age stats: {str(e)}")
+            # Convertir a formato final
+            for age_id, data in age_accumulator.items():
+                stats["age"][age_id] = {
+                    "conversions": float(data["conversions"]),
+                    "conversionsValue": float(data["conversionsValue"]),
+                    "clicks": float(data["clicks"]),
+                    "impressions": float(data["impressions"]),
+                    "cost": float(data["cost"]),
+                    "isNegative": False
+                }
+                print(f"  ✅ Age {age_id}: Conv={data['conversions']}, Clicks={data['clicks']}")
+            
+            # Llenar con 0s los que no tienen datos
+            for age_id in ["503001", "503002", "503003", "503004", "503005", "503006", "503999"]:
+                if age_id not in stats["age"]:
+                    stats["age"][age_id] = {
+                        "conversions": 0.0,
+                        "conversionsValue": 0.0,
+                        "clicks": 0.0,
+                        "impressions": 0.0,
+                        "cost": 0.0,
+                        "isNegative": False
+                    }
         
-        # Query 3: Estadísticas por INGRESO (Household Income)
+        except Exception as e:
+            print(f"⚠️ Error loading age stats: {str(e)}")
+            # Llenar con 0s en caso de error
+            for age_id in ["503001", "503002", "503003", "503004", "503005", "503006", "503999"]:
+                stats["age"][age_id] = {
+                    "conversions": 0.0,
+                    "conversionsValue": 0.0,
+                    "clicks": 0.0,
+                    "impressions": 0.0,
+                    "cost": 0.0,
+                    "isNegative": False
+                }
+        
+        # ===== INGRESO - Query por segmento usando segments.household_income =====
         try:
+            # Mapeo de valores de enum a IDs de criterio
+            income_enum_map = {
+                1: "31006",    # UNKNOWN
+                510001: "31005",  # INCOME_RANGE_0_50
+                510002: "31004",  # INCOME_RANGE_50_60
+                510003: "31003",  # INCOME_RANGE_60_70
+                510004: "31002",  # INCOME_RANGE_70_80
+                510005: "31001",  # INCOME_RANGE_80_90
+                510006: "31000",  # INCOME_RANGE_90_UP
+            }
+            
             income_query = f"""
                 SELECT
-                    ad_group.id,
                     segments.household_income,
                     metrics.conversions,
                     metrics.conversions_value,
@@ -951,116 +1051,72 @@ def get_demographic_stats():
                 FROM ad_group
                 WHERE ad_group.id = {ad_group_id}
                     AND segments.date BETWEEN '{date_start}' AND '{date_end}'
-                    AND segments.household_income != 'UNSPECIFIED'
             """
             
             income_response = google_ads_service.search(customer_id=customer_id, query=income_query)
             
+            income_accumulator = {}
+            
             for row in income_response:
-                income_enum = row.segments.household_income
-                income_id = str(income_enum.value)
+                income_enum_value = row.segments.household_income.value
+                income_id = income_enum_map.get(income_enum_value, str(income_enum_value))
                 
-                print(f"   🔹 Income segment: {income_enum.name} (ID: {income_id})")
+                if income_id == "0":  # Skip UNSPECIFIED
+                    continue
                 
-                if income_id not in stats["income"]:
-                    stats["income"][income_id] = {
+                if income_id not in income_accumulator:
+                    income_accumulator[income_id] = {
                         "conversions": 0,
                         "conversionsValue": 0,
                         "clicks": 0,
                         "impressions": 0,
-                        "cost": 0,
-                        "isNegative": False
+                        "cost": 0
                     }
                 
-                stats["income"][income_id]["conversions"] += row.metrics.conversions
-                stats["income"][income_id]["conversionsValue"] += row.metrics.conversions_value
-                stats["income"][income_id]["clicks"] += row.metrics.clicks
-                stats["income"][income_id]["impressions"] += row.metrics.impressions
-                stats["income"][income_id]["cost"] += row.metrics.cost_micros / 1_000_000
-                
-                print(f"      Conv: {row.metrics.conversions}, Clicks: {row.metrics.clicks}")
+                income_accumulator[income_id]["conversions"] += row.metrics.conversions
+                income_accumulator[income_id]["conversionsValue"] += row.metrics.conversions_value
+                income_accumulator[income_id]["clicks"] += row.metrics.clicks
+                income_accumulator[income_id]["impressions"] += row.metrics.impressions
+                income_accumulator[income_id]["cost"] += row.metrics.cost_micros / 1_000_000.0
             
-            print(f"✅ Income stats obtenidas: {len(stats['income'])} segmentos")
+            # Convertir a formato final
+            for income_id, data in income_accumulator.items():
+                stats["income"][income_id] = {
+                    "conversions": float(data["conversions"]),
+                    "conversionsValue": float(data["conversionsValue"]),
+                    "clicks": float(data["clicks"]),
+                    "impressions": float(data["impressions"]),
+                    "cost": float(data["cost"]),
+                    "isNegative": False
+                }
+                print(f"  ✅ Income {income_id}: Conv={data['conversions']}, Clicks={data['clicks']}")
+            
+            # Llenar con 0s los que no tienen datos
+            for income_id in ["31000", "31001", "31002", "31003", "31004", "31005", "31006"]:
+                if income_id not in stats["income"]:
+                    stats["income"][income_id] = {
+                        "conversions": 0.0,
+                        "conversionsValue": 0.0,
+                        "clicks": 0.0,
+                        "impressions": 0.0,
+                        "cost": 0.0,
+                        "isNegative": False
+                    }
+        
         except Exception as e:
-            print(f"⚠️ Error obteniendo income stats: {str(e)}")
+            print(f"⚠️ Error loading income stats: {str(e)}")
+            # Llenar con 0s en caso de error
+            for income_id in ["31000", "31001", "31002", "31003", "31004", "31005", "31006"]:
+                stats["income"][income_id] = {
+                    "conversions": 0.0,
+                    "conversionsValue": 0.0,
+                    "clicks": 0.0,
+                    "impressions": 0.0,
+                    "cost": 0.0,
+                    "isNegative": False
+                }
         
-        # Si no se obtuvieron datos por segmentos, usar métricas totales del ad group
-        total_segments = len(stats["gender"]) + len(stats["age"]) + len(stats["income"])
-        
-        if total_segments == 0:
-            print("⚠️ No hay datos por segmentos - obteniendo métricas totales del ad group")
-            
-            try:
-                # Obtener métricas totales
-                total_query = f"""
-                    SELECT
-                        ad_group.id,
-                        metrics.conversions,
-                        metrics.conversions_value,
-                        metrics.clicks,
-                        metrics.impressions,
-                        metrics.cost_micros
-                    FROM ad_group
-                    WHERE ad_group.id = {ad_group_id}
-                        AND segments.date BETWEEN '{date_start}' AND '{date_end}'
-                """
-                
-                total_response = google_ads_service.search(customer_id=customer_id, query=total_query)
-                
-                total_conversions = 0
-                total_conversions_value = 0
-                total_clicks = 0
-                total_impressions = 0
-                total_cost = 0
-                
-                for row in total_response:
-                    total_conversions += row.metrics.conversions
-                    total_conversions_value += row.metrics.conversions_value
-                    total_clicks += row.metrics.clicks
-                    total_impressions += row.metrics.impressions
-                    total_cost += row.metrics.cost_micros / 1_000_000
-                
-                print(f"📊 Métricas totales: {total_conversions} conv, {total_clicks} clicks, {total_impressions} impr")
-                
-                # Solo crear stats si hay datos
-                if total_impressions > 0:
-                    # Distribuir en géneros
-                    for gender_id in ["10", "11", "20"]:
-                        stats["gender"][gender_id] = {
-                            "conversions": total_conversions / 3,
-                            "conversionsValue": total_conversions_value / 3,
-                            "clicks": total_clicks / 3,
-                            "impressions": total_impressions / 3,
-                            "cost": total_cost / 3,
-                            "isNegative": False
-                        }
-                    
-                    # Distribuir en edades
-                    for age_id in ["503001", "503002", "503003", "503004", "503005", "503006", "503999"]:
-                        stats["age"][age_id] = {
-                            "conversions": total_conversions / 7,
-                            "conversionsValue": total_conversions_value / 7,
-                            "clicks": total_clicks / 7,
-                            "impressions": total_impressions / 7,
-                            "cost": total_cost / 7,
-                            "isNegative": False
-                        }
-                    
-                    # Distribuir en ingresos
-                    for income_id in ["31000", "31001", "31002", "31003", "31004", "31005", "31006"]:
-                        stats["income"][income_id] = {
-                            "conversions": total_conversions / 7,
-                            "conversionsValue": total_conversions_value / 7,
-                            "clicks": total_clicks / 7,
-                            "impressions": total_impressions / 7,
-                            "cost": total_cost / 7,
-                            "isNegative": False
-                        }
-                    
-                    print(f"✅ Stats distribuidas desde totales: {len(stats['gender'])} gender, {len(stats['age'])} age, {len(stats['income'])} income")
-            
-            except Exception as e:
-                print(f"⚠️ Error obteniendo métricas totales: {str(e)}")
+        print(f"✅ [CORRECTED] Stats loaded: {len(stats['gender'])} gender, {len(stats['age'])} age, {len(stats['income'])} income")
         
         result = jsonify({
             "success": True,
