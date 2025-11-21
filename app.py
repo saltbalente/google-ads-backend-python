@@ -843,63 +843,47 @@ def get_demographic_stats():
             "income": {}
         }
         
-        # ===== GÉNERO - Query por criterio usando ad_group_criterion =====
-        gender_criteria = {
-            "10": "FEMALE",
-            "11": "MALE",
-            "20": "UNDETERMINED"
-        }
-        
+        # ===== GÉNERO - Query usando gender_view =====
         try:
-            # IDs de criterios de género: 10=Mujer, 11=Hombre, 20=Desconocido
-            gender_ids = ["10", "11", "20"]
+            gender_query = f"""
+                SELECT
+                    gender_view.resource_name,
+                    metrics.conversions,
+                    metrics.conversions_value,
+                    metrics.clicks,
+                    metrics.impressions,
+                    metrics.cost_micros
+                FROM gender_view
+                WHERE ad_group.id = {ad_group_id}
+                    AND segments.date BETWEEN '{date_start}' AND '{date_end}'
+            """
             
-            for gender_id in gender_ids:
-                gender_query = f"""
-                    SELECT
-                        ad_group_criterion.criterion_id,
-                        ad_group_criterion.gender.type,
-                        ad_group_criterion.negative,
-                        metrics.conversions,
-                        metrics.conversions_value,
-                        metrics.clicks,
-                        metrics.impressions,
-                        metrics.cost_micros
-                    FROM ad_group_criterion
-                    WHERE ad_group_criterion.ad_group = 'customers/{customer_id}/adGroups/{ad_group_id}'
-                        AND ad_group_criterion.type = 'GENDER'
-                        AND ad_group_criterion.criterion_id = {gender_id}
-                        AND ad_group_criterion.status = 'ENABLED'
-                        AND segments.date BETWEEN '{date_start}' AND '{date_end}'
-                """
-                
-                gender_response = google_ads_service.search(customer_id=customer_id, query=gender_query)
-                
-                for row in gender_response:
-                    criterion_id = str(row.ad_group_criterion.criterion_id)
-                    is_negative = row.ad_group_criterion.negative
-                    
-                    print(f"   🔹 Gender criterion: {row.ad_group_criterion.gender.type.name} (ID: {criterion_id}, Negative: {is_negative})")
-                    
-                    if criterion_id not in stats["gender"]:
-                        stats["gender"][criterion_id] = {
-                            "conversions": 0,
-                            "conversionsValue": 0,
-                            "clicks": 0,
-                            "impressions": 0,
-                            "cost": 0,
-                            "isNegative": is_negative
-                        }
-                    
-                    stats["gender"][criterion_id]["conversions"] += row.metrics.conversions
-                    stats["gender"][criterion_id]["conversionsValue"] += row.metrics.conversions_value
-                    stats["gender"][criterion_id]["clicks"] += row.metrics.clicks
-                    stats["gender"][criterion_id]["impressions"] += row.metrics.impressions
-                    stats["gender"][criterion_id]["cost"] += row.metrics.cost_micros / 1_000_000
-                    
-                    print(f"      Conv: {row.metrics.conversions}, Clicks: {row.metrics.clicks}, Impr: {row.metrics.impressions}")
+            gender_response = google_ads_service.search(customer_id=customer_id, query=gender_query)
             
-            print(f"✅ Gender stats obtenidas: {len(stats['gender'])} criterios")
+            for row in gender_response:
+                # resource_name format: customers/X/genderViews/AD_GROUP_ID~CRITERION_ID
+                resource_name = row.gender_view.resource_name
+                criterion_id = resource_name.split('~')[-1]  # Extraer ID del final
+                
+                print(f"   🔹 Gender ID {criterion_id}: Conv={row.metrics.conversions}, Clicks={row.metrics.clicks}")
+                
+                if criterion_id not in stats["gender"]:
+                    stats["gender"][criterion_id] = {
+                        "conversions": 0,
+                        "conversionsValue": 0,
+                        "clicks": 0,
+                        "impressions": 0,
+                        "cost": 0,
+                        "isNegative": False
+                    }
+                
+                stats["gender"][criterion_id]["conversions"] += row.metrics.conversions
+                stats["gender"][criterion_id]["conversionsValue"] += row.metrics.conversions_value
+                stats["gender"][criterion_id]["clicks"] += row.metrics.clicks
+                stats["gender"][criterion_id]["impressions"] += row.metrics.impressions
+                stats["gender"][criterion_id]["cost"] += row.metrics.cost_micros / 1_000_000
+            
+            print(f"✅ Gender stats obtenidas: {len(stats['gender'])} segmentos")
         
         except Exception as e:
             print(f"⚠️ Error loading gender stats: {str(e)}")
@@ -914,112 +898,104 @@ def get_demographic_stats():
                     "isNegative": False
                 }
         
-        # ===== EDAD - Query por criterio usando ad_group_criterion =====
+        # ===== EDAD - Query usando age_range_view =====
         try:
-            # IDs de criterios de edad: 503001-503006, 503999=Unknown
-            age_ids = ["503001", "503002", "503003", "503004", "503005", "503006", "503999"]
+            age_query = f"""
+                SELECT
+                    age_range_view.resource_name,
+                    metrics.conversions,
+                    metrics.conversions_value,
+                    metrics.clicks,
+                    metrics.impressions,
+                    metrics.cost_micros
+                FROM age_range_view
+                WHERE ad_group.id = {ad_group_id}
+                    AND segments.date BETWEEN '{date_start}' AND '{date_end}'
+            """
             
-            for age_id in age_ids:
-                age_query = f"""
-                    SELECT
-                        ad_group_criterion.criterion_id,
-                        ad_group_criterion.age_range.type,
-                        ad_group_criterion.negative,
-                        metrics.conversions,
-                        metrics.conversions_value,
-                        metrics.clicks,
-                        metrics.impressions,
-                        metrics.cost_micros
-                    FROM ad_group_criterion
-                    WHERE ad_group_criterion.ad_group = 'customers/{customer_id}/adGroups/{ad_group_id}'
-                        AND ad_group_criterion.type = 'AGE_RANGE'
-                        AND ad_group_criterion.criterion_id = {age_id}
-                        AND ad_group_criterion.status = 'ENABLED'
-                        AND segments.date BETWEEN '{date_start}' AND '{date_end}'
-                """
-                
-                age_response = google_ads_service.search(customer_id=customer_id, query=age_query)
-                
-                for row in age_response:
-                    criterion_id = str(row.ad_group_criterion.criterion_id)
-                    is_negative = row.ad_group_criterion.negative
-                    
-                    print(f"   🔹 Age criterion: {row.ad_group_criterion.age_range.type.name} (ID: {criterion_id}, Negative: {is_negative})")
-                    
-                    if criterion_id not in stats["age"]:
-                        stats["age"][criterion_id] = {
-                            "conversions": 0,
-                            "conversionsValue": 0,
-                            "clicks": 0,
-                            "impressions": 0,
-                            "cost": 0,
-                            "isNegative": is_negative
-                        }
-                    
-                    stats["age"][criterion_id]["conversions"] += row.metrics.conversions
-                    stats["age"][criterion_id]["conversionsValue"] += row.metrics.conversions_value
-                    stats["age"][criterion_id]["clicks"] += row.metrics.clicks
-                    stats["age"][criterion_id]["impressions"] += row.metrics.impressions
-                    stats["age"][criterion_id]["cost"] += row.metrics.cost_micros / 1_000_000
-                    
-                    print(f"      Conv: {row.metrics.conversions}, Clicks: {row.metrics.clicks}, Impr: {row.metrics.impressions}")
+            age_response = google_ads_service.search(customer_id=customer_id, query=age_query)
             
-            print(f"✅ Age stats obtenidas: {len(stats['age'])} criterios")
+            for row in age_response:
+                # resource_name format: customers/X/ageRangeViews/AD_GROUP_ID~CRITERION_ID
+                resource_name = row.age_range_view.resource_name
+                criterion_id = resource_name.split('~')[-1]  # Extraer ID del final
+                
+                print(f"   🔹 Age ID {criterion_id}: Conv={row.metrics.conversions}, Clicks={row.metrics.clicks}")
+                
+                if criterion_id not in stats["age"]:
+                    stats["age"][criterion_id] = {
+                        "conversions": 0,
+                        "conversionsValue": 0,
+                        "clicks": 0,
+                        "impressions": 0,
+                        "cost": 0,
+                        "isNegative": False
+                    }
+                
+                stats["age"][criterion_id]["conversions"] += row.metrics.conversions
+                stats["age"][criterion_id]["conversionsValue"] += row.metrics.conversions_value
+                stats["age"][criterion_id]["clicks"] += row.metrics.clicks
+                stats["age"][criterion_id]["impressions"] += row.metrics.impressions
+                stats["age"][criterion_id]["cost"] += row.metrics.cost_micros / 1_000_000
+            
+            print(f"✅ Age stats obtenidas: {len(stats['age'])} segmentos")
         
         except Exception as e:
             print(f"⚠️ Error loading age stats: {str(e)}")
         
-        # ===== INGRESO - Query por criterio usando ad_group_criterion =====
+        # ===== INGRESO - Query usando income_range_view =====
         try:
-            # IDs de criterios de ingreso: 31000-31006
-            income_ids = ["31000", "31001", "31002", "31003", "31004", "31005", "31006"]
+            # Mapeo: API devuelve 510xxx pero el modelo Swift espera 31xxx
+            income_id_map = {
+                "510000": "31006",  # UNDETERMINED -> UNDETERMINED
+                "510001": "31005",  # 0-50K
+                "510002": "31004",  # 50-60K
+                "510003": "31003",  # 60-70K
+                "510004": "31002",  # 70-80K
+                "510005": "31001",  # 80-UP
+                "510006": "31000",  # TOP_10_PERCENT
+            }
             
-            for income_id in income_ids:
-                income_query = f"""
-                    SELECT
-                        ad_group_criterion.criterion_id,
-                        ad_group_criterion.income_range.type,
-                        ad_group_criterion.negative,
-                        metrics.conversions,
-                        metrics.conversions_value,
-                        metrics.clicks,
-                        metrics.impressions,
-                        metrics.cost_micros
-                    FROM ad_group_criterion
-                    WHERE ad_group_criterion.ad_group = 'customers/{customer_id}/adGroups/{ad_group_id}'
-                        AND ad_group_criterion.type = 'INCOME_RANGE'
-                        AND ad_group_criterion.criterion_id = {income_id}
-                        AND ad_group_criterion.status = 'ENABLED'
-                        AND segments.date BETWEEN '{date_start}' AND '{date_end}'
-                """
-                
-                income_response = google_ads_service.search(customer_id=customer_id, query=income_query)
-                
-                for row in income_response:
-                    criterion_id = str(row.ad_group_criterion.criterion_id)
-                    is_negative = row.ad_group_criterion.negative
-                    
-                    print(f"   🔹 Income criterion: {row.ad_group_criterion.income_range.type.name} (ID: {criterion_id}, Negative: {is_negative})")
-                    
-                    if criterion_id not in stats["income"]:
-                        stats["income"][criterion_id] = {
-                            "conversions": 0,
-                            "conversionsValue": 0,
-                            "clicks": 0,
-                            "impressions": 0,
-                            "cost": 0,
-                            "isNegative": is_negative
-                        }
-                    
-                    stats["income"][criterion_id]["conversions"] += row.metrics.conversions
-                    stats["income"][criterion_id]["conversionsValue"] += row.metrics.conversions_value
-                    stats["income"][criterion_id]["clicks"] += row.metrics.clicks
-                    stats["income"][criterion_id]["impressions"] += row.metrics.impressions
-                    stats["income"][criterion_id]["cost"] += row.metrics.cost_micros / 1_000_000
-                    
-                    print(f"      Conv: {row.metrics.conversions}, Clicks: {row.metrics.clicks}, Impr: {row.metrics.impressions}")
+            income_query = f"""
+                SELECT
+                    income_range_view.resource_name,
+                    metrics.conversions,
+                    metrics.conversions_value,
+                    metrics.clicks,
+                    metrics.impressions,
+                    metrics.cost_micros
+                FROM income_range_view
+                WHERE ad_group.id = {ad_group_id}
+                    AND segments.date BETWEEN '{date_start}' AND '{date_end}'
+            """
             
-            print(f"✅ Income stats obtenidas: {len(stats['income'])} criterios")
+            income_response = google_ads_service.search(customer_id=customer_id, query=income_query)
+            
+            for row in income_response:
+                # resource_name format: customers/X/incomeRangeViews/AD_GROUP_ID~CRITERION_ID
+                resource_name = row.income_range_view.resource_name
+                api_id = resource_name.split('~')[-1]  # Extraer ID de la API (510xxx)
+                criterion_id = income_id_map.get(api_id, api_id)  # Mapear a 31xxx
+                
+                print(f"   🔹 Income API_ID {api_id} -> {criterion_id}: Conv={row.metrics.conversions}, Clicks={row.metrics.clicks}")
+                
+                if criterion_id not in stats["income"]:
+                    stats["income"][criterion_id] = {
+                        "conversions": 0,
+                        "conversionsValue": 0,
+                        "clicks": 0,
+                        "impressions": 0,
+                        "cost": 0,
+                        "isNegative": False
+                    }
+                
+                stats["income"][criterion_id]["conversions"] += row.metrics.conversions
+                stats["income"][criterion_id]["conversionsValue"] += row.metrics.conversions_value
+                stats["income"][criterion_id]["clicks"] += row.metrics.clicks
+                stats["income"][criterion_id]["impressions"] += row.metrics.impressions
+                stats["income"][criterion_id]["cost"] += row.metrics.cost_micros / 1_000_000
+            
+            print(f"✅ Income stats obtenidas: {len(stats['income'])} segmentos")
         
         except Exception as e:
             print(f"⚠️ Error loading income stats: {str(e)}")
