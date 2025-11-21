@@ -898,6 +898,9 @@ def get_demographic_stats():
                 gender_accumulator[gender_id]["impressions"] += row.metrics.impressions
                 gender_accumulator[gender_id]["cost"] += row.metrics.cost_micros / 1_000_000.0
             
+            print(f"📊 Gender query returned {row_count} rows total")
+            print(f"📊 Gender accumulator has {len(gender_accumulator)} segments with data")
+            
             # Convertir a formato final
             for gender_id, data in gender_accumulator.items():
                 stats["gender"][gender_id] = {
