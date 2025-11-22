@@ -1546,6 +1546,112 @@ def pause_ad():
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
 
+@app.route('/api/keyword/update-bid', methods=['POST', 'OPTIONS'])
+def update_keyword_bid():
+    """
+    Actualiza la puja CPC de una keyword
+    
+    Request Body:
+    {
+        "customer_id": "1234567890",
+        "ad_group_id": "9876543210",
+        "criterion_id": "12345678901234",
+        "new_bid_micros": 5000000  // 5 USD en micros
+    }
+    """
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        ad_group_id = data.get('ad_group_id')
+        criterion_id = data.get('criterion_id')
+        new_bid_micros = data.get('new_bid_micros')
+        
+        if not all([customer_id, ad_group_id, criterion_id, new_bid_micros]):
+            result = jsonify({
+                'success': False,
+                'error': 'Faltan parámetros requeridos',
+                'required': ['customer_id', 'ad_group_id', 'criterion_id', 'new_bid_micros']
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        # Crear cliente
+        client = get_google_ads_client()
+        ad_group_criterion_service = client.get_service("AdGroupCriterionService")
+        
+        # Limpiar customer_id
+        customer_id = customer_id.replace('-', '')
+        
+        # Crear resource name
+        resource_name = ad_group_criterion_service.ad_group_criterion_path(
+            customer_id,
+            ad_group_id,
+            criterion_id
+        )
+        
+        print(f"💰 Actualizando puja de keyword: {resource_name} → {new_bid_micros} micros")
+        
+        # Crear operación de actualización
+        ad_group_criterion_operation = client.get_type("AdGroupCriterionOperation")
+        ad_group_criterion = ad_group_criterion_operation.update
+        ad_group_criterion.resource_name = resource_name
+        ad_group_criterion.cpc_bid_micros = int(new_bid_micros)
+        
+        # Field mask - solo especificar el campo que cambia
+        ad_group_criterion_operation.update_mask.CopyFrom(
+            FieldMask(paths=["cpc_bid_micros"])
+        )
+        
+        # Ejecutar
+        response = ad_group_criterion_service.mutate_ad_group_criteria(
+            customer_id=customer_id,
+            operations=[ad_group_criterion_operation]
+        )
+        
+        print(f"✅ Puja actualizada exitosamente")
+        
+        result = jsonify({
+            'success': True,
+            'message': 'Puja de keyword actualizada exitosamente',
+            'resource_name': response.results[0].resource_name
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        error_message = f"Google Ads API Error: {ex.error.code().name}"
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': error_message,
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
 
 
 # ==========================================
