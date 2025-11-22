@@ -1549,187 +1549,6 @@ def pause_ad():
 
 
 # ==========================================
-# ENDPOINT: Optimizador de Campañas (Batch)
-# ==========================================
-
-@app.route('/api/optimize-campaign', methods=['POST', 'OPTIONS'])
-def optimize_campaign():
-    """
-    Pausa múltiples keywords y ads de una vez (optimización batch)
-    
-    Request Body:
-    {
-        "customer_id": "1234567890",
-        "keywords": [
-            {"ad_group_id": "111", "criterion_id": "222"},
-            {"ad_group_id": "111", "criterion_id": "333"}
-        ],
-        "ads": [
-            {"ad_group_id": "111", "ad_id": "444"},
-            {"ad_group_id": "222", "ad_id": "555"}
-        ]
-    }
-    """
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response
-    
-    try:
-        data = request.get_json()
-        customer_id = data.get('customer_id')
-        keywords = data.get('keywords', [])
-        ads = data.get('ads', [])
-        
-        if not customer_id:
-            result = jsonify({
-                'success': False,
-                'error': 'customer_id es requerido'
-            }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
-            return result
-        
-        # Crear cliente
-        client = get_google_ads_client()
-        customer_id = customer_id.replace('-', '')
-        
-        results = {
-            'keywords_paused': 0,
-            'ads_paused': 0,
-            'keywords_failed': 0,
-            'ads_failed': 0,
-            'errors': []
-        }
-        
-        # Pausar Keywords en batch
-        if keywords:
-            print(f"⏸️  Pausando {len(keywords)} keywords...")
-            ad_group_criterion_service = client.get_service("AdGroupCriterionService")
-            keyword_operations = []
-            
-            for kw in keywords:
-                ad_group_id = kw.get('ad_group_id')
-                criterion_id = kw.get('criterion_id')
-                
-                if not ad_group_id or not criterion_id:
-                    results['keywords_failed'] += 1
-                    continue
-                
-                resource_name = ad_group_criterion_service.ad_group_criterion_path(
-                    customer_id,
-                    ad_group_id,
-                    criterion_id
-                )
-                
-                operation = client.get_type("AdGroupCriterionOperation")
-                criterion = operation.update
-                criterion.resource_name = resource_name
-                criterion.status = client.enums.AdGroupCriterionStatusEnum.PAUSED
-                operation.update_mask.CopyFrom(FieldMask(paths=["status"]))
-                
-                keyword_operations.append(operation)
-            
-            # Ejecutar batch de keywords
-            if keyword_operations:
-                try:
-                    response = ad_group_criterion_service.mutate_ad_group_criteria(
-                        customer_id=customer_id,
-                        operations=keyword_operations,
-                        partial_failure=True  # Continuar aunque algunas fallen
-                    )
-                    results['keywords_paused'] = len(response.results)
-                    print(f"✅ {results['keywords_paused']} keywords pausadas")
-                    
-                    # Revisar partial failures
-                    if response.partial_failure_error:
-                        for idx, error in enumerate(response.partial_failure_error.details):
-                            results['keywords_failed'] += 1
-                            results['errors'].append(f"Keyword {idx}: {error}")
-                            
-                except GoogleAdsException as ex:
-                    results['keywords_failed'] = len(keyword_operations)
-                    error_msg = f"Error pausando keywords: {ex.error.code().name}"
-                    results['errors'].append(error_msg)
-                    print(f"❌ {error_msg}")
-        
-        # Pausar Ads en batch
-        if ads:
-            print(f"⏸️  Pausando {len(ads)} ads...")
-            ad_group_ad_service = client.get_service("AdGroupAdService")
-            ad_operations = []
-            
-            for ad in ads:
-                ad_group_id = ad.get('ad_group_id')
-                ad_id = ad.get('ad_id')
-                
-                if not ad_group_id or not ad_id:
-                    results['ads_failed'] += 1
-                    continue
-                
-                resource_name = ad_group_ad_service.ad_group_ad_path(
-                    customer_id,
-                    ad_group_id,
-                    ad_id
-                )
-                
-                operation = client.get_type("AdGroupAdOperation")
-                ad_group_ad = operation.update
-                ad_group_ad.resource_name = resource_name
-                ad_group_ad.status = client.enums.AdGroupAdStatusEnum.PAUSED
-                operation.update_mask.CopyFrom(FieldMask(paths=["status"]))
-                
-                ad_operations.append(operation)
-            
-            # Ejecutar batch de ads
-            if ad_operations:
-                try:
-                    response = ad_group_ad_service.mutate_ad_group_ads(
-                        customer_id=customer_id,
-                        operations=ad_operations,
-                        partial_failure=True
-                    )
-                    results['ads_paused'] = len(response.results)
-                    print(f"✅ {results['ads_paused']} ads pausados")
-                    
-                    # Revisar partial failures
-                    if response.partial_failure_error:
-                        for idx, error in enumerate(response.partial_failure_error.details):
-                            results['ads_failed'] += 1
-                            results['errors'].append(f"Ad {idx}: {error}")
-                            
-                except GoogleAdsException as ex:
-                    results['ads_failed'] = len(ad_operations)
-                    error_msg = f"Error pausando ads: {ex.error.code().name}"
-                    results['errors'].append(error_msg)
-                    print(f"❌ {error_msg}")
-        
-        # Determinar si fue exitoso
-        success = (results['keywords_paused'] + results['ads_paused']) > 0
-        
-        result = jsonify({
-            'success': success,
-            'message': 'Optimización completada',
-            'results': results
-        }), 200 if success else 500
-        
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
-        return result
-        
-    except Exception as e:
-        print(f"❌ Error en optimize_campaign: {str(e)}")
-        result = jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-        
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
-        return result
-
-
-
-# ==========================================
 # ENDPOINT: Buscar Anuncios RSA
 # ==========================================
 
@@ -2499,3 +2318,155 @@ def create_keyword():
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
 
+# Agregar este endpoint al final de app.py antes de la última línea
+
+@app.route('/api/query', methods=['POST', 'OPTIONS'])
+def execute_query():
+    """Ejecuta una query GAQL personalizada"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId', '').replace('-', '')
+        query = data.get('query')
+        
+        if not customer_id or not query:
+            result = jsonify({
+                'success': False,
+                'error': 'customerId y query son requeridos'
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        print(f"📊 Ejecutando query para cuenta {customer_id}")
+        print(f"📝 Query: {query[:200]}...")
+        
+        client = get_google_ads_client()
+        ga_service = client.get_service("GoogleAdsService")
+        
+        # Ejecutar búsqueda
+        search_request = client.get_type("SearchGoogleAdsStreamRequest")
+        search_request.customer_id = customer_id
+        search_request.query = query
+        
+        results_list = []
+        stream = ga_service.search_stream(search_request)
+        
+        for batch in stream:
+            for row in batch.results:
+                # Convertir el resultado a diccionario
+                row_dict = {}
+                
+                # Extraer campos según lo que tenga el row
+                if hasattr(row, 'ad_group_criterion'):
+                    criterion = row.ad_group_criterion
+                    row_dict['adGroupCriterion'] = {
+                        'criterionId': str(criterion.criterion_id),
+                        'status': criterion.status.name if hasattr(criterion, 'status') else None,
+                    }
+                    
+                    if hasattr(criterion, 'keyword'):
+                        row_dict['adGroupCriterion']['keyword'] = {
+                            'text': criterion.keyword.text,
+                            'matchType': criterion.keyword.match_type.name
+                        }
+                    
+                    if hasattr(criterion, 'quality_info'):
+                        qi = criterion.quality_info
+                        row_dict['adGroupCriterion']['qualityInfo'] = {
+                            'qualityScore': qi.quality_score if hasattr(qi, 'quality_score') else None
+                        }
+                
+                if hasattr(row, 'ad_group'):
+                    row_dict['adGroup'] = {
+                        'id': str(row.ad_group.id),
+                        'name': row.ad_group.name
+                    }
+                
+                if hasattr(row, 'ad_group_ad'):
+                    ad_group_ad = row.ad_group_ad
+                    row_dict['adGroupAd'] = {
+                        'status': ad_group_ad.status.name if hasattr(ad_group_ad, 'status') else None
+                    }
+                    
+                    if hasattr(ad_group_ad, 'ad'):
+                        ad = ad_group_ad.ad
+                        ad_dict = {
+                            'id': str(ad.id),
+                            'type': ad.type_.name if hasattr(ad, 'type_') else None
+                        }
+                        
+                        if hasattr(ad, 'responsive_search_ad'):
+                            rsa = ad.responsive_search_ad
+                            ad_dict['responsiveSearchAd'] = {
+                                'headlines': [{'text': h.text} for h in rsa.headlines] if hasattr(rsa, 'headlines') else [],
+                                'descriptions': [{'text': d.text} for d in rsa.descriptions] if hasattr(rsa, 'descriptions') else []
+                            }
+                        
+                        row_dict['adGroupAd']['ad'] = ad_dict
+                
+                if hasattr(row, 'campaign'):
+                    row_dict['campaign'] = {
+                        'id': str(row.campaign.id),
+                        'name': row.campaign.name
+                    }
+                
+                if hasattr(row, 'metrics'):
+                    metrics = row.metrics
+                    row_dict['metrics'] = {
+                        'impressions': str(metrics.impressions) if hasattr(metrics, 'impressions') else '0',
+                        'clicks': str(metrics.clicks) if hasattr(metrics, 'clicks') else '0',
+                        'costMicros': str(metrics.cost_micros) if hasattr(metrics, 'cost_micros') else '0',
+                        'conversions': metrics.conversions if hasattr(metrics, 'conversions') else 0.0,
+                        'ctr': metrics.ctr if hasattr(metrics, 'ctr') else 0.0,
+                        'conversionsFromInteractionsRate': metrics.conversions_from_interactions_rate if hasattr(metrics, 'conversions_from_interactions_rate') else 0.0
+                    }
+                
+                results_list.append(row_dict)
+        
+        print(f"✅ Query ejecutada exitosamente. Resultados: {len(results_list)}")
+        
+        result = jsonify({
+            'success': True,
+            'results': results_list,
+            'count': len(results_list)
+        }), 200
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"❌ Google Ads API Error: {ex}")
+        errors = []
+        if ex.failure:
+            for error in ex.failure.errors:
+                errors.append(error.message)
+        
+        result = jsonify({
+            'success': False,
+            'error': 'Google Ads API Error',
+            'errors': errors
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        result = jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
