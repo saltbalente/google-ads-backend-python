@@ -1738,8 +1738,7 @@ def create_price_asset():
             money.amount_micros = int(float(it.get('price', 0)) * 1_000_000)
             po.price = money
             asset.price_asset.price_offerings.append(po)
-        if first_url:
-            asset.final_urls.append(first_url)
+        # Do not set asset.final_urls for PriceAsset; not supported
         resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
         res_name = resp.results[0].resource_name
         field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.PRICE
