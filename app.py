@@ -9,6 +9,8 @@ import os
 from PIL import Image
 import base64
 from io import BytesIO
+import json
+import requests
 
 # Cargar variables de entorno
 load_dotenv()
@@ -1531,6 +1533,190 @@ def create_image_asset():
         res[0].headers.add('Access-Control-Allow-Origin', '*')
         return res
 
+@app.route('/api/campaigns/top-final-urls', methods=['POST', 'OPTIONS'])
+def top_campaign_final_urls():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        if not customer_id:
+            res = jsonify({"success": False, "message": "customerId requerido"}), 400
+            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_google_ads_client()
+        service = ga.get_service('GoogleAdsService')
+        query = (
+            "SELECT campaign.id, campaign.name, campaign.status, campaign_budget.amount_micros "
+            "FROM campaign WHERE campaign.status = 'ENABLED' ORDER BY campaign_budget.amount_micros DESC LIMIT 1"
+        )
+        rows = service.search(customer_id=customer_id, query=query)
+        top_campaign_id = None
+        for row in rows:
+            top_campaign_id = row.campaign.id
+            break
+        if not top_campaign_id:
+            result = jsonify({"success": True, "finalUrls": []}), 200
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        query_urls = (
+            "SELECT ad_group_ad.ad.final_urls FROM ad_group_ad "
+            f"WHERE campaign.id = '{top_campaign_id}' AND ad_group_ad.status = 'ENABLED'"
+        )
+        url_rows = service.search(customer_id=customer_id, query=query_urls)
+        urls = []
+        for row in url_rows:
+            if row.ad_group_ad.ad.final_urls:
+                urls.extend(list(row.ad_group_ad.ad.final_urls))
+        urls = list(dict.fromkeys(urls))
+        result = jsonify({"success": True, "campaignId": str(top_campaign_id), "finalUrls": urls}), 200
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/sitelinks/generate', methods=['POST', 'OPTIONS'])
+def generate_sitelinks():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        keywords_raw = data.get('keywords', '')
+        count = int(data.get('count', 4))
+        provider = (data.get('provider') or 'openai').lower()
+        if not customer_id:
+            res = jsonify({"success": False, "message": "customerId requerido"}), 400
+            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_google_ads_client()
+        service = ga.get_service('GoogleAdsService')
+        query = (
+            "SELECT campaign.id, campaign.name, campaign.status, campaign_budget.amount_micros "
+            "FROM campaign WHERE campaign.status = 'ENABLED' ORDER BY campaign_budget.amount_micros DESC LIMIT 1"
+        )
+        rows = service.search(customer_id=customer_id, query=query)
+        top_campaign_id = None
+        for row in rows:
+            top_campaign_id = row.campaign.id
+            break
+        base_url = None
+        if top_campaign_id:
+            query_urls = (
+                "SELECT ad_group_ad.ad.final_urls FROM ad_group_ad "
+                f"WHERE campaign.id = '{top_campaign_id}' AND ad_group_ad.status = 'ENABLED'"
+            )
+            url_rows = service.search(customer_id=customer_id, query=query_urls)
+            for row in url_rows:
+                if row.ad_group_ad.ad.final_urls:
+                    base_url = list(row.ad_group_ad.ad.final_urls)[0]
+                    break
+        seeds = [s.strip() for s in keywords_raw.split(',') if s.strip()]
+        if not seeds:
+            seeds = ['promo']
+        def slugify(s):
+            return ''.join(ch for ch in s.lower() if ch.isalnum() or ch == ' ').replace(' ', '')
+        def clamp(s, n):
+            return s[:n]
+        sitelinks = []
+        prompt = (
+            "You are an expert Google Ads copywriter. Given keywords, generate N sitelinks as JSON array. "
+            "Each item must strictly follow: title<=25 chars, description1<=35, description2<=35. "
+            "Use persuasive Spanish copy. Reply ONLY with JSON. Schema: [{\"title\",\"description1\",\"description2\"}]. "
+            f"keywords: {', '.join(seeds)}; N: {count}."
+        )
+        def use_openai(p):
+            key = os.environ.get('OPENAI_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {
+                "model": os.environ.get('OPENAI_MODEL', 'gpt-4o-mini'),
+                "messages": [{"role": "user", "content": p}],
+                "temperature": 0.8
+            }
+            r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','[]')
+            try:
+                return json.loads(content)
+            except:
+                return None
+        def use_gemini(p):
+            key = os.environ.get('GOOGLE_API_KEY')
+            if not key:
+                return None
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+            body = {"contents": [{"parts": [{"text": p}]}]}
+            r = requests.post(url, json=body, timeout=30)
+            if r.status_code != 200:
+                return None
+            parts = r.json().get('candidates',[{}])[0].get('content',{}).get('parts',[{}])
+            text = parts[0].get('text','[]')
+            try:
+                return json.loads(text)
+            except:
+                return None
+        def use_deepseek(p):
+            key = os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {
+                "model": os.environ.get('DEEPSEEK_MODEL','deepseek-chat'),
+                "messages": [{"role":"user","content": p}],
+                "temperature": 0.8
+            }
+            r = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','[]')
+            try:
+                return json.loads(content)
+            except:
+                return None
+        candidates = None
+        if provider == 'openai':
+            candidates = use_openai(prompt)
+            if candidates is None:
+                candidates = use_gemini(prompt)
+        elif provider == 'gemini':
+            candidates = use_gemini(prompt)
+            if candidates is None:
+                candidates = use_openai(prompt)
+        else:
+            candidates = use_deepseek(prompt)
+            if candidates is None:
+                candidates = use_openai(prompt)
+        if not isinstance(candidates, list):
+            candidates = []
+        if not candidates:
+            res = jsonify({"success": False, "message": "AI provider response unavailable"}), 500
+            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        for i in range(min(count, len(candidates))):
+            item = candidates[i]
+            title = clamp(str(item.get('title','')).strip(), 25)
+            d1 = clamp(str(item.get('description1','')).strip(), 35)
+            d2 = clamp(str(item.get('description2','')).strip(), 35)
+            base = base_url or 'https://example.com'
+            url = base.split('#')[0] + '#/' + slugify(title)
+            sitelinks.append({"title": title, "description1": d1, "description2": d2, "url": url})
+        result = jsonify({"success": True, "sitelinks": sitelinks}), 200
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
 @app.route('/api/assets/create-sitelink', methods=['POST', 'OPTIONS'])
 def create_sitelink_asset():
     if request.method == 'OPTIONS':
@@ -1642,119 +1828,9 @@ def create_promotion_asset():
         res[0].headers.add('Access-Control-Allow-Origin', '*')
         return res
 
-@app.route('/api/assets/create-lead-form', methods=['POST', 'OPTIONS'])
-def create_lead_form_asset():
-    if request.method == 'OPTIONS':
-        return cors_preflight_ok()
-    try:
-        data = request.get_json()
-        customer_id = data.get('customerId', '').replace('-', '')
-        campaign_id = data.get('campaignId')
-        ad_group_id = data.get('adGroupId')
-        lf = data.get('leadForm', {})
-        final_url = data.get('finalUrl', '')
-        if not all([customer_id, campaign_id]) or not lf:
-            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
-            res[0].headers.add('Access-Control-Allow-Origin', '*')
-            return res
-        privacy_url = lf.get('privacyPolicyUrl') or os.environ.get('LEAD_FORM_PRIVACY_URL')
-        if not privacy_url:
-            return jsonify({"success": False, "policyViolation": "privacyPolicyUrl requerido"}), 400
-        ga = get_google_ads_client()
-        svc = ga.get_service("AssetService")
-        op = ga.get_type("AssetOperation")
-        asset = op.create
-        asset.lead_form_asset.business_name = lf.get('businessName', '')
-        asset.lead_form_asset.headline = lf.get('headline', '')
-        desc = lf.get('description', '')
-        asset.lead_form_asset.description = desc[:200]
-        asset.lead_form_asset.privacy_policy_url = privacy_url
-        asset.lead_form_asset.call_to_action_type = ga.get_type("LeadFormCallToActionTypeEnum").LeadFormCallToActionType.LEARN_MORE
-        for q in lf.get('questions', []):
-            field = ga.get_type("LeadFormField")
-            if q == 'email':
-                field.input_type = ga.get_type("LeadFormFieldUserInputTypeEnum").LeadFormFieldUserInputType.EMAIL
-            elif q == 'phone':
-                field.input_type = ga.get_type("LeadFormFieldUserInputTypeEnum").LeadFormFieldUserInputType.PHONE_NUMBER
-            elif q == 'name':
-                field.input_type = ga.get_type("LeadFormFieldUserInputTypeEnum").LeadFormFieldUserInputType.FULL_NAME
-            asset.lead_form_asset.fields.append(field)
-        thank = lf.get('thankYouMessage', '')
-        asset.lead_form_asset.post_submit_headline = thank[:25]
-        if final_url:
-            asset.final_urls.append(final_url)
-        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
-        res_name = resp.results[0].resource_name
-        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.LEAD_FORM
-        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
-        result = jsonify({"success": True, "resourceName": res_name})
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
-    except GoogleAdsException as ex:
-        errors = [error.message for error in ex.failure.errors]
-        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
-        return res
-    except Exception as ex:
-        res = jsonify({"success": False, "message": str(ex)}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
-        return res
+# Lead Form creation removed per product decision
 
-@app.route('/api/assets/create-price', methods=['POST', 'OPTIONS'])
-def create_price_asset():
-    if request.method == 'OPTIONS':
-        return cors_preflight_ok()
-    try:
-        data = request.get_json()
-        customer_id = data.get('customerId', '').replace('-', '')
-        campaign_id = data.get('campaignId')
-        ad_group_id = data.get('adGroupId')
-        price = data.get('price', {})
-        items = price.get('items', [])
-        currency = price.get('currency', os.environ.get('PRICE_ASSET_CURRENCY', 'USD'))
-        if not all([customer_id, campaign_id]) or not items or not (3 <= len(items) <= 8):
-            res = jsonify({"success": False, "message": "Parámetros inválidos"}), 400
-            res[0].headers.add('Access-Control-Allow-Origin', '*')
-            return res
-        ga = get_google_ads_client()
-        svc = ga.get_service("AssetService")
-        op = ga.get_type("AssetOperation")
-        asset = op.create
-        asset.price_asset.type = ga.get_type("PriceExtensionTypeEnum").PriceExtensionType.SERVICES
-        first_url = None
-        for it in items:
-            po = ga.get_type("PriceOffering")
-            po.header = it.get('header', '')
-            desc = it.get('description', '') or it.get('header', '')
-            po.description = desc
-            url = it.get('url', '')
-            if url and first_url is None:
-                first_url = url
-            unit_map = ga.get_type("PriceExtensionPriceUnitEnum").PriceExtensionPriceUnit
-            unit_key = it.get('unit', 'PER_MONTH')
-            po.unit = getattr(unit_map, unit_key) if hasattr(unit_map, unit_key) else unit_map.PER_MONTH
-            money = ga.get_type("Money")
-            money.currency_code = currency
-            money.amount_micros = int(float(it.get('price', 0)) * 1_000_000)
-            po.price = money
-            asset.price_asset.price_offerings.append(po)
-        # Do not set asset.final_urls for PriceAsset; not supported
-        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
-        res_name = resp.results[0].resource_name
-        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.PRICE
-        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
-        result = jsonify({"success": True, "resourceName": res_name})
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
-    except GoogleAdsException as ex:
-        errors = [error.message for error in ex.failure.errors]
-        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
-        return res
-    except Exception as ex:
-        res = jsonify({"success": False, "message": str(ex)}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
-        return res
+# Price Asset creation removed per product decision
 
 @app.route('/api/assets/create-call', methods=['POST', 'OPTIONS'])
 def create_call_asset():
