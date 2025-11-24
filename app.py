@@ -1578,6 +1578,7 @@ def create_promotion_asset():
         campaign_id = data.get('campaignId')
         ad_group_id = data.get('adGroupId')
         p = data.get('promotion', {})
+        final_url = data.get('finalUrl', '')
         if not all([customer_id, campaign_id]) or not p:
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
             res[0].headers.add('Access-Control-Allow-Origin', '*')
@@ -1598,6 +1599,8 @@ def create_promotion_asset():
             asset.promotion_asset.money_amount_off = money
         if p.get('startDate'): asset.promotion_asset.start_date = p.get('startDate').split('T')[0]
         if p.get('endDate'): asset.promotion_asset.end_date = p.get('endDate').split('T')[0]
+        if final_url:
+            asset.final_urls.append(final_url)
         resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
         res_name = resp.results[0].resource_name
         field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.PROMOTION
