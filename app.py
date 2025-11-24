@@ -1331,8 +1331,6 @@ def get_campaign_analytics():
 
 
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
 
 # ==========================================
 # ENDPOINTS DE ACCIONES: PAUSAR KEYWORDS Y ADS
@@ -2890,3 +2888,7 @@ def execute_query():
         
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
+
+# Run server (after all routes are registered)
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
