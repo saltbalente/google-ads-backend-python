@@ -1571,9 +1571,9 @@ def top_campaign_final_urls():
             top_campaign_id = row.campaign.id
             break
         if not top_campaign_id:
-            result = jsonify({"success": True, "finalUrls": []}), 200
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
-            return result
+        result = jsonify({"success": True, "finalUrls": []})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
         query_urls = (
             "SELECT ad_group_ad.ad.final_urls FROM ad_group_ad "
             f"WHERE campaign.id = '{top_campaign_id}' AND ad_group_ad.status = 'ENABLED'"
@@ -1584,8 +1584,8 @@ def top_campaign_final_urls():
             if row.ad_group_ad.ad.final_urls:
                 urls.extend(list(row.ad_group_ad.ad.final_urls))
         urls = list(dict.fromkeys(urls))
-        result = jsonify({"success": True, "campaignId": str(top_campaign_id), "finalUrls": urls}), 200
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result = jsonify({"success": True, "campaignId": str(top_campaign_id), "finalUrls": urls})
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
     except GoogleAdsException as ex:
         errors = [error.message for error in ex.failure.errors]
@@ -1749,8 +1749,8 @@ def generate_sitelinks():
             base = base_url or 'https://example.com'
             url = base.split('#')[0] + '#' + slugify(title)
             sitelinks.append({"title": title, "description1": d1, "description2": d2, "url": url})
-        result = jsonify({"success": True, "sitelinks": sitelinks}), 200
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result = jsonify({"success": True, "sitelinks": sitelinks})
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
     except Exception as ex:
         res = jsonify({"success": False, "message": str(ex)}), 500
@@ -1847,7 +1847,7 @@ def assets_summary():
             "calls": calls,
             "promotions": promotions
         })
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
     except GoogleAdsException as ex:
         errors = [error.message for error in ex.failure.errors]
