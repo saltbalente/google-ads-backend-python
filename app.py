@@ -1716,10 +1716,8 @@ def create_price_asset():
             desc = it.get('description', '') or it.get('header', '')
             po.description = desc
             url = it.get('url', '')
-            if url:
-                po.final_url = url
-                if first_url is None:
-                    first_url = url
+            if url and first_url is None:
+                first_url = url
             unit_map = ga.get_type("PriceExtensionPriceUnitEnum").PriceExtensionPriceUnit
             unit_key = it.get('unit', 'PER_MONTH')
             po.unit = getattr(unit_map, unit_key) if hasattr(unit_map, unit_key) else unit_map.PER_MONTH
