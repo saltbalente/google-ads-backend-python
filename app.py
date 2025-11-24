@@ -1687,6 +1687,7 @@ def create_price_asset():
         ad_group_id = data.get('adGroupId')
         price = data.get('price', {})
         items = price.get('items', [])
+        currency = price.get('currency', os.environ.get('PRICE_ASSET_CURRENCY', 'USD'))
         if not all([customer_id, campaign_id]) or not items or not (3 <= len(items) <= 8):
             res = jsonify({"success": False, "message": "Parámetros inválidos"}), 400
             res[0].headers.add('Access-Control-Allow-Origin', '*')
@@ -1696,6 +1697,8 @@ def create_price_asset():
         op = ga.get_type("AssetOperation")
         asset = op.create
         asset.price_asset.type = ga.get_type("PriceExtensionTypeEnum").PriceExtensionType.SERVICES
+        # language_code is supported on PriceAsset
+        asset.price_asset.language_code = os.environ.get('PRICE_ASSET_LANGUAGE', 'es')
         first_url = None
         for it in items:
             po = ga.get_type("PriceOffering")
@@ -1711,7 +1714,7 @@ def create_price_asset():
             unit_key = it.get('unit', 'PER_MONTH')
             po.unit = getattr(unit_map, unit_key) if hasattr(unit_map, unit_key) else unit_map.PER_MONTH
             money = ga.get_type("Money")
-            money.currency_code = os.environ.get('PRICE_ASSET_CURRENCY', 'USD')
+            money.currency_code = currency
             money.amount_micros = int(float(it.get('price', 0)) * 1_000_000)
             po.price = money
             asset.price_asset.price_offerings.append(po)
