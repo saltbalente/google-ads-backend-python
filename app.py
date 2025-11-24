@@ -1498,8 +1498,9 @@ def create_image_asset():
         fmt = data.get('format')
         image_b64 = data.get('imageBase64')
         if not all([customer_id, campaign_id, fmt, image_b64]):
-            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
-            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
             return res
         raw = base64.b64decode(image_b64)
         if len(raw) > 5 * 1024 * 1024:
@@ -1540,12 +1541,14 @@ def create_image_asset():
                 'code': ex.error.code().name if hasattr(ex, 'error') else 'UNKNOWN',
                 'path': path
             })
-        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors, "details": details}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors, "details": details})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
     except Exception as ex:
-        res = jsonify({"success": False, "message": str(ex)}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
 
 @app.route('/api/campaigns/top-final-urls', methods=['POST', 'OPTIONS'])
@@ -1556,8 +1559,9 @@ def top_campaign_final_urls():
         data = request.get_json()
         customer_id = data.get('customerId', '').replace('-', '')
         if not customer_id:
-            res = jsonify({"success": False, "message": "customerId requerido"}), 400
-            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            res = jsonify({"success": False, "message": "customerId requerido"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
             return res
         ga = get_google_ads_client()
         service = ga.get_service('GoogleAdsService')
@@ -1571,9 +1575,9 @@ def top_campaign_final_urls():
             top_campaign_id = row.campaign.id
             break
         if not top_campaign_id:
-        result = jsonify({"success": True, "finalUrls": []})
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+            result = jsonify({"success": True, "finalUrls": []})
+            result.headers.add('Access-Control-Allow-Origin', '*')
+            return result
         query_urls = (
             "SELECT ad_group_ad.ad.final_urls FROM ad_group_ad "
             f"WHERE campaign.id = '{top_campaign_id}' AND ad_group_ad.status = 'ENABLED'"
@@ -1589,8 +1593,9 @@ def top_campaign_final_urls():
         return result
     except GoogleAdsException as ex:
         errors = [error.message for error in ex.failure.errors]
-        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
 
 @app.route('/api/sitelinks/generate', methods=['POST', 'OPTIONS'])
@@ -1604,8 +1609,9 @@ def generate_sitelinks():
         count = int(data.get('count', 4))
         provider = (data.get('provider') or 'deepseek').lower()
         if not customer_id:
-            res = jsonify({"success": False, "message": "customerId requerido"}), 400
-            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            res = jsonify({"success": False, "message": "customerId requerido"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
             return res
         ga = get_google_ads_client()
         service = ga.get_service('GoogleAdsService')
@@ -1738,8 +1744,9 @@ def generate_sitelinks():
                     "deepseek": bool(os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY'))
                 }
             }
-            res = jsonify({"success": False, "message": "AI provider response unavailable", "details": detail}), 500
-            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            res = jsonify({"success": False, "message": "AI provider response unavailable", "details": detail})
+            res.status_code = 500
+            res.headers.add('Access-Control-Allow-Origin', '*')
             return res
         for i in range(min(count, len(candidates))):
             item = candidates[i]
@@ -1753,8 +1760,9 @@ def generate_sitelinks():
         result.headers.add('Access-Control-Allow-Origin', '*')
         return result
     except Exception as ex:
-        res = jsonify({"success": False, "message": str(ex)}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
 
 @app.route('/api/assets/summary', methods=['POST', 'OPTIONS'])
@@ -1767,8 +1775,9 @@ def assets_summary():
         campaign_id = data.get('campaignId')
         ad_group_id = data.get('adGroupId')
         if not all([customer_id, campaign_id]):
-            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
-            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
             return res
         ga = get_google_ads_client()
         service = ga.get_service('GoogleAdsService')
@@ -1851,16 +1860,19 @@ def assets_summary():
         return result
     except GoogleAdsException as ex:
         errors = [error.message for error in ex.failure.errors]
-        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
     except Exception as ex:
-        res = jsonify({"success": False, "message": str(ex)}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
     except Exception as ex:
-        res = jsonify({"success": False, "message": str(ex)}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
 @app.route('/api/assets/create-sitelink', methods=['POST', 'OPTIONS'])
 def create_sitelink_asset():
@@ -1876,8 +1888,9 @@ def create_sitelink_asset():
         d2 = data.get('description2', '')
         final_url = data.get('finalUrl', '')
         if not all([customer_id, campaign_id, text, final_url]):
-            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
-            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
             return res
         if len(text) > 25 or len(d1) > 35 or len(d2) > 35:
             return jsonify({"success": False, "policyViolation": "Longitudes excedidas"}), 400
@@ -1933,12 +1946,14 @@ def create_sitelink_asset():
                 'code': ex.error.code().name if hasattr(ex, 'error') else 'UNKNOWN',
                 'path': path
             })
-        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors, "details": details}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors, "details": details})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
     except Exception as ex:
-        res = jsonify({"success": False, "message": str(ex)}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
 
 @app.route('/api/assets/create-promotion', methods=['POST', 'OPTIONS'])
@@ -1953,8 +1968,9 @@ def create_promotion_asset():
         p = data.get('promotion', {})
         final_url = data.get('finalUrl', '')
         if not all([customer_id, campaign_id]) or not p:
-            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
-            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
             return res
         ga = get_google_ads_client()
         svc = ga.get_service("AssetService")
@@ -1983,12 +1999,14 @@ def create_promotion_asset():
         return result
     except GoogleAdsException as ex:
         errors = [error.message for error in ex.failure.errors]
-        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
     except Exception as ex:
-        res = jsonify({"success": False, "message": str(ex)}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
 
 # Lead Form creation removed per product decision
@@ -2013,8 +2031,9 @@ def create_call_asset():
         }
         cc = code_map.get(cc_raw, cc_raw if len(cc_raw)==2 else '')
         if not all([customer_id, campaign_id, cc, phone]):
-            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
-            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
             return res
         ga = get_google_ads_client()
         svc = ga.get_service("AssetService")
@@ -2031,8 +2050,9 @@ def create_call_asset():
         return result
     except GoogleAdsException as ex:
         errors = [error.message for error in ex.failure.errors]
-        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
 
 @app.route('/api/assets/create-callout', methods=['POST', 'OPTIONS'])
@@ -2047,8 +2067,9 @@ def create_callout_asset():
         text = data.get('text')
         texts = data.get('texts') if isinstance(data.get('texts'), list) else None
         if not all([customer_id, campaign_id]) or (not text and not texts):
-            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
-            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
             return res
         ga = get_google_ads_client()
         svc = ga.get_service("AssetService")
@@ -2071,12 +2092,14 @@ def create_callout_asset():
         return result
     except GoogleAdsException as ex:
         errors = [error.message for error in ex.failure.errors]
-        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
     except Exception as ex:
-        res = jsonify({"success": False, "message": str(ex)}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
 
 @app.route('/api/callouts/generate', methods=['POST', 'OPTIONS'])
@@ -2175,12 +2198,14 @@ def generate_callouts():
                 break
         return jsonify({"success": True, "callouts": out}), 200
     except Exception as ex:
-        res = jsonify({"success": False, "message": str(ex)}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
     except Exception as ex:
-        res = jsonify({"success": False, "message": str(ex)}), 500
-        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
         return res
 @app.route('/api/ad/pause', methods=['POST', 'OPTIONS'])
 def pause_ad():
@@ -2212,8 +2237,9 @@ def pause_ad():
                 'success': False,
                 'error': 'Faltan parámetros requeridos',
                 'required': ['customer_id', 'ad_group_id', 'ad_id']
-            }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            })
+            result.status_code = 400
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         # Crear cliente
