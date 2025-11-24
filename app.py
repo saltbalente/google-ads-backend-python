@@ -18,6 +18,15 @@ load_dotenv()
 
 app = Flask(__name__)
 
+@app.errorhandler(Exception)
+def handle_unexpected_error(e):
+    res = jsonify({"success": False, "message": str(e)})
+    res.status_code = 500
+    res.headers.add('Access-Control-Allow-Origin', '*')
+    res.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    res.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    return res
+
 def get_google_ads_client():
     """Crea cliente de Google Ads desde variables de entorno"""
     return GoogleAdsClient.load_from_dict({
