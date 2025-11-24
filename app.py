@@ -2111,6 +2111,172 @@ def create_callout_asset():
         res.headers.add('Access-Control-Allow-Origin', '*')
         return res
 
+@app.route('/api/optimization/analyze-relevance', methods=['POST', 'OPTIONS'])
+def analyze_relevance():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        lookback = int(data.get('lookbackWindow', 30))
+        if not customer_id:
+            res = jsonify({"success": False, "message": "customerId requerido"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        end_date = date.today()
+        start_date = end_date - timedelta(days=lookback)
+        ga = get_google_ads_client()
+        service = ga.get_service('GoogleAdsService')
+        query = (
+            "SELECT search_term_view.search_term, metrics.conversions, metrics.clicks, metrics.impressions, "
+            "metrics.ctr, metrics.cost_micros, ad_group.id, ad_group.name, campaign.id "
+            "FROM search_term_view "
+            f"WHERE segments.date >= '{start_date.isoformat()}' AND segments.date <= '{end_date.isoformat()}' "
+            "AND metrics.conversions > 0"
+        )
+        rows = service.search(customer_id=customer_id, query=query)
+        opportunities = []
+        for r in rows:
+            clicks = r.metrics.clicks
+            impressions = r.metrics.impressions
+            conversions = r.metrics.conversions
+            ctr = r.metrics.ctr
+            cost_micros = r.metrics.cost_micros
+            cpa_micros = int(cost_micros / conversions) if conversions > 0 else 0
+            low_ctr = ctr < 0.02
+            high_cpa = cpa_micros > 5_000_000
+            if low_ctr or high_cpa:
+                opportunities.append({
+                    "searchTerm": r.search_term_view.search_term,
+                    "conversions": float(conversions),
+                    "clicks": int(clicks),
+                    "impressions": int(impressions),
+                    "ctr": float(ctr),
+                    "cpaMicros": int(cpa_micros),
+                    "costMicros": int(cost_micros),
+                    "adGroupId": str(r.ad_group.id),
+                    "adGroupName": r.ad_group.name,
+                    "campaignId": str(r.campaign.id),
+                    "potentialSavingsMicros": int(cost_micros * 0.1)
+                })
+        result = jsonify({"success": True, "opportunities": opportunities})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/optimization/execute-skag', methods=['POST', 'OPTIONS'])
+def execute_skag():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        original_ad_group_id = data.get('originalAdGroupId')
+        search_term = data.get('searchTerm', '')
+        new_ad_copy = data.get('newAdCopy', {})
+        dry_run = bool(data.get('dryRun', True))
+        if not all([customer_id, campaign_id, original_ad_group_id, search_term]):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_google_ads_client()
+        if dry_run:
+            created_group_name = f"SKAG - {search_term}"
+            negative_exact = f"[{search_term}]"
+            result = jsonify({
+                "success": True,
+                "dryRun": True,
+                "message": "Simulación exitosa",
+                "wouldCreate": {
+                    "adGroupName": created_group_name,
+                    "keywordExact": negative_exact,
+                    "rsa": {
+                        "headlines": new_ad_copy.get('headlines', [search_term]),
+                        "descriptions": new_ad_copy.get('descriptions', [f"La mejor opción para {search_term}", f"Descubre {search_term}"])
+                    },
+                    "negativeInOriginal": negative_exact
+                }
+            })
+            result.headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        client = ga
+        ad_group_service = client.get_service("AdGroupService")
+        ad_group_operation = client.get_type("AdGroupOperation")
+        ad_group = ad_group_operation.create
+        ad_group.name = f"SKAG - {search_term}"
+        ad_group.campaign = f"customers/{customer_id}/campaigns/{campaign_id}"
+        ad_group.status = client.enums.AdGroupStatusEnum.ENABLED
+        ad_group_response = ad_group_service.mutate_ad_groups(customer_id=customer_id, operations=[ad_group_operation])
+        new_ad_group_res = ad_group_response.results[0].resource_name
+        new_ad_group_id = new_ad_group_res.split('/')[-1]
+        ad_group_criterion_service = client.get_service("AdGroupCriterionService")
+        kw_op = client.get_type("AdGroupCriterionOperation")
+        kw = kw_op.create
+        kw.ad_group = new_ad_group_res
+        kw.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+        kw.keyword = client.get_type("KeywordInfo")
+        kw.keyword.text = search_term
+        kw.keyword.match_type = client.enums.KeywordMatchTypeEnum.EXACT
+        ad_group_criterion_service.mutate_ad_group_criteria(customer_id=customer_id, operations=[kw_op])
+        ad_group_ad_service = client.get_service("AdGroupAdService")
+        ad_group_ad_operation = client.get_type("AdGroupAdOperation")
+        ad_group_ad = ad_group_ad_operation.create
+        ad_group_ad.ad_group = new_ad_group_res
+        ad_group_ad.status = client.enums.AdGroupAdStatusEnum.ENABLED
+        final_url = new_ad_copy.get('finalUrl') or "https://example.com/"
+        ad_group_ad.ad.final_urls.append(final_url)
+        headlines = new_ad_copy.get('headlines') or [search_term, f"{search_term} oferta", f"{search_term} hoy"]
+        descriptions = new_ad_copy.get('descriptions') or [f"La mejor opción para {search_term}", f"Descubre {search_term}"]
+        for i, h in enumerate(headlines):
+            asset = client.get_type("AdTextAsset")
+            asset.text = h
+            if i == 0:
+                asset.pinned_field = client.enums.ServedAssetFieldTypeEnum.HEADLINE_1
+            ad_group_ad.ad.responsive_search_ad.headlines.append(asset)
+        for d in descriptions:
+            asset = client.get_type("AdTextAsset")
+            asset.text = d
+            ad_group_ad.ad.responsive_search_ad.descriptions.append(asset)
+        ad_group_ad_service.mutate_ad_group_ads(customer_id=customer_id, operations=[ad_group_ad_operation])
+        neg_op = client.get_type("AdGroupCriterionOperation")
+        neg = neg_op.create
+        neg.ad_group = f"customers/{customer_id}/adGroups/{original_ad_group_id}"
+        neg.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+        neg.negative = True
+        neg.keyword = client.get_type("KeywordInfo")
+        neg.keyword.text = search_term
+        neg.keyword.match_type = client.enums.KeywordMatchTypeEnum.EXACT
+        ad_group_criterion_service.mutate_ad_group_criteria(customer_id=customer_id, operations=[neg_op])
+        result = jsonify({"success": True, "newAdGroupId": new_ad_group_id})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = []
+        for error in ex.failure.errors:
+            errors.append(error.message)
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
 @app.route('/api/callouts/generate', methods=['POST', 'OPTIONS'])
 def generate_callouts():
     if request.method == 'OPTIONS':
