@@ -1709,9 +1709,6 @@ def create_price_asset():
         op = ga.get_type("AssetOperation")
         asset = op.create
         asset.price_asset.type = ga.get_type("PriceExtensionTypeEnum").PriceExtensionType.SERVICES
-        # language_code and price_qualifier help satisfy required fields
-        asset.price_asset.language_code = os.environ.get('PRICE_ASSET_LANGUAGE', 'es')
-        asset.price_asset.price_qualifier = ga.get_type("PriceExtensionPriceQualifierEnum").PriceExtensionPriceQualifier.FROM
         first_url = None
         for it in items:
             po = ga.get_type("PriceOffering")
