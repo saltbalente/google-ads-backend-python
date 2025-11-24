@@ -2136,7 +2136,10 @@ def analyze_relevance():
             "AND metrics.conversions > 0"
         )
         rows = service.search(customer_id=customer_id, query=query)
-        opportunities = []
+        
+        # Recopilar todos los ad_group_ids únicos para obtener sus URLs
+        ad_group_ids = set()
+        opportunities_temp = []
         for r in rows:
             clicks = r.metrics.clicks
             impressions = r.metrics.impressions
@@ -2147,7 +2150,9 @@ def analyze_relevance():
             low_ctr = ctr < 0.02
             high_cpa = cpa_micros > 5_000_000
             if low_ctr or high_cpa:
-                opportunities.append({
+                ad_group_id = str(r.ad_group.id)
+                ad_group_ids.add(ad_group_id)
+                opportunities_temp.append({
                     "searchTerm": r.search_term_view.search_term,
                     "conversions": float(conversions),
                     "clicks": int(clicks),
@@ -2155,11 +2160,39 @@ def analyze_relevance():
                     "ctr": float(ctr),
                     "cpaMicros": int(cpa_micros),
                     "costMicros": int(cost_micros),
-                    "adGroupId": str(r.ad_group.id),
+                    "adGroupId": ad_group_id,
                     "adGroupName": r.ad_group.name,
                     "campaignId": str(r.campaign.id),
                     "potentialSavingsMicros": int(cost_micros * 0.1)
                 })
+        
+        # Obtener URLs de los anuncios de cada ad group
+        ad_group_urls = {}
+        if ad_group_ids:
+            ad_groups_filter = " OR ".join([f"ad_group.id = '{ag_id}'" for ag_id in ad_group_ids])
+            ads_query = (
+                "SELECT ad_group.id, ad_group_ad.ad.final_urls "
+                "FROM ad_group_ad "
+                f"WHERE ({ad_groups_filter}) "
+                "AND ad_group_ad.status = 'ENABLED' "
+                "LIMIT 1000"
+            )
+            try:
+                ads_rows = service.search(customer_id=customer_id, query=ads_query)
+                for ad_row in ads_rows:
+                    ag_id = str(ad_row.ad_group.id)
+                    if ad_row.ad_group_ad.ad.final_urls and len(ad_row.ad_group_ad.ad.final_urls) > 0:
+                        # Tomar la primera URL disponible
+                        if ag_id not in ad_group_urls:
+                            ad_group_urls[ag_id] = ad_row.ad_group_ad.ad.final_urls[0]
+            except Exception as url_ex:
+                print(f"⚠️ Error obteniendo URLs: {url_ex}")
+        
+        # Agregar URLs a las oportunidades
+        opportunities = []
+        for opp in opportunities_temp:
+            opp["finalUrl"] = ad_group_urls.get(opp["adGroupId"], "")
+            opportunities.append(opp)
         result = jsonify({"success": True, "opportunities": opportunities})
         result.headers.add('Access-Control-Allow-Origin', '*')
         return result
