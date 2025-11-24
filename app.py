@@ -1784,14 +1784,14 @@ def assets_summary():
             return out
 
         camp_query = (
-            f"SELECT campaign_asset.asset, campaign_asset.field_type FROM campaign_asset "
+            f"SELECT campaign.id, campaign_asset.asset, campaign_asset.field_type FROM campaign_asset "
             f"WHERE campaign.id = '{campaign_id}' AND campaign_asset.status = 'ENABLED'"
         )
         camp_assets = list_linked_assets(camp_query, is_campaign=True)
         adg_assets = []
         if ad_group_id:
             adg_query = (
-                f"SELECT ad_group_asset.asset, ad_group_asset.field_type FROM ad_group_asset "
+                f"SELECT ad_group.id, ad_group_asset.asset, ad_group_asset.field_type FROM ad_group_asset "
                 f"WHERE ad_group.id = '{ad_group_id}' AND ad_group_asset.status = 'ENABLED'"
             )
             adg_assets = list_linked_assets(adg_query, is_campaign=False)
