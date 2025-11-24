@@ -1700,6 +1700,8 @@ def create_price_asset():
         for it in items:
             po = ga.get_type("PriceOffering")
             po.header = it.get('header', '')
+            desc = it.get('description', '') or it.get('header', '')
+            po.description = desc
             url = it.get('url', '')
             if url:
                 po.final_url = url
@@ -1739,8 +1741,14 @@ def create_call_asset():
         customer_id = data.get('customerId', '').replace('-', '')
         campaign_id = data.get('campaignId')
         ad_group_id = data.get('adGroupId')
-        cc = data.get('countryCode', '').replace('+', '')
+        cc_raw = data.get('countryCode', '')
         phone = data.get('phoneNumber', '')
+        code_map = {
+            '+52':'MX','52':'MX',
+            '+57':'CO','57':'CO',
+            '+1':'US','1':'US'
+        }
+        cc = code_map.get(cc_raw, cc_raw if len(cc_raw)==2 else '')
         if not all([customer_id, campaign_id, cc, phone]):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
             res[0].headers.add('Access-Control-Allow-Origin', '*')
