@@ -1696,8 +1696,6 @@ def create_price_asset():
         op = ga.get_type("AssetOperation")
         asset = op.create
         asset.price_asset.type = ga.get_type("PriceExtensionTypeEnum").PriceExtensionType.SERVICES
-        asset.price_asset.language_code = os.environ.get('PRICE_ASSET_LANGUAGE', 'es')
-        asset.price_asset.price_qualifier = ga.get_type("PriceExtensionPriceQualifierEnum").PriceExtensionPriceQualifier.FROM
         first_url = None
         for it in items:
             po = ga.get_type("PriceOffering")
@@ -1709,7 +1707,9 @@ def create_price_asset():
                 po.final_url = url
                 if first_url is None:
                     first_url = url
-            po.unit = ga.get_type("PriceExtensionPriceUnitEnum").PriceExtensionPriceUnit.PER_MONTH
+            unit_map = ga.get_type("PriceExtensionPriceUnitEnum").PriceExtensionPriceUnit
+            unit_key = it.get('unit', 'PER_MONTH')
+            po.unit = getattr(unit_map, unit_key) if hasattr(unit_map, unit_key) else unit_map.PER_MONTH
             money = ga.get_type("Money")
             money.currency_code = os.environ.get('PRICE_ASSET_CURRENCY', 'USD')
             money.amount_micros = int(float(it.get('price', 0)) * 1_000_000)
