@@ -1550,7 +1550,7 @@ def create_sitelink_asset():
         if d2:
             asset.sitelink_asset.description2 = d2
         # Final URL es requerida por Google Ads para SitelinkAsset; colocar en ambos campos por compatibilidad
-        asset.sitelink_asset.final_urls.append(final_url)
+        # Final URL debe establecerse en el asset (no dentro de sitelink_asset)
         asset.final_urls.append(final_url)
         print(f"[create-sitelink] customer={customer_id} campaign={campaign_id} adGroup={ad_group_id} text='{text}' url='{final_url}'")
         resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
