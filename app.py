@@ -6,6 +6,9 @@ from google.protobuf.field_mask_pb2 import FieldMask
 from circuit_breaker import circuit_breaker_bp, start_circuit_breaker_scheduler
 from dotenv import load_dotenv
 import os
+from PIL import Image
+import base64
+from io import BytesIO
 
 # Cargar variables de entorno
 load_dotenv()
@@ -1438,9 +1441,321 @@ def pause_keyword():
         }), 500
         
         result[0].headers.add('Access-Control-Allow-Origin', '*')
+    return result
+
+
+# Assets
+
+def link_asset_to_context(ga_client, customer_id, asset_resource_name, field_type_enum_value, campaign_id, ad_group_id=None):
+    if ad_group_id:
+        svc = ga_client.get_service("AdGroupAssetService")
+        op = ga_client.get_type("AdGroupAssetOperation")
+        create = op.create
+        create.ad_group = f"customers/{customer_id}/adGroups/{ad_group_id}"
+        create.asset = asset_resource_name
+        create.field_type = field_type_enum_value
+        svc.mutate_ad_group_assets(customer_id=customer_id, operations=[op])
+    else:
+        svc = ga_client.get_service("CampaignAssetService")
+        op = ga_client.get_type("CampaignAssetOperation")
+        create = op.create
+        create.campaign = f"customers/{customer_id}/campaigns/{campaign_id}"
+        create.asset = asset_resource_name
+        create.field_type = field_type_enum_value
+        svc.mutate_campaign_assets(customer_id=customer_id, operations=[op])
+
+def cors_preflight_ok():
+    response = jsonify({'status': 'ok'})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    return response
+
+@app.route('/api/assets/create-image', methods=['POST', 'OPTIONS'])
+def create_image_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        fmt = data.get('format')
+        image_b64 = data.get('imageBase64')
+        if not all([customer_id, campaign_id, fmt, image_b64]):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
+            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        raw = base64.b64decode(image_b64)
+        if len(raw) > 5 * 1024 * 1024:
+            return jsonify({"success": False, "policyViolation": "Imagen supera 5MB"}), 400
+        img = Image.open(BytesIO(raw))
+        w, h = img.size
+        if fmt == 'MARKETING':
+            ratio = w / max(h, 1)
+            if not (w >= 600 and h >= 314 and abs(ratio - 1.91) < 0.15):
+                return jsonify({"success": False, "policyViolation": "Dimensiones/ratio inválidas para Marketing"}), 400
+        elif fmt == 'SQUARE':
+            if not (w >= 300 and h >= 300 and abs(w - h) < 5):
+                return jsonify({"success": False, "policyViolation": "Dimensiones inválidas para Square"}), 400
+        ga = get_google_ads_client()
+        svc = ga.get_service("AssetService")
+        op = ga.get_type("AssetOperation")
+        asset = op.create
+        asset.name = "Image Asset"
+        asset.image_asset.data = raw
+        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
+        res_name = resp.results[0].resource_name
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.IMAGE
+        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": res_name})
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
 
+@app.route('/api/assets/create-sitelink', methods=['POST', 'OPTIONS'])
+def create_sitelink_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        text = data.get('text', '')
+        d1 = data.get('description1', '')
+        d2 = data.get('description2', '')
+        final_url = data.get('finalUrl', '')
+        if not all([customer_id, campaign_id, text]):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
+            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        if len(text) > 25 or len(d1) > 35 or len(d2) > 35:
+            return jsonify({"success": False, "policyViolation": "Longitudes excedidas"}), 400
+        ga = get_google_ads_client()
+        svc = ga.get_service("AssetService")
+        op = ga.get_type("AssetOperation")
+        asset = op.create
+        asset.sitelink_asset.link_text = text
+        if d1:
+            asset.sitelink_asset.description1 = d1
+        if d2:
+            asset.sitelink_asset.description2 = d2
+        if final_url:
+            try:
+                asset.sitelink_asset.final_urls.append(final_url)
+            except Exception:
+                pass
+        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
+        res_name = resp.results[0].resource_name
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.SITELINK
+        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": res_name})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
 
+@app.route('/api/assets/create-promotion', methods=['POST', 'OPTIONS'])
+def create_promotion_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        p = data.get('promotion', {})
+        if not all([customer_id, campaign_id]) or not p:
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
+            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_google_ads_client()
+        svc = ga.get_service("AssetService")
+        op = ga.get_type("AssetOperation")
+        asset = op.create
+        if p.get('event'): asset.promotion_asset.promotion_target = p.get('event')
+        if p.get('language'): asset.promotion_asset.language_code = p.get('language')
+        dt = p.get('discountType')
+        if dt == 'percent':
+            asset.promotion_asset.percent_off = int(p.get('percent', 0))
+        else:
+            money = ga.get_type("Money")
+            money.currency_code = p.get('currency', 'USD')
+            money.amount_micros = int(float(p.get('amount', 0)) * 1_000_000)
+            asset.promotion_asset.money_amount_off = money
+        if p.get('startDate'): asset.promotion_asset.start_date = p.get('startDate').split('T')[0]
+        if p.get('endDate'): asset.promotion_asset.end_date = p.get('endDate').split('T')[0]
+        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
+        res_name = resp.results[0].resource_name
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.PROMOTION
+        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": res_name})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/assets/create-lead-form', methods=['POST', 'OPTIONS'])
+def create_lead_form_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        lf = data.get('leadForm', {})
+        if not all([customer_id, campaign_id]) or not lf:
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
+            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        privacy_url = lf.get('privacyPolicyUrl') or os.environ.get('LEAD_FORM_PRIVACY_URL')
+        if not privacy_url:
+            return jsonify({"success": False, "policyViolation": "privacyPolicyUrl requerido"}), 400
+        ga = get_google_ads_client()
+        svc = ga.get_service("AssetService")
+        op = ga.get_type("AssetOperation")
+        asset = op.create
+        asset.lead_form_asset.business_name = lf.get('businessName', '')
+        asset.lead_form_asset.headline = lf.get('headline', '')
+        asset.lead_form_asset.description = lf.get('description', '')
+        asset.lead_form_asset.privacy_policy_url = privacy_url
+        for q in lf.get('questions', []):
+            field = ga.get_type("LeadFormField")
+            if q == 'email':
+                field.input_type = ga.get_type("LeadFormFieldUserInputTypeEnum").LeadFormFieldUserInputType.EMAIL
+            elif q == 'phone':
+                field.input_type = ga.get_type("LeadFormFieldUserInputTypeEnum").LeadFormFieldUserInputType.PHONE_NUMBER
+            elif q == 'name':
+                field.input_type = ga.get_type("LeadFormFieldUserInputTypeEnum").LeadFormFieldUserInputType.FULL_NAME
+            asset.lead_form_asset.fields.append(field)
+        asset.lead_form_asset.post_submit_headline = lf.get('thankYouMessage', '')
+        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
+        res_name = resp.results[0].resource_name
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.LEAD_FORM
+        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": res_name})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/assets/create-price', methods=['POST', 'OPTIONS'])
+def create_price_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        price = data.get('price', {})
+        items = price.get('items', [])
+        if not all([customer_id, campaign_id]) or not items or not (3 <= len(items) <= 8):
+            res = jsonify({"success": False, "message": "Parámetros inválidos"}), 400
+            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_google_ads_client()
+        svc = ga.get_service("AssetService")
+        op = ga.get_type("AssetOperation")
+        asset = op.create
+        asset.price_asset.type = ga.get_type("PriceExtensionTypeEnum").PriceExtensionType.SERVICES
+        for it in items:
+            po = ga.get_type("PriceOffering")
+            po.header = it.get('header', '')
+            url = it.get('url', '')
+            if url:
+                po.final_urls.append(url)
+            po.unit = ga.get_type("PriceExtensionPriceUnitEnum").PriceExtensionPriceUnit.PER_MONTH
+            money = ga.get_type("Money")
+            money.currency_code = os.environ.get('PRICE_ASSET_CURRENCY', 'USD')
+            money.amount_micros = int(float(it.get('price', 0)) * 1_000_000)
+            po.price = money
+            asset.price_asset.price_offerings.append(po)
+        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
+        res_name = resp.results[0].resource_name
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.PRICE
+        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": res_name})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/assets/create-call', methods=['POST', 'OPTIONS'])
+def create_call_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        cc = data.get('countryCode', '').replace('+', '')
+        phone = data.get('phoneNumber', '')
+        if not all([customer_id, campaign_id, cc, phone]):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
+            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_google_ads_client()
+        svc = ga.get_service("AssetService")
+        op = ga.get_type("AssetOperation")
+        asset = op.create
+        asset.call_asset.country_code = cc
+        asset.call_asset.phone_number = phone
+        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
+        res_name = resp.results[0].resource_name
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.CALL
+        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": res_name})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
 @app.route('/api/ad/pause', methods=['POST', 'OPTIONS'])
 def pause_ad():
     """
