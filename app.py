@@ -1602,7 +1602,7 @@ def generate_sitelinks():
         customer_id = data.get('customerId', '').replace('-', '')
         keywords_raw = data.get('keywords', '')
         count = int(data.get('count', 4))
-        provider = (data.get('provider') or 'openai').lower()
+        provider = (data.get('provider') or 'deepseek').lower()
         if not customer_id:
             res = jsonify({"success": False, "message": "customerId requerido"}), 400
             res[0].headers.add('Access-Control-Allow-Origin', '*')
@@ -1930,6 +1930,150 @@ def create_call_asset():
     except GoogleAdsException as ex:
         errors = [error.message for error in ex.failure.errors]
         res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/assets/create-callout', methods=['POST', 'OPTIONS'])
+def create_callout_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        text = data.get('text')
+        texts = data.get('texts') if isinstance(data.get('texts'), list) else None
+        if not all([customer_id, campaign_id]) or (not text and not texts):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
+            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_google_ads_client()
+        svc = ga.get_service("AssetService")
+        operations = []
+        items = texts if texts else [text]
+        for t in items:
+            if not t: 
+                continue
+            op = ga.get_type("AssetOperation")
+            asset = op.create
+            asset.callout_asset.callout_text = str(t)[:25]
+            operations.append(op)
+        resp = svc.mutate_assets(customer_id=customer_id, operations=operations)
+        created = [r.resource_name for r in resp.results]
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.CALLOUT
+        for res_name in created:
+            link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": created[-1] if created else "", "created": created})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/callouts/generate', methods=['POST', 'OPTIONS'])
+def generate_callouts():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        keywords_raw = data.get('keywords', '')
+        count = int(data.get('count', 4))
+        provider = (data.get('provider') or 'deepseek').lower()
+        seeds = [s.strip() for s in keywords_raw.split(',') if s.strip()]
+        if not seeds:
+            seeds = ['promoción']
+
+        prompt = (
+            "Eres copywriter experto en Google Ads. Genera N textos destacados (callouts) en JSON puro: "
+            "[{\"text\"}] en español, cada \"text\" de máximo 25 caracteres, persuasivo y variado. "
+            f"keywords: {', '.join(seeds)}; N: {count}. Responde SOLO JSON."
+        )
+
+        def extract_json(text):
+            if not text:
+                return None
+            t = text.strip().replace('```json', '').replace('```', '')
+            start = t.find('[')
+            end = t.rfind(']')
+            if start != -1 and end != -1 and end > start:
+                t = t[start:end+1]
+            t = t.replace('\u201c', '"').replace('\u201d', '"').replace('“', '"').replace('”', '"')
+            try:
+                return json.loads(t)
+            except:
+                return None
+
+        last_error = None
+        def use_openai(p):
+            key = os.environ.get('OPENAI_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {"model": os.environ.get('OPENAI_MODEL', 'gpt-4o-mini'), "messages": [{"role":"user","content": p}], "temperature": 0.8}
+            r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                last_error = r.text[:500]
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','[]')
+            return extract_json(content)
+        def use_gemini(p):
+            key = os.environ.get('GOOGLE_API_KEY')
+            if not key:
+                return None
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+            body = {"contents": [{"parts": [{"text": p}]}]}
+            r = requests.post(url, json=body, timeout=30)
+            if r.status_code != 200:
+                last_error = r.text[:500]
+                return None
+            parts = r.json().get('candidates',[{}])[0].get('content',{}).get('parts',[{}])
+            text = parts[0].get('text','[]')
+            return extract_json(text)
+        def use_deepseek(p):
+            key = os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {"model": os.environ.get('DEEPSEEK_MODEL','deepseek-chat'), "messages": [{"role":"user","content": p}], "temperature": 0.8}
+            r = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                last_error = r.text[:500]
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','[]')
+            return extract_json(content)
+
+        candidates = None
+        if provider == 'deepseek':
+            candidates = use_deepseek(prompt) or use_openai(prompt) or use_gemini(prompt)
+        elif provider == 'openai':
+            candidates = use_openai(prompt) or use_deepseek(prompt) or use_gemini(prompt)
+        else:
+            candidates = use_gemini(prompt) or use_deepseek(prompt) or use_openai(prompt)
+
+        if not isinstance(candidates, list):
+            return jsonify({"success": False, "message": "AI provider response unavailable", "details": last_error}), 500
+
+        # Clamp to 25 chars, unique
+        seen = set()
+        out = []
+        for item in candidates:
+            t = str(item.get('text','')).strip()[:25]
+            if not t or t in seen:
+                continue
+            seen.add(t)
+            out.append({"text": t})
+            if len(out) >= count:
+                break
+        return jsonify({"success": True, "callouts": out}), 200
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)}), 500
         res[0].headers.add('Access-Control-Allow-Origin', '*')
         return res
     except Exception as ex:
