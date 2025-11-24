@@ -1693,18 +1693,21 @@ def create_price_asset():
         op = ga.get_type("AssetOperation")
         asset = op.create
         asset.price_asset.type = ga.get_type("PriceExtensionTypeEnum").PriceExtensionType.SERVICES
+        first_url = None
         for it in items:
             po = ga.get_type("PriceOffering")
             po.header = it.get('header', '')
             url = it.get('url', '')
-            if url:
-                po.final_urls.append(url)
+            if first_url is None and url:
+                first_url = url
             po.unit = ga.get_type("PriceExtensionPriceUnitEnum").PriceExtensionPriceUnit.PER_MONTH
             money = ga.get_type("Money")
             money.currency_code = os.environ.get('PRICE_ASSET_CURRENCY', 'USD')
             money.amount_micros = int(float(it.get('price', 0)) * 1_000_000)
             po.price = money
             asset.price_asset.price_offerings.append(po)
+        if first_url:
+            asset.final_urls.append(first_url)
         resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
         res_name = resp.results[0].resource_name
         field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.PRICE
