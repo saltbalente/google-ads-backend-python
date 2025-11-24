@@ -11,6 +11,7 @@ import base64
 from io import BytesIO
 import json
 import requests
+import unicodedata
 
 # Cargar variables de entorno
 load_dotenv()
@@ -44,6 +45,20 @@ def health():
         "service": "Google Ads Backend API (Python)",
         "version": "2.0.0",
         "configured": configured
+    })
+
+@app.route('/api/ai/health', methods=['GET'])
+def ai_health():
+    openai_ok = bool(os.environ.get('OPENAI_API_KEY'))
+    gemini_ok = bool(os.environ.get('GOOGLE_API_KEY'))
+    deepseek_ok = bool(os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY'))
+    return jsonify({
+        "status": "ok",
+        "providers": {
+            "openai": {"configured": openai_ok, "model": os.environ.get('OPENAI_MODEL', 'gpt-4o-mini')},
+            "gemini": {"configured": gemini_ok},
+            "deepseek": {"configured": deepseek_ok, "model": os.environ.get('DEEPSEEK_MODEL', 'deepseek-chat')}
+        }
     })
 
 @app.route('/api/create-ad', methods=['POST', 'OPTIONS'])
@@ -1628,6 +1643,27 @@ def generate_sitelinks():
             "Use persuasive Spanish copy. Reply ONLY with JSON. Schema: [{\"title\",\"description1\",\"description2\"}]. "
             f"keywords: {', '.join(seeds)}; N: {count}."
         )
+        def extract_json(text):
+            if not text:
+                return None
+            # strip code fences
+            t = text.strip()
+            t = t.replace('```json', '').replace('```', '')
+            # find first [ and last ] to isolate array
+            start = t.find('[')
+            end = t.rfind(']')
+            if start != -1 and end != -1 and end > start:
+                t = t[start:end+1]
+            # normalize quotes
+            t = t.replace('\u201c', '"').replace('\u201d', '"').replace('“', '"').replace('”', '"')
+            try:
+                return json.loads(t)
+            except:
+                return None
+
+        last_error = None
+        last_status = None
+
         def use_openai(p):
             key = os.environ.get('OPENAI_API_KEY')
             if not key:
@@ -1640,12 +1676,11 @@ def generate_sitelinks():
             }
             r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
             if r.status_code != 200:
+                last_status = r.status_code
+                last_error = r.text[:500]
                 return None
             content = r.json().get('choices',[{}])[0].get('message',{}).get('content','[]')
-            try:
-                return json.loads(content)
-            except:
-                return None
+            return extract_json(content)
         def use_gemini(p):
             key = os.environ.get('GOOGLE_API_KEY')
             if not key:
@@ -1654,13 +1689,12 @@ def generate_sitelinks():
             body = {"contents": [{"parts": [{"text": p}]}]}
             r = requests.post(url, json=body, timeout=30)
             if r.status_code != 200:
+                last_status = r.status_code
+                last_error = r.text[:500]
                 return None
             parts = r.json().get('candidates',[{}])[0].get('content',{}).get('parts',[{}])
             text = parts[0].get('text','[]')
-            try:
-                return json.loads(text)
-            except:
-                return None
+            return extract_json(text)
         def use_deepseek(p):
             key = os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY')
             if not key:
@@ -1673,12 +1707,11 @@ def generate_sitelinks():
             }
             r = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
             if r.status_code != 200:
+                last_status = r.status_code
+                last_error = r.text[:500]
                 return None
             content = r.json().get('choices',[{}])[0].get('message',{}).get('content','[]')
-            try:
-                return json.loads(content)
-            except:
-                return None
+            return extract_json(content)
         candidates = None
         if provider == 'openai':
             candidates = use_openai(prompt)
@@ -1695,7 +1728,17 @@ def generate_sitelinks():
         if not isinstance(candidates, list):
             candidates = []
         if not candidates:
-            res = jsonify({"success": False, "message": "AI provider response unavailable"}), 500
+            detail = {
+                "provider": provider,
+                "status": last_status,
+                "error": last_error,
+                "configured": {
+                    "openai": bool(os.environ.get('OPENAI_API_KEY')),
+                    "gemini": bool(os.environ.get('GOOGLE_API_KEY')),
+                    "deepseek": bool(os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY'))
+                }
+            }
+            res = jsonify({"success": False, "message": "AI provider response unavailable", "details": detail}), 500
             res[0].headers.add('Access-Control-Allow-Origin', '*')
             return res
         for i in range(min(count, len(candidates))):
@@ -1704,7 +1747,7 @@ def generate_sitelinks():
             d1 = clamp(str(item.get('description1','')).strip(), 35)
             d2 = clamp(str(item.get('description2','')).strip(), 35)
             base = base_url or 'https://example.com'
-            url = base.split('#')[0] + '#/' + slugify(title)
+            url = base.split('#')[0] + '#' + slugify(title)
             sitelinks.append({"title": title, "description1": d1, "description2": d2, "url": url})
         result = jsonify({"success": True, "sitelinks": sitelinks}), 200
         result[0].headers.add('Access-Control-Allow-Origin', '*')
@@ -1736,6 +1779,24 @@ def create_sitelink_asset():
             return res
         if len(text) > 25 or len(d1) > 35 or len(d2) > 35:
             return jsonify({"success": False, "policyViolation": "Longitudes excedidas"}), 400
+        def _slugify(s):
+            t = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
+            t = ''.join(ch for ch in t.lower() if ch.isalnum())
+            return t
+        def _normalize_url(u):
+            u = (u or '').strip().strip('`').strip('"').strip("'")
+            base = u.split('#')[0]
+            frag = ''
+            if '#' in u:
+                frag = u.split('#', 1)[1]
+            frag = frag.lstrip('/').strip()
+            if frag:
+                frag = _slugify(frag)
+                # ensure '/#' pattern
+                base_no_slash = base.rstrip('/')
+                return base_no_slash + '/#' + frag
+            return base.rstrip('/')
+        final_url = _normalize_url(final_url)
         ga = get_google_ads_client()
         svc = ga.get_service("AssetService")
         op = ga.get_type("AssetOperation")
