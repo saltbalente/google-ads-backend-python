@@ -1720,7 +1720,7 @@ def create_price_asset():
             po.description = desc
             url = it.get('url', '')
             if url:
-                po.final_urls.append(url)
+                po.final_url = url
                 if first_url is None:
                     first_url = url
             unit_map = ga.get_type("PriceExtensionPriceUnitEnum").PriceExtensionPriceUnit
