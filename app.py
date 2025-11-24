@@ -2204,8 +2204,9 @@ def generate_adcopy():
         def clamp(s, n):
             return (s or '')[:n]
         prompt = (
-            "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 3 'headlines' (<=30 chars) y 2 'descriptions' (<=90). "
-            "Incluye exactamente el término en el primer headline. Español persuasivo. Responde SOLO JSON con {\"headlines\":[],\"descriptions\":[]}. "
+            "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 15 'headlines' (cada uno <=30 chars) y 4 'descriptions' (cada una <=90 chars). "
+            "Incluye exactamente el término en el primer headline. Español persuasivo y variado. Usa diferentes ángulos: beneficios, urgencia, autoridad, emocional. "
+            "Responde SOLO JSON con {\"headlines\":[],\"descriptions\":[]}. "
             f"term: {term}"
         )
         def use_openai(p):
@@ -2249,8 +2250,8 @@ def generate_adcopy():
             data_out = use_gemini(prompt) or use_openai(prompt)
         else:
             data_out = use_deepseek(prompt) or use_openai(prompt)
-        hs = [clamp(str(h),30) for h in (data_out.get('headlines') if isinstance(data_out, dict) else []) if str(h).strip()][:3]
-        ds = [clamp(str(d),90) for d in (data_out.get('descriptions') if isinstance(data_out, dict) else []) if str(d).strip()][:2]
+        hs = [clamp(str(h),30) for h in (data_out.get('headlines') if isinstance(data_out, dict) else []) if str(h).strip()][:15]
+        ds = [clamp(str(d),90) for d in (data_out.get('descriptions') if isinstance(data_out, dict) else []) if str(d).strip()][:4]
         if not hs:
             hs = [term, f"{term} oferta", f"{term} hoy"]
         if not ds:
@@ -2302,8 +2303,8 @@ def execute_skag():
 
         def generate_ad_copy(term, prov):
             prompt = (
-                "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 3 'headlines' (<=30 chars) y 2 'descriptions' (<=90). "
-                "Incluye exactamente el término en el primer headline. Español persuasivo. Responde SOLO JSON con {\"headlines\":[],\"descriptions\":[]}. "
+                "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 15 'headlines' (cada uno <=30 chars) y 4 'descriptions' (cada una <=90 chars). "
+                "Incluye exactamente el término en el primer headline. Genera variaciones persuasivas en español. Responde SOLO JSON con {\"headlines\":[...15 items...],\"descriptions\":[...4 items...]}. "
                 f"term: {term}"
             )
             last_error = None
@@ -2352,13 +2353,33 @@ def execute_skag():
             else:
                 data_out = use_deepseek(prompt) or use_openai(prompt)
             if not isinstance(data_out, dict):
-                return {"headlines": [term, f"{term} oferta", f"{term} hoy"], "descriptions": [f"La mejor opción para {term}", f"Descubre {term}"]}
-            hs = [clamp(str(h),30) for h in (data_out.get('headlines') or []) if str(h).strip()][:3]
-            ds = [clamp(str(d),90) for d in (data_out.get('descriptions') or []) if str(d).strip()][:2]
-            if not hs:
-                hs = [term, f"{term} oferta", f"{term} hoy"]
-            if not ds:
-                ds = [f"La mejor opción para {term}", f"Descubre {term}"]
+                return {
+                    "headlines": [term, f"{term} Efectivo", f"{term} Profesional", f"Expertos en {term}", f"Consulta {term} Hoy", f"{term} Garantizado", f"Resultados {term}", f"{term} Confiable", f"Mejor {term}", f"{term} Rápido", f"{term} Seguro", f"{term} 24/7", f"Llama {term}", f"{term} Cerca", f"Top {term}"],
+                    "descriptions": [f"La mejor opción para {term}. Resultados garantizados y rápidos. Consulta ahora.", f"Expertos en {term} con años de experiencia. Atención personalizada y confidencial.", f"Descubre {term} profesional. Primera consulta gratis. Contáctanos hoy mismo.", f"Servicio de {term} disponible 24/7. Soluciones efectivas para tus necesidades."]
+                }
+            hs = [clamp(str(h),30) for h in (data_out.get('headlines') or []) if str(h).strip()][:15]
+            ds = [clamp(str(d),90) for d in (data_out.get('descriptions') or []) if str(d).strip()][:4]
+            if len(hs) < 15:
+                # Generate fallback headlines to complete to 15
+                fallback_hs = [term, f"{term} Efectivo", f"{term} Profesional", f"Expertos {term}", f"Consulta {term}", f"{term} Garantizado", f"Resultados {term}", f"{term} Confiable", f"Mejor {term}", f"{term} Rápido", f"{term} Seguro", f"{term} 24/7", f"Llama {term}", f"{term} Cerca", f"Top {term}"]
+                for fh in fallback_hs:
+                    if len(hs) >= 15:
+                        break
+                    if fh not in hs:
+                        hs.append(clamp(fh, 30))
+            if len(ds) < 4:
+                # Generate fallback descriptions to complete to 4
+                fallback_ds = [
+                    f"La mejor opción para {term}. Resultados garantizados y rápidos. Consulta ahora.",
+                    f"Expertos en {term} con años de experiencia. Atención personalizada y confidencial.",
+                    f"Descubre {term} profesional. Primera consulta gratis. Contáctanos hoy mismo.",
+                    f"Servicio de {term} disponible 24/7. Soluciones efectivas para tus necesidades."
+                ]
+                for fd in fallback_ds:
+                    if len(ds) >= 4:
+                        break
+                    if fd not in ds:
+                        ds.append(clamp(fd, 90))
             return {"headlines": hs, "descriptions": ds}
 
         if not new_ad_copy or not new_ad_copy.get('headlines'):
@@ -2366,9 +2387,14 @@ def execute_skag():
             new_ad_copy['headlines'] = gen.get('headlines')
             new_ad_copy['descriptions'] = gen.get('descriptions')
 
+        def short_negative(s):
+            stop = {"brujos","brujo","brujeria","de","la","las","el","los","en","y","para","que","un","una"}
+            toks = [t for t in s.lower().split() if t not in stop]
+            frag = ' '.join(toks).strip()
+            return frag if frag else s
         if dry_run:
             created_group_name = f"SKAG - {search_term}"
-            negative_exact = f"[{search_term}]"
+            negative_exact = f"[{short_negative(search_term)}]"
             result = jsonify({
                 "success": True,
                 "dryRun": True,
