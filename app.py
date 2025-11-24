@@ -1628,6 +1628,7 @@ def create_lead_form_asset():
         campaign_id = data.get('campaignId')
         ad_group_id = data.get('adGroupId')
         lf = data.get('leadForm', {})
+        final_url = data.get('finalUrl', '')
         if not all([customer_id, campaign_id]) or not lf:
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
             res[0].headers.add('Access-Control-Allow-Origin', '*')
@@ -1653,6 +1654,8 @@ def create_lead_form_asset():
                 field.input_type = ga.get_type("LeadFormFieldUserInputTypeEnum").LeadFormFieldUserInputType.FULL_NAME
             asset.lead_form_asset.fields.append(field)
         asset.lead_form_asset.post_submit_headline = lf.get('thankYouMessage', '')
+        if final_url:
+            asset.final_urls.append(final_url)
         resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
         res_name = resp.results[0].resource_name
         field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.LEAD_FORM
