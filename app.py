@@ -1534,7 +1534,7 @@ def create_sitelink_asset():
         d1 = data.get('description1', '')
         d2 = data.get('description2', '')
         final_url = data.get('finalUrl', '')
-        if not all([customer_id, campaign_id, text]):
+        if not all([customer_id, campaign_id, text, final_url]):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
             res[0].headers.add('Access-Control-Allow-Origin', '*')
             return res
@@ -1549,11 +1549,10 @@ def create_sitelink_asset():
             asset.sitelink_asset.description1 = d1
         if d2:
             asset.sitelink_asset.description2 = d2
-        if final_url:
-            try:
-                asset.sitelink_asset.final_urls.append(final_url)
-            except Exception:
-                pass
+        # Final URL es requerida por Google Ads para SitelinkAsset; colocar en ambos campos por compatibilidad
+        asset.sitelink_asset.final_urls.append(final_url)
+        asset.final_urls.append(final_url)
+        print(f"[create-sitelink] customer={customer_id} campaign={campaign_id} adGroup={ad_group_id} text='{text}' url='{final_url}'")
         resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
         res_name = resp.results[0].resource_name
         field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.SITELINK
