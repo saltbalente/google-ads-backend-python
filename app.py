@@ -2175,6 +2175,95 @@ def analyze_relevance():
         res.headers.add('Access-Control-Allow-Origin', '*')
         return res
 
+@app.route('/api/optimization/generate-adcopy', methods=['POST', 'OPTIONS'])
+def generate_adcopy():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        term = str(data.get('searchTerm','')).strip()
+        provider = (data.get('provider') or 'deepseek').lower()
+        if not term:
+            res = jsonify({"success": False, "message": "searchTerm requerido"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        def extract_json(text):
+            if not text:
+                return None
+            t = text.strip().replace('```json', '').replace('```', '')
+            start = t.find('{')
+            end = t.rfind('}')
+            if start != -1 and end != -1 and end > start:
+                t = t[start:end+1]
+            t = t.replace('\u201c', '"').replace('\u201d', '"').replace('“', '"').replace('”', '"')
+            try:
+                return json.loads(t)
+            except:
+                return None
+        def clamp(s, n):
+            return (s or '')[:n]
+        prompt = (
+            "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 3 'headlines' (<=30 chars) y 2 'descriptions' (<=90). "
+            "Incluye exactamente el término en el primer headline. Español persuasivo. Responde SOLO JSON con {\"headlines\":[],\"descriptions\":[]}. "
+            f"term: {term}"
+        )
+        def use_openai(p):
+            key = os.environ.get('OPENAI_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {"model": os.environ.get('OPENAI_MODEL','gpt-4o-mini'), "messages": [{"role":"user","content": p}], "temperature": 0.7}
+            r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','{}')
+            return extract_json(content)
+        def use_gemini(p):
+            key = os.environ.get('GOOGLE_API_KEY')
+            if not key:
+                return None
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+            body = {"contents": [{"parts": [{"text": p}]}]}
+            r = requests.post(url, json=body, timeout=30)
+            if r.status_code != 200:
+                return None
+            parts = r.json().get('candidates',[{}])[0].get('content',{}).get('parts',[{}])
+            text = parts[0].get('text','{}')
+            return extract_json(text)
+        def use_deepseek(p):
+            key = os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {"model": os.environ.get('DEEPSEEK_MODEL','deepseek-chat'), "messages": [{"role":"user","content": p}], "temperature": 0.7}
+            r = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','{}')
+            return extract_json(content)
+        data_out = None
+        if provider == 'openai':
+            data_out = use_openai(prompt) or use_gemini(prompt)
+        elif provider == 'gemini':
+            data_out = use_gemini(prompt) or use_openai(prompt)
+        else:
+            data_out = use_deepseek(prompt) or use_openai(prompt)
+        hs = [clamp(str(h),30) for h in (data_out.get('headlines') if isinstance(data_out, dict) else []) if str(h).strip()][:3]
+        ds = [clamp(str(d),90) for d in (data_out.get('descriptions') if isinstance(data_out, dict) else []) if str(d).strip()][:2]
+        if not hs:
+            hs = [term, f"{term} oferta", f"{term} hoy"]
+        if not ds:
+            ds = [f"La mejor opción para {term}", f"Descubre {term}"]
+        result = jsonify({"success": True, "headlines": hs, "descriptions": ds})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
 @app.route('/api/optimization/execute-skag', methods=['POST', 'OPTIONS'])
 def execute_skag():
     if request.method == 'OPTIONS':
@@ -2186,6 +2275,7 @@ def execute_skag():
         original_ad_group_id = data.get('originalAdGroupId')
         search_term = data.get('searchTerm', '')
         new_ad_copy = data.get('newAdCopy', {})
+        provider = (data.get('provider') or 'deepseek').lower()
         dry_run = bool(data.get('dryRun', True))
         if not all([customer_id, campaign_id, original_ad_group_id, search_term]):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
@@ -2193,6 +2283,89 @@ def execute_skag():
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
         ga = get_google_ads_client()
+        def extract_json(text):
+            if not text:
+                return None
+            t = text.strip().replace('```json', '').replace('```', '')
+            start = t.find('{')
+            end = t.rfind('}')
+            if start != -1 and end != -1 and end > start:
+                t = t[start:end+1]
+            t = t.replace('\u201c', '"').replace('\u201d', '"').replace('“', '"').replace('”', '"')
+            try:
+                return json.loads(t)
+            except:
+                return None
+
+        def clamp(s, n):
+            return (s or '')[:n]
+
+        def generate_ad_copy(term, prov):
+            prompt = (
+                "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 3 'headlines' (<=30 chars) y 2 'descriptions' (<=90). "
+                "Incluye exactamente el término en el primer headline. Español persuasivo. Responde SOLO JSON con {\"headlines\":[],\"descriptions\":[]}. "
+                f"term: {term}"
+            )
+            last_error = None
+            def use_openai(p):
+                key = os.environ.get('OPENAI_API_KEY')
+                if not key:
+                    return None
+                headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+                body = {"model": os.environ.get('OPENAI_MODEL','gpt-4o-mini'), "messages": [{"role":"user","content": p}], "temperature": 0.7}
+                r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+                if r.status_code != 200:
+                    last_error = r.text[:500]
+                    return None
+                content = r.json().get('choices',[{}])[0].get('message',{}).get('content','{}')
+                return extract_json(content)
+            def use_gemini(p):
+                key = os.environ.get('GOOGLE_API_KEY')
+                if not key:
+                    return None
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+                body = {"contents": [{"parts": [{"text": p}]}]}
+                r = requests.post(url, json=body, timeout=30)
+                if r.status_code != 200:
+                    last_error = r.text[:500]
+                    return None
+                parts = r.json().get('candidates',[{}])[0].get('content',{}).get('parts',[{}])
+                text = parts[0].get('text','{}')
+                return extract_json(text)
+            def use_deepseek(p):
+                key = os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY')
+                if not key:
+                    return None
+                headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+                body = {"model": os.environ.get('DEEPSEEK_MODEL','deepseek-chat'), "messages": [{"role":"user","content": p}], "temperature": 0.7}
+                r = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+                if r.status_code != 200:
+                    last_error = r.text[:500]
+                    return None
+                content = r.json().get('choices',[{}])[0].get('message',{}).get('content','{}')
+                return extract_json(content)
+            data_out = None
+            if prov == 'openai':
+                data_out = use_openai(prompt) or use_gemini(prompt)
+            elif prov == 'gemini':
+                data_out = use_gemini(prompt) or use_openai(prompt)
+            else:
+                data_out = use_deepseek(prompt) or use_openai(prompt)
+            if not isinstance(data_out, dict):
+                return {"headlines": [term, f"{term} oferta", f"{term} hoy"], "descriptions": [f"La mejor opción para {term}", f"Descubre {term}"]}
+            hs = [clamp(str(h),30) for h in (data_out.get('headlines') or []) if str(h).strip()][:3]
+            ds = [clamp(str(d),90) for d in (data_out.get('descriptions') or []) if str(d).strip()][:2]
+            if not hs:
+                hs = [term, f"{term} oferta", f"{term} hoy"]
+            if not ds:
+                ds = [f"La mejor opción para {term}", f"Descubre {term}"]
+            return {"headlines": hs, "descriptions": ds}
+
+        if not new_ad_copy or not new_ad_copy.get('headlines'):
+            gen = generate_ad_copy(search_term, provider)
+            new_ad_copy['headlines'] = gen.get('headlines')
+            new_ad_copy['descriptions'] = gen.get('descriptions')
+
         if dry_run:
             created_group_name = f"SKAG - {search_term}"
             negative_exact = f"[{search_term}]"
