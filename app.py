@@ -1642,8 +1642,10 @@ def create_lead_form_asset():
         asset = op.create
         asset.lead_form_asset.business_name = lf.get('businessName', '')
         asset.lead_form_asset.headline = lf.get('headline', '')
-        asset.lead_form_asset.description = lf.get('description', '')
+        desc = lf.get('description', '')
+        asset.lead_form_asset.description = desc[:200]
         asset.lead_form_asset.privacy_policy_url = privacy_url
+        asset.lead_form_asset.call_to_action_type = ga.get_type("LeadFormCallToActionTypeEnum").LeadFormCallToActionType.LEARN_MORE
         for q in lf.get('questions', []):
             field = ga.get_type("LeadFormField")
             if q == 'email':
@@ -1653,7 +1655,8 @@ def create_lead_form_asset():
             elif q == 'name':
                 field.input_type = ga.get_type("LeadFormFieldUserInputTypeEnum").LeadFormFieldUserInputType.FULL_NAME
             asset.lead_form_asset.fields.append(field)
-        asset.lead_form_asset.post_submit_headline = lf.get('thankYouMessage', '')
+        thank = lf.get('thankYouMessage', '')
+        asset.lead_form_asset.post_submit_headline = thank[:25]
         if final_url:
             asset.final_urls.append(final_url)
         resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
@@ -1698,8 +1701,10 @@ def create_price_asset():
             po = ga.get_type("PriceOffering")
             po.header = it.get('header', '')
             url = it.get('url', '')
-            if first_url is None and url:
-                first_url = url
+            if url:
+                po.final_url = url
+                if first_url is None:
+                    first_url = url
             po.unit = ga.get_type("PriceExtensionPriceUnitEnum").PriceExtensionPriceUnit.PER_MONTH
             money = ga.get_type("Money")
             money.currency_code = os.environ.get('PRICE_ASSET_CURRENCY', 'USD')
