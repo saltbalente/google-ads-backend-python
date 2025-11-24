@@ -2276,7 +2276,7 @@ def execute_skag():
         search_term = data.get('searchTerm', '')
         new_ad_copy = data.get('newAdCopy', {})
         provider = (data.get('provider') or 'deepseek').lower()
-        dry_run = bool(data.get('dryRun', True))
+        dry_run = bool(data.get('dryRun', False))
         if not all([customer_id, campaign_id, original_ad_group_id, search_term]):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
@@ -2430,7 +2430,12 @@ def execute_skag():
         neg.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
         neg.negative = True
         neg.keyword = client.get_type("KeywordInfo")
-        neg.keyword.text = search_term
+        def short_negative(s):
+            stop = {"brujos","brujo","brujeria","de","la","las","el","los","en","y","para","que","un","una"}
+            toks = [t for t in s.lower().split() if t not in stop]
+            frag = ' '.join(toks).strip()
+            return frag if frag else s
+        neg.keyword.text = short_negative(search_term)
         neg.keyword.match_type = client.enums.KeywordMatchTypeEnum.EXACT
         ad_group_criterion_service.mutate_ad_group_criteria(customer_id=customer_id, operations=[neg_op])
         result = jsonify({"success": True, "newAdGroupId": new_ad_group_id})
