@@ -1510,8 +1510,20 @@ def create_image_asset():
         result.headers.add('Access-Control-Allow-Origin', '*')
         return result
     except GoogleAdsException as ex:
-        errors = [error.message for error in ex.failure.errors]
-        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
+        errors = []
+        details = []
+        for error in ex.failure.errors:
+            errors.append(error.message)
+            path = []
+            if error.location and error.location.field_path_elements:
+                for fpe in error.location.field_path_elements:
+                    path.append(getattr(fpe, 'field_name', ''))
+            details.append({
+                'message': error.message,
+                'code': ex.error.code().name if hasattr(ex, 'error') else 'UNKNOWN',
+                'path': path
+            })
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors, "details": details}), 500
         res[0].headers.add('Access-Control-Allow-Origin', '*')
         return res
     except Exception as ex:
