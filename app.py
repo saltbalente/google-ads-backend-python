@@ -2238,7 +2238,9 @@ def generate_adcopy():
             return (s or '')[:n]
         prompt = (
             "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 15 'headlines' (cada uno <=30 chars) y 4 'descriptions' (cada una <=90 chars). "
-            "Incluye exactamente el término en el primer headline. Español persuasivo y variado. Usa diferentes ángulos: beneficios, urgencia, autoridad, emocional. "
+            "IMPORTANTE: El término DEBE aparecer literalmente AL MENOS 6 veces entre los 15 headlines y AL MENOS 3 veces entre las 4 descriptions. "
+            "Distribuye el término de forma natural en diferentes headlines y descriptions. "
+            "Usa diferentes ángulos: beneficios, urgencia, autoridad, emocional, precios, garantías. "
             "Responde SOLO JSON con {\"headlines\":[],\"descriptions\":[]}. "
             f"term: {term}"
         )
