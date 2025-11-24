@@ -1756,6 +1756,108 @@ def generate_sitelinks():
         res = jsonify({"success": False, "message": str(ex)}), 500
         res[0].headers.add('Access-Control-Allow-Origin', '*')
         return res
+
+@app.route('/api/assets/summary', methods=['POST', 'OPTIONS'])
+def assets_summary():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        if not all([customer_id, campaign_id]):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"}), 400
+            res[0].headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_google_ads_client()
+        service = ga.get_service('GoogleAdsService')
+
+        def list_linked_assets(query, is_campaign=True):
+            rows = service.search(customer_id=customer_id, query=query)
+            out = []
+            for r in rows:
+                if is_campaign:
+                    out.append((str(r.campaign_asset.asset), r.campaign_asset.field_type.name))
+                else:
+                    out.append((str(r.ad_group_asset.asset), r.ad_group_asset.field_type.name))
+            return out
+
+        camp_query = (
+            f"SELECT campaign_asset.asset, campaign_asset.field_type FROM campaign_asset "
+            f"WHERE campaign.id = '{campaign_id}' AND campaign_asset.status = 'ENABLED'"
+        )
+        camp_assets = list_linked_assets(camp_query, is_campaign=True)
+        adg_assets = []
+        if ad_group_id:
+            adg_query = (
+                f"SELECT ad_group_asset.asset, ad_group_asset.field_type FROM ad_group_asset "
+                f"WHERE ad_group.id = '{ad_group_id}' AND ad_group_asset.status = 'ENABLED'"
+            )
+            adg_assets = list_linked_assets(adg_query, is_campaign=False)
+        linked = []
+        seen = set()
+        for rn, ft in camp_assets + adg_assets:
+            if rn not in seen:
+                seen.add(rn)
+                linked.append((rn, ft))
+
+        def get_asset_fields(res_name):
+            q = f"SELECT asset.resource_name, asset.sitelink_asset.link_text, asset.callout_asset.callout_text, asset.call_asset.country_code, asset.call_asset.phone_number, asset.promotion_asset.promotion_target, asset.promotion_asset.percent_off, asset.promotion_asset.money_amount_off.amount_micros FROM asset WHERE asset.resource_name = '{res_name}'"
+            rows = service.search(customer_id=customer_id, query=q)
+            out = {}
+            for r in rows:
+                out['resource_name'] = r.asset.resource_name
+                if r.asset.sitelink_asset and r.asset.sitelink_asset.link_text:
+                    out['type'] = 'SITELINK'
+                    out['text'] = r.asset.sitelink_asset.link_text
+                if r.asset.callout_asset and r.asset.callout_asset.callout_text:
+                    out['type'] = 'CALLOUT'
+                    out['text'] = r.asset.callout_asset.callout_text
+                if r.asset.call_asset and r.asset.call_asset.phone_number:
+                    out['type'] = 'CALL'
+                    out['phone'] = r.asset.call_asset.phone_number
+                if r.asset.promotion_asset and (r.asset.promotion_asset.promotion_target or r.asset.promotion_asset.percent_off):
+                    out['type'] = 'PROMOTION'
+                    out['event'] = r.asset.promotion_asset.promotion_target
+                    out['percent'] = r.asset.promotion_asset.percent_off
+                    out['amount_micros'] = r.asset.promotion_asset.money_amount_off.amount_micros if r.asset.promotion_asset.money_amount_off else None
+            return out
+
+        sitelinks = []
+        callouts = []
+        calls = []
+        promotions = []
+        for rn, ft in linked:
+            fields = get_asset_fields(rn)
+            t = fields.get('type')
+            if t == 'SITELINK' and fields.get('text'):
+                sitelinks.append({'text': fields.get('text'), 'resourceName': fields.get('resource_name')})
+            elif t == 'CALLOUT' and fields.get('text'):
+                callouts.append({'text': fields.get('text'), 'resourceName': fields.get('resource_name')})
+            elif t == 'CALL' and fields.get('phone'):
+                calls.append({'phone': fields.get('phone'), 'resourceName': fields.get('resource_name')})
+            elif t == 'PROMOTION':
+                promotions.append({'event': fields.get('event'), 'percent': fields.get('percent'), 'resourceName': fields.get('resource_name')})
+
+        result = jsonify({
+            "success": True,
+            "sitelinks": sitelinks,
+            "callouts": callouts,
+            "calls": calls,
+            "promotions": promotions
+        })
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)}), 500
+        res[0].headers.add('Access-Control-Allow-Origin', '*')
+        return res
     except Exception as ex:
         res = jsonify({"success": False, "message": str(ex)}), 500
         res[0].headers.add('Access-Control-Allow-Origin', '*')
