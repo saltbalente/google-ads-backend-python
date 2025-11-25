@@ -2236,13 +2236,45 @@ def generate_adcopy():
                 return None
         def clamp(s, n):
             return (s or '')[:n]
+
+        def normalize_snippet(text: str, limit: int) -> str:
+            if not text:
+                return ''
+            # Consolidate whitespace and trim ends
+            stripped = ' '.join(str(text).split())
+            if len(stripped) <= limit:
+                return stripped
+            truncated = stripped[:limit].rstrip()
+            # Avoid cutting words in half when possible
+            if len(stripped) > limit and not stripped[limit].isspace():
+                last_space = truncated.rfind(' ')
+                if last_space > 10:  # keep at least a short prefix
+                    truncated = truncated[:last_space]
+            return truncated.strip()
         prompt = (
-            "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 15 'headlines' (cada uno <=30 chars) y 4 'descriptions' (cada una <=90 chars). "
-            "IMPORTANTE: El término DEBE aparecer literalmente AL MENOS 6 veces entre los 15 headlines y AL MENOS 3 veces entre las 4 descriptions. "
-            "Distribuye el término de forma natural en diferentes headlines y descriptions. "
-            "Usa diferentes ángulos: beneficios, urgencia, autoridad, emocional, precios, garantías. "
-            "Responde SOLO JSON con {\"headlines\":[],\"descriptions\":[]}. "
-            f"term: {term}"
+            "ACTÚA COMO: Copywriter experto en Google Ads (Direct Response) especializado en SKAGs de alto CTR.\n"
+            f"TAREA: Genera un objeto JSON crudo con 15 'headlines' y 4 'descriptions' para el término de búsqueda: '{term}'.\n\n"
+            
+            "--- REGLAS CRÍTICAS (NO ROMPER) ---\n"
+            "1. LONGITUD HEADLINES: MÁXIMO 30 caracteres. Si te pasas, el anuncio será rechazado. Sé conciso.\n"
+            "2. LONGITUD DESCRIPTIONS: MÁXIMO 90 caracteres.\n"
+            "3. INTEGRIDAD: NUNCA cortes palabras a la mitad (ej: NO 'Amar', 'Gar', 'Por'). Si no cabe, reescribe la frase.\n"
+            "4. GRAMÁTICA: No termines con preposiciones sueltas ('de', 'en', 'y', 'con'). La frase debe tener sentido completo.\n"
+            "5. FORMATO: Usa 'Title Case' (Primera Letra Mayúscula) para mayor impacto visual.\n\n"
+            
+            "--- ESTRATEGIA DE CONTENIDO ---\n"
+            "1. INSERCIÓN DE KEYWORD: El término (o su abreviación lógica) DEBE aparecer:\n"
+            "   - Mínimo 6 veces en los headlines.\n"
+            "   - Mínimo 3 veces en las descriptions.\n"
+            "2. ABREVIACIÓN INTELIGENTE: Si el término es largo (>25 chars), abrévialo naturalmente.\n"
+            "   - 'amarres de amor cerca de mi' -> 'Amarres Amor Cerca' (BIEN)\n"
+            "   - 'amarres de amor cerca de mi' -> 'Amarres De Amor Cer' (MAL)\n"
+            "3. ÁNGULOS DE VENTA: Mezcla urgencia, beneficios, autoridad y localidad.\n\n"
+            
+            "--- FORMATO DE RESPUESTA ---\n"
+            "Responde SOLO con el JSON válido. NO uses bloques de código markdown (```json). \n"
+            "Estructura: {\"headlines\": [...], \"descriptions\": [...]}\n"
+            f"TÉRMINO OBJETIVO: {term}"
         )
         def use_openai(p):
             key = os.environ.get('OPENAI_API_KEY')
@@ -2285,12 +2317,27 @@ def generate_adcopy():
             data_out = use_gemini(prompt) or use_openai(prompt)
         else:
             data_out = use_deepseek(prompt) or use_openai(prompt)
-        hs = [clamp(str(h),30) for h in (data_out.get('headlines') if isinstance(data_out, dict) else []) if str(h).strip()][:15]
-        ds = [clamp(str(d),90) for d in (data_out.get('descriptions') if isinstance(data_out, dict) else []) if str(d).strip()][:4]
+        hs = [normalize_snippet(clamp(str(h), 40), 30) for h in (data_out.get('headlines') if isinstance(data_out, dict) else []) if str(h).strip()][:15]
+        ds = [normalize_snippet(clamp(str(d), 110), 90) for d in (data_out.get('descriptions') if isinstance(data_out, dict) else []) if str(d).strip()][:4]
+        
+        # Validación estricta: Asegurar que ningún headline exceda 30 caracteres
+        hs = [normalize_snippet(h, 30) for h in hs]
+        ds = [normalize_snippet(d, 90) for d in ds]
+        
         if not hs:
-            hs = [term, f"{term} oferta", f"{term} hoy"]
+            # Fallbacks seguros de máximo 30 caracteres
+            term_short = term[:20] if len(term) > 20 else term
+            hs = [
+                normalize_snippet(term_short, 30),
+                normalize_snippet(f"{term_short} Hoy", 30),
+                normalize_snippet(f"Expertos {term_short}", 30)
+            ]
         if not ds:
-            ds = [f"La mejor opción para {term}", f"Descubre {term}"]
+            ds = [
+                normalize_snippet(f"La mejor opción para {term}", 90),
+                normalize_snippet(f"Descubre {term}", 90)
+            ]
+        
         result = jsonify({"success": True, "headlines": hs, "descriptions": ds})
         result.headers.add('Access-Control-Allow-Origin', '*')
         return result
