@@ -27,14 +27,14 @@ def handle_unexpected_error(e):
     res.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     return res
 
-def get_google_ads_client():
-    """Crea cliente de Google Ads desde variables de entorno"""
+def get_google_ads_client(refresh_token=None, login_customer_id=None):
+    """Crea cliente de Google Ads. Prioriza credenciales pasadas, sino usa variables de entorno"""
     return GoogleAdsClient.load_from_dict({
         "developer_token": os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
         "client_id": os.environ.get("GOOGLE_ADS_CLIENT_ID"),
         "client_secret": os.environ.get("GOOGLE_ADS_CLIENT_SECRET"),
-        "refresh_token": os.environ.get("GOOGLE_ADS_REFRESH_TOKEN"),
-        "login_customer_id": os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID"),
+        "refresh_token": refresh_token or os.environ.get("GOOGLE_ADS_REFRESH_TOKEN"),
+        "login_customer_id": login_customer_id or os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID"),
         "use_proto_plus": True
     })
 
@@ -132,7 +132,10 @@ def create_ad():
             }), 400
         
         # Crear cliente
-        client = get_google_ads_client()
+        refresh_token = request.headers.get('X-Google-Ads-Refresh-Token')
+        login_customer_id = request.headers.get('X-Google-Ads-Login-Customer-Id')
+        client = get_google_ads_client(refresh_token, login_customer_id)
+        
         ad_group_ad_service = client.get_service("AdGroupAdService")
         ad_group_service = client.get_service("AdGroupService")
         
