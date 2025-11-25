@@ -2047,7 +2047,7 @@ def create_call_asset():
             '+1':'US','1':'US'
         }
         cc = code_map.get(cc_raw, cc_raw if len(cc_raw)==2 else '')
-        if not all([customer_id, campaign_id, cc, phone]):
+        if not all([customer_id, cc, phone]):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
@@ -2083,7 +2083,7 @@ def create_callout_asset():
         ad_group_id = data.get('adGroupId')
         text = data.get('text')
         texts = data.get('texts') if isinstance(data.get('texts'), list) else None
-        if not all([customer_id, campaign_id]) or (not text and not texts):
+        if not customer_id or (not text and not texts):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
