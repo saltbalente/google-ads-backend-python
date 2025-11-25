@@ -1479,7 +1479,7 @@ def link_asset_to_context(ga_client, customer_id, asset_resource_name, field_typ
         create.asset = asset_resource_name
         create.field_type = field_type_enum_value
         svc.mutate_ad_group_assets(customer_id=customer_id, operations=[op])
-    else:
+    elif campaign_id:
         svc = ga_client.get_service("CampaignAssetService")
         op = ga_client.get_type("CampaignAssetOperation")
         create = op.create
@@ -1487,6 +1487,14 @@ def link_asset_to_context(ga_client, customer_id, asset_resource_name, field_typ
         create.asset = asset_resource_name
         create.field_type = field_type_enum_value
         svc.mutate_campaign_assets(customer_id=customer_id, operations=[op])
+    else:
+        svc = ga_client.get_service("CustomerAssetService")
+        op = ga_client.get_type("CustomerAssetOperation")
+        create = op.create
+        create.customer = f"customers/{customer_id}"
+        create.asset = asset_resource_name
+        create.field_type = field_type_enum_value
+        svc.mutate_customer_assets(customer_id=customer_id, operations=[op])
 
 def cors_preflight_ok():
     response = jsonify({'status': 'ok'})
@@ -1506,7 +1514,7 @@ def create_image_asset():
         ad_group_id = data.get('adGroupId')
         fmt = data.get('format')
         image_b64 = data.get('imageBase64')
-        if not all([customer_id, campaign_id, fmt, image_b64]):
+        if not all([customer_id, fmt, image_b64]):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
@@ -1896,7 +1904,7 @@ def create_sitelink_asset():
         d1 = data.get('description1', '')
         d2 = data.get('description2', '')
         final_url = data.get('finalUrl', '')
-        if not all([customer_id, campaign_id, text, final_url]):
+        if not all([customer_id, text, final_url]):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
@@ -1975,8 +1983,8 @@ def create_promotion_asset():
         campaign_id = data.get('campaignId')
         ad_group_id = data.get('adGroupId')
         p = data.get('promotion', {})
-        final_url = data.get('finalUrl', '')
-        if not all([customer_id, campaign_id]) or not p:
+        final_url = (data.get('finalUrl', '') or '').strip().strip('`').strip('"').strip("'")
+        if not customer_id or not p:
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
