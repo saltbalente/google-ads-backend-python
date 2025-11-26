@@ -2389,9 +2389,15 @@ def execute_skag():
         campaign_id = data.get('campaignId')
         original_ad_group_id = data.get('originalAdGroupId')
         search_term = data.get('searchTerm', '')
-        new_ad_copy = data.get('newAdCopy', {})
+        ad_variations = data.get('adVariations', [])  # NUEVO: Array de anuncios
+        final_url = data.get('finalUrl', 'https://example.com/')  # URL común
         provider = (data.get('provider') or 'deepseek').lower()
         dry_run = bool(data.get('dryRun', False))
+        
+        print(f"📥 Recibiendo solicitud SKAG:")
+        print(f"   - Número de anuncios: {len(ad_variations)}")
+        print(f"   - Search term: {search_term}")
+        
         if not all([customer_id, campaign_id, original_ad_group_id, search_term]):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
@@ -2587,26 +2593,51 @@ def execute_skag():
         ad_group_criterion_service.mutate_ad_group_criteria(customer_id=customer_id, operations=keyword_operations)
         print(f"🎯 Total keywords creadas: {len(keyword_operations)}")
         
+        # NUEVO: Crear múltiples anuncios RSA
         ad_group_ad_service = client.get_service("AdGroupAdService")
-        ad_group_ad_operation = client.get_type("AdGroupAdOperation")
-        ad_group_ad = ad_group_ad_operation.create
-        ad_group_ad.ad_group = new_ad_group_res
-        ad_group_ad.status = client.enums.AdGroupAdStatusEnum.ENABLED
-        final_url = new_ad_copy.get('finalUrl') or "https://example.com/"
-        ad_group_ad.ad.final_urls.append(final_url)
-        headlines = new_ad_copy.get('headlines') or [search_term, f"{search_term} oferta", f"{search_term} hoy"]
-        descriptions = new_ad_copy.get('descriptions') or [f"La mejor opción para {search_term}", f"Descubre {search_term}"]
-        for i, h in enumerate(headlines):
-            asset = client.get_type("AdTextAsset")
-            asset.text = h
-            if i == 0:
-                asset.pinned_field = client.enums.ServedAssetFieldTypeEnum.HEADLINE_1
-            ad_group_ad.ad.responsive_search_ad.headlines.append(asset)
-        for d in descriptions:
-            asset = client.get_type("AdTextAsset")
-            asset.text = d
-            ad_group_ad.ad.responsive_search_ad.descriptions.append(asset)
-        ad_group_ad_service.mutate_ad_group_ads(customer_id=customer_id, operations=[ad_group_ad_operation])
+        ad_operations = []
+        
+        # Si no hay variaciones, usar fallback
+        if not ad_variations:
+            ad_variations = [{
+                'headlines': [search_term, f"{search_term} oferta", f"{search_term} hoy"],
+                'descriptions': [f"La mejor opción para {search_term}", f"Descubre {search_term}"],
+                'finalUrl': final_url
+            }]
+        
+        for idx, ad_copy in enumerate(ad_variations, 1):
+            ad_group_ad_operation = client.get_type("AdGroupAdOperation")
+            ad_group_ad = ad_group_ad_operation.create
+            ad_group_ad.ad_group = new_ad_group_res
+            ad_group_ad.status = client.enums.AdGroupAdStatusEnum.ENABLED
+            
+            # URL final
+            ad_final_url = ad_copy.get('finalUrl') or final_url
+            ad_group_ad.ad.final_urls.append(ad_final_url)
+            
+            # Headlines
+            headlines = ad_copy.get('headlines') or [search_term, f"{search_term} oferta", f"{search_term} hoy"]
+            for i, h in enumerate(headlines):
+                asset = client.get_type("AdTextAsset")
+                asset.text = str(h)[:30]  # Truncar a 30 caracteres
+                if i == 0:
+                    asset.pinned_field = client.enums.ServedAssetFieldTypeEnum.HEADLINE_1
+                ad_group_ad.ad.responsive_search_ad.headlines.append(asset)
+            
+            # Descriptions
+            descriptions = ad_copy.get('descriptions') or [f"La mejor opción para {search_term}", f"Descubre {search_term}"]
+            for d in descriptions:
+                asset = client.get_type("AdTextAsset")
+                asset.text = str(d)[:90]  # Truncar a 90 caracteres
+                ad_group_ad.ad.responsive_search_ad.descriptions.append(asset)
+            
+            ad_operations.append(ad_group_ad_operation)
+            print(f"✅ Anuncio #{idx} preparado: {len(headlines)} headlines, {len(descriptions)} descriptions")
+        
+        # Ejecutar todas las operaciones de anuncios en batch
+        ad_group_ad_service.mutate_ad_group_ads(customer_id=customer_id, operations=ad_operations)
+        print(f"📢 Total anuncios RSA creados: {len(ad_operations)}")
+        
         neg_op = client.get_type("AdGroupCriterionOperation")
         neg = neg_op.create
         neg.ad_group = f"customers/{customer_id}/adGroups/{original_ad_group_id}"
