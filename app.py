@@ -38,6 +38,12 @@ def get_google_ads_client(refresh_token=None, login_customer_id=None):
         "use_proto_plus": True
     })
 
+def get_client_from_request():
+    """Helper para extraer credenciales de los headers y crear cliente"""
+    refresh_token = request.headers.get('X-Google-Ads-Refresh-Token')
+    login_customer_id = request.headers.get('X-Google-Ads-Login-Customer-Id')
+    return get_google_ads_client(refresh_token, login_customer_id)
+
 @app.route('/api/health', methods=['GET'])
 def health():
     """Endpoint de salud"""
@@ -245,7 +251,7 @@ def get_demographics():
             }), 400
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         google_ads_service = client.get_service("GoogleAdsService")
         
         # Query para obtener criterios demográficos actuales
@@ -398,7 +404,7 @@ def update_demographics():
         # No validar si hay criterios - permitir vacío para remover todos
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         google_ads_service = client.get_service("GoogleAdsService")
         
@@ -617,7 +623,7 @@ def create_ad_group():
         print(f"   CPC Bid: ${cpc_bid_micros / 1000000:.2f}")
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_service = client.get_service("AdGroupService")
         
         # Crear operación
@@ -721,7 +727,7 @@ def add_keywords():
         print(f"📝 Agregando {len(keywords)} keywords al Ad Group {ad_group_id}")
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         ad_group_service = client.get_service("AdGroupService")
         
@@ -857,7 +863,7 @@ def get_demographic_stats():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         google_ads_service = client.get_service("GoogleAdsService")
         
         # Calcular rango de fechas
@@ -1136,7 +1142,7 @@ def get_campaign_analytics():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
         
         # Limpiar customer_id
@@ -1400,7 +1406,7 @@ def pause_keyword():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         
         # Limpiar customer_id
@@ -1534,7 +1540,7 @@ def create_image_asset():
         elif fmt == 'SQUARE':
             if not (w >= 300 and h >= 300 and abs(w - h) < 5):
                 return jsonify({"success": False, "policyViolation": "Dimensiones inválidas para Square"}), 400
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         svc = ga.get_service("AssetService")
         op = ga.get_type("AssetOperation")
         asset = op.create
@@ -1583,7 +1589,7 @@ def top_campaign_final_urls():
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         service = ga.get_service('GoogleAdsService')
         query = (
             "SELECT campaign.id, campaign.name, campaign.status, campaign_budget.amount_micros "
@@ -1633,7 +1639,7 @@ def generate_sitelinks():
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         service = ga.get_service('GoogleAdsService')
         query = (
             "SELECT campaign.id, campaign.name, campaign.status, campaign_budget.amount_micros "
@@ -1799,7 +1805,7 @@ def assets_summary():
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         service = ga.get_service('GoogleAdsService')
 
         def list_linked_assets(query, is_campaign=True):
@@ -1932,7 +1938,7 @@ def create_sitelink_asset():
                 return base_no_slash + '/#' + frag
             return base.rstrip('/')
         final_url = _normalize_url(final_url)
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         svc = ga.get_service("AssetService")
         op = ga.get_type("AssetOperation")
         asset = op.create
@@ -1992,7 +1998,7 @@ def create_promotion_asset():
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         svc = ga.get_service("AssetService")
         op = ga.get_type("AssetOperation")
         asset = op.create
@@ -2055,7 +2061,7 @@ def create_call_asset():
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         svc = ga.get_service("AssetService")
         op = ga.get_type("AssetOperation")
         asset = op.create
@@ -2091,7 +2097,7 @@ def create_callout_asset():
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         svc = ga.get_service("AssetService")
         operations = []
         items = texts if texts else [text]
@@ -2137,7 +2143,7 @@ def analyze_relevance():
             return res
         end_date = date.today()
         start_date = end_date - timedelta(days=lookback)
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         service = ga.get_service('GoogleAdsService')
         query = (
             "SELECT search_term_view.search_term, metrics.conversions, metrics.clicks, metrics.impressions, "
@@ -2376,7 +2382,7 @@ def execute_skag():
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         def extract_json(text):
             if not text:
                 return None
@@ -2715,7 +2721,7 @@ def pause_ad():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_ad_service = client.get_service("AdGroupAdService")
         
         # Limpiar customer_id
@@ -2822,7 +2828,7 @@ def update_keyword_bid():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         
         # Limpiar customer_id
@@ -2957,7 +2963,7 @@ def search_ads():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
         
         # Limpiar customer_id
@@ -3111,7 +3117,7 @@ def list_campaigns():
             result[0].headers.add('Access-Control-Allow-Origin', '*')
             return result
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
         customer_id = customer_id.replace('-', '')
         
@@ -3209,7 +3215,7 @@ def list_adgroups():
             result[0].headers.add('Access-Control-Allow-Origin', '*')
             return result
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
         customer_id = customer_id.replace('-', '')
         
@@ -3307,7 +3313,7 @@ def create_campaign_budget():
         
         print(f"💰 Creando budget: {name} con ${amount_micros/1_000_000} COP")
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         campaign_budget_service = client.get_service("CampaignBudgetService")
         
         campaign_budget_operation = client.get_type("CampaignBudgetOperation")
@@ -3387,7 +3393,7 @@ def create_campaign():
         
         print(f"🚀 Creando campaña: {name}")
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         campaign_service = client.get_service("CampaignService")
         
         campaign_operation = client.get_type("CampaignOperation")
@@ -3500,7 +3506,7 @@ def create_ad_group_copy():
         
         print(f"📂 Creando ad group: {name}")
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_service = client.get_service("AdGroupService")
         
         ad_group_operation = client.get_type("AdGroupOperation")
@@ -3601,7 +3607,7 @@ def create_keyword():
         
         print(f"🔑 Creando keyword: {keyword_text} ({match_type})")
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         
         operation = client.get_type("AdGroupCriterionOperation")
@@ -3693,7 +3699,7 @@ def execute_query():
         print(f"📊 Ejecutando query para cuenta {customer_id}")
         print(f"📝 Query: {query[:200]}...")
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
         
         # Ejecutar búsqueda
