@@ -2535,15 +2535,58 @@ def execute_skag():
         ad_group_response = ad_group_service.mutate_ad_groups(customer_id=customer_id, operations=[ad_group_operation])
         new_ad_group_res = ad_group_response.results[0].resource_name
         new_ad_group_id = new_ad_group_res.split('/')[-1]
+        
+        # NUEVO: Obtener configuración de tipos de concordancia
+        include_phrase = data.get('includePhraseMatch', True)  # Por defecto True
+        include_broad = data.get('includeBroadMatch', False)   # Por defecto False
+        base_cpc_micros = data.get('baseCpcMicros', 1000000)   # 1 COP por defecto
+        
+        # Crear keywords con estrategia multi-nivel
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
-        kw_op = client.get_type("AdGroupCriterionOperation")
-        kw = kw_op.create
-        kw.ad_group = new_ad_group_res
-        kw.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-        kw.keyword = client.get_type("KeywordInfo")
-        kw.keyword.text = search_term
-        kw.keyword.match_type = client.enums.KeywordMatchTypeEnum.EXACT
-        ad_group_criterion_service.mutate_ad_group_criteria(customer_id=customer_id, operations=[kw_op])
+        keyword_operations = []
+        
+        # 1. EXACTA (siempre incluida) - CPC 100%
+        kw_exact_op = client.get_type("AdGroupCriterionOperation")
+        kw_exact = kw_exact_op.create
+        kw_exact.ad_group = new_ad_group_res
+        kw_exact.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+        kw_exact.keyword = client.get_type("KeywordInfo")
+        kw_exact.keyword.text = search_term
+        kw_exact.keyword.match_type = client.enums.KeywordMatchTypeEnum.EXACT
+        kw_exact.cpc_bid_micros = base_cpc_micros  # 100% del CPC base
+        keyword_operations.append(kw_exact_op)
+        print(f"✅ Keyword EXACTA agregada: [{search_term}] - CPC: {base_cpc_micros} micros")
+        
+        # 2. FRASE (opcional) - CPC 85%
+        if include_phrase:
+            kw_phrase_op = client.get_type("AdGroupCriterionOperation")
+            kw_phrase = kw_phrase_op.create
+            kw_phrase.ad_group = new_ad_group_res
+            kw_phrase.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+            kw_phrase.keyword = client.get_type("KeywordInfo")
+            kw_phrase.keyword.text = search_term
+            kw_phrase.keyword.match_type = client.enums.KeywordMatchTypeEnum.PHRASE
+            kw_phrase.cpc_bid_micros = int(base_cpc_micros * 0.85)  # 85% del CPC base
+            keyword_operations.append(kw_phrase_op)
+            print(f"✅ Keyword FRASE agregada: \"{search_term}\" - CPC: {int(base_cpc_micros * 0.85)} micros")
+        
+        # 3. AMPLIA (opcional) - CPC 70%
+        if include_broad:
+            kw_broad_op = client.get_type("AdGroupCriterionOperation")
+            kw_broad = kw_broad_op.create
+            kw_broad.ad_group = new_ad_group_res
+            kw_broad.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+            kw_broad.keyword = client.get_type("KeywordInfo")
+            kw_broad.keyword.text = search_term
+            kw_broad.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
+            kw_broad.cpc_bid_micros = int(base_cpc_micros * 0.70)  # 70% del CPC base
+            keyword_operations.append(kw_broad_op)
+            print(f"✅ Keyword AMPLIA agregada: {search_term} - CPC: {int(base_cpc_micros * 0.70)} micros")
+        
+        # Ejecutar todas las operaciones de keywords en batch
+        ad_group_criterion_service.mutate_ad_group_criteria(customer_id=customer_id, operations=keyword_operations)
+        print(f"🎯 Total keywords creadas: {len(keyword_operations)}")
+        
         ad_group_ad_service = client.get_service("AdGroupAdService")
         ad_group_ad_operation = client.get_type("AdGroupAdOperation")
         ad_group_ad = ad_group_ad_operation.create
