@@ -2391,10 +2391,12 @@ def execute_skag():
         search_term = data.get('searchTerm', '')
         ad_variations = data.get('adVariations', [])  # NUEVO: Array de anuncios
         final_url = data.get('finalUrl', 'https://example.com/')  # URL común
+        ad_group_name = data.get('adGroupName') or f"SKAG - {search_term}" # NUEVO: Nombre personalizado
         provider = (data.get('provider') or 'deepseek').lower()
         dry_run = bool(data.get('dryRun', False))
         
         print(f"📥 Recibiendo solicitud SKAG:")
+        print(f"   - Nombre Grupo: {ad_group_name}")
         print(f"   - Número de anuncios: {len(ad_variations)}")
         print(f"   - Search term: {search_term}")
         
