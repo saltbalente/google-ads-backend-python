@@ -3860,6 +3860,83 @@ def execute_query():
         return result
 
 # Run server (after all routes are registered)
+@app.route('/api/keyword-ideas', methods=['POST', 'OPTIONS'])
+def get_keyword_ideas():
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,login-customer-id')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+
+    try:
+        data = request.json
+        customer_id = data.get('customerId')
+        keyword_texts = data.get('keywords', [])
+        page_url = data.get('pageUrl')
+        
+        # Validar que al menos uno exista
+        if not keyword_texts and not page_url:
+            return jsonify({'error': 'Must provide either keywords or pageUrl'}), 400
+
+        # Obtener cliente
+        client = get_client_from_request()
+
+        service = client.get_service("KeywordPlanIdeaService")
+        request_data = client.get_type("GenerateKeywordIdeasRequest")
+        request_data.customer_id = customer_id
+        # Idioma español (1003) por defecto, ubicación Colombia (2170) por defecto
+        # TODO: Hacer esto configurable desde el frontend
+        request_data.language = "languageConstants/1003"
+        request_data.geo_target_constants = ["geoTargetConstants/2170"]
+        request_data.keyword_plan_network = client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH_AND_PARTNERS
+
+        # Configurar seed
+        if keyword_texts:
+            request_data.keyword_seed.keywords.extend(keyword_texts)
+        elif page_url:
+            request_data.url_seed.url = page_url
+
+        response = service.generate_keyword_ideas(request=request_data)
+
+        results = []
+        for idea in response:
+            metrics = idea.keyword_idea_metrics
+            
+            monthly_volumes = []
+            if hasattr(metrics, 'monthly_search_volumes'):
+                for volume in metrics.monthly_search_volumes:
+                    monthly_volumes.append({
+                        "month": volume.month.name,
+                        "year": str(volume.year),
+                        "count": str(volume.monthly_searches)
+                    })
+
+            result = {
+                "text": idea.text,
+                "avg_monthly_searches": str(metrics.avg_monthly_searches),
+                "competition": metrics.competition.name,
+                "competition_index": str(metrics.competition_index),
+                "low_top_of_page_bid_micros": str(metrics.low_top_of_page_bid_micros),
+                "high_top_of_page_bid_micros": str(metrics.high_top_of_page_bid_micros),
+                "monthly_search_volumes": monthly_volumes
+            }
+            results.append(result)
+            
+        result = jsonify({'results': results})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+    except Exception as e:
+        print(f"Error generating keyword ideas: {e}")
+        # Print stack trace for debugging
+        import traceback
+        traceback.print_exc()
+        result = jsonify({'error': str(e)}), 500
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', '5000'))
     app.run(debug=True, port=port)
