@@ -27,16 +27,36 @@ def handle_unexpected_error(e):
     res.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     return res
 
-def get_google_ads_client():
-    """Crea cliente de Google Ads desde variables de entorno"""
+def get_google_ads_client(refresh_token=None, login_customer_id=None):
+    """Crea cliente de Google Ads. Prioriza credenciales pasadas, sino usa variables de entorno"""
+    
+    # Si viene refresh_token en los parámetros, es un usuario custom (iOS)
+    # Usar Client ID de iOS (sin client_secret)
+    if refresh_token and refresh_token != os.environ.get("GOOGLE_ADS_REFRESH_TOKEN"):
+        # Cliente iOS - NO requiere client_secret
+        return GoogleAdsClient.load_from_dict({
+            "developer_token": os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
+            "client_id": "82393641971-2qpch75fpo28p7dmpqcibbp0vk6aj0g9.apps.googleusercontent.com",  # iOS Client ID
+            "refresh_token": refresh_token,
+            "login_customer_id": login_customer_id,
+            "use_proto_plus": True
+        })
+    
+    # Usuario default - usar credenciales del .env (Web Client con secret)
     return GoogleAdsClient.load_from_dict({
         "developer_token": os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
         "client_id": os.environ.get("GOOGLE_ADS_CLIENT_ID"),
         "client_secret": os.environ.get("GOOGLE_ADS_CLIENT_SECRET"),
-        "refresh_token": os.environ.get("GOOGLE_ADS_REFRESH_TOKEN"),
-        "login_customer_id": os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID"),
+        "refresh_token": refresh_token or os.environ.get("GOOGLE_ADS_REFRESH_TOKEN"),
+        "login_customer_id": login_customer_id or os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID"),
         "use_proto_plus": True
     })
+
+def get_client_from_request():
+    """Helper para extraer credenciales de los headers y crear cliente"""
+    refresh_token = request.headers.get('X-Google-Ads-Refresh-Token')
+    login_customer_id = request.headers.get('X-Google-Ads-Login-Customer-Id')
+    return get_google_ads_client(refresh_token, login_customer_id)
 
 @app.route('/api/health', methods=['GET'])
 def health():
@@ -132,7 +152,10 @@ def create_ad():
             }), 400
         
         # Crear cliente
-        client = get_google_ads_client()
+        refresh_token = request.headers.get('X-Google-Ads-Refresh-Token')
+        login_customer_id = request.headers.get('X-Google-Ads-Login-Customer-Id')
+        client = get_google_ads_client(refresh_token, login_customer_id)
+        
         ad_group_ad_service = client.get_service("AdGroupAdService")
         ad_group_service = client.get_service("AdGroupService")
         
@@ -242,7 +265,7 @@ def get_demographics():
             }), 400
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         google_ads_service = client.get_service("GoogleAdsService")
         
         # Query para obtener criterios demográficos actuales
@@ -395,7 +418,7 @@ def update_demographics():
         # No validar si hay criterios - permitir vacío para remover todos
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         google_ads_service = client.get_service("GoogleAdsService")
         
@@ -614,7 +637,7 @@ def create_ad_group():
         print(f"   CPC Bid: ${cpc_bid_micros / 1000000:.2f}")
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_service = client.get_service("AdGroupService")
         
         # Crear operación
@@ -718,7 +741,7 @@ def add_keywords():
         print(f"📝 Agregando {len(keywords)} keywords al Ad Group {ad_group_id}")
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         ad_group_service = client.get_service("AdGroupService")
         
@@ -854,7 +877,7 @@ def get_demographic_stats():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         google_ads_service = client.get_service("GoogleAdsService")
         
         # Calcular rango de fechas
@@ -1133,7 +1156,7 @@ def get_campaign_analytics():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
         
         # Limpiar customer_id
@@ -1397,7 +1420,7 @@ def pause_keyword():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         
         # Limpiar customer_id
@@ -1479,7 +1502,7 @@ def link_asset_to_context(ga_client, customer_id, asset_resource_name, field_typ
         create.asset = asset_resource_name
         create.field_type = field_type_enum_value
         svc.mutate_ad_group_assets(customer_id=customer_id, operations=[op])
-    else:
+    elif campaign_id:
         svc = ga_client.get_service("CampaignAssetService")
         op = ga_client.get_type("CampaignAssetOperation")
         create = op.create
@@ -1487,6 +1510,14 @@ def link_asset_to_context(ga_client, customer_id, asset_resource_name, field_typ
         create.asset = asset_resource_name
         create.field_type = field_type_enum_value
         svc.mutate_campaign_assets(customer_id=customer_id, operations=[op])
+    else:
+        svc = ga_client.get_service("CustomerAssetService")
+        op = ga_client.get_type("CustomerAssetOperation")
+        create = op.create
+        create.customer = f"customers/{customer_id}"
+        create.asset = asset_resource_name
+        create.field_type = field_type_enum_value
+        svc.mutate_customer_assets(customer_id=customer_id, operations=[op])
 
 def cors_preflight_ok():
     response = jsonify({'status': 'ok'})
@@ -1506,7 +1537,7 @@ def create_image_asset():
         ad_group_id = data.get('adGroupId')
         fmt = data.get('format')
         image_b64 = data.get('imageBase64')
-        if not all([customer_id, campaign_id, fmt, image_b64]):
+        if not all([customer_id, fmt, image_b64]):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
@@ -1523,7 +1554,7 @@ def create_image_asset():
         elif fmt == 'SQUARE':
             if not (w >= 300 and h >= 300 and abs(w - h) < 5):
                 return jsonify({"success": False, "policyViolation": "Dimensiones inválidas para Square"}), 400
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         svc = ga.get_service("AssetService")
         op = ga.get_type("AssetOperation")
         asset = op.create
@@ -1572,7 +1603,7 @@ def top_campaign_final_urls():
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         service = ga.get_service('GoogleAdsService')
         query = (
             "SELECT campaign.id, campaign.name, campaign.status, campaign_budget.amount_micros "
@@ -1622,7 +1653,7 @@ def generate_sitelinks():
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         service = ga.get_service('GoogleAdsService')
         query = (
             "SELECT campaign.id, campaign.name, campaign.status, campaign_budget.amount_micros "
@@ -1788,7 +1819,7 @@ def assets_summary():
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         service = ga.get_service('GoogleAdsService')
 
         def list_linked_assets(query, is_campaign=True):
@@ -1896,7 +1927,7 @@ def create_sitelink_asset():
         d1 = data.get('description1', '')
         d2 = data.get('description2', '')
         final_url = data.get('finalUrl', '')
-        if not all([customer_id, campaign_id, text, final_url]):
+        if not all([customer_id, text, final_url]):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
@@ -1921,7 +1952,7 @@ def create_sitelink_asset():
                 return base_no_slash + '/#' + frag
             return base.rstrip('/')
         final_url = _normalize_url(final_url)
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         svc = ga.get_service("AssetService")
         op = ga.get_type("AssetOperation")
         asset = op.create
@@ -1975,13 +2006,13 @@ def create_promotion_asset():
         campaign_id = data.get('campaignId')
         ad_group_id = data.get('adGroupId')
         p = data.get('promotion', {})
-        final_url = data.get('finalUrl', '')
-        if not all([customer_id, campaign_id]) or not p:
+        final_url = (data.get('finalUrl', '') or '').strip().strip('`').strip('"').strip("'")
+        if not customer_id or not p:
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         svc = ga.get_service("AssetService")
         op = ga.get_type("AssetOperation")
         asset = op.create
@@ -2039,12 +2070,12 @@ def create_call_asset():
             '+1':'US','1':'US'
         }
         cc = code_map.get(cc_raw, cc_raw if len(cc_raw)==2 else '')
-        if not all([customer_id, campaign_id, cc, phone]):
+        if not all([customer_id, cc, phone]):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         svc = ga.get_service("AssetService")
         op = ga.get_type("AssetOperation")
         asset = op.create
@@ -2075,12 +2106,12 @@ def create_callout_asset():
         ad_group_id = data.get('adGroupId')
         text = data.get('text')
         texts = data.get('texts') if isinstance(data.get('texts'), list) else None
-        if not all([customer_id, campaign_id]) or (not text and not texts):
+        if not customer_id or (not text and not texts):
             res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         svc = ga.get_service("AssetService")
         operations = []
         items = texts if texts else [text]
@@ -2126,7 +2157,7 @@ def analyze_relevance():
             return res
         end_date = date.today()
         start_date = end_date - timedelta(days=lookback)
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         service = ga.get_service('GoogleAdsService')
         query = (
             "SELECT search_term_view.search_term, metrics.conversions, metrics.clicks, metrics.impressions, "
@@ -2136,7 +2167,10 @@ def analyze_relevance():
             "AND metrics.conversions > 0"
         )
         rows = service.search(customer_id=customer_id, query=query)
-        opportunities = []
+        
+        # Recopilar todos los ad_group_ids únicos para obtener sus URLs
+        ad_group_ids = set()
+        opportunities_temp = []
         for r in rows:
             clicks = r.metrics.clicks
             impressions = r.metrics.impressions
@@ -2147,7 +2181,9 @@ def analyze_relevance():
             low_ctr = ctr < 0.02
             high_cpa = cpa_micros > 5_000_000
             if low_ctr or high_cpa:
-                opportunities.append({
+                ad_group_id = str(r.ad_group.id)
+                ad_group_ids.add(ad_group_id)
+                opportunities_temp.append({
                     "searchTerm": r.search_term_view.search_term,
                     "conversions": float(conversions),
                     "clicks": int(clicks),
@@ -2155,11 +2191,39 @@ def analyze_relevance():
                     "ctr": float(ctr),
                     "cpaMicros": int(cpa_micros),
                     "costMicros": int(cost_micros),
-                    "adGroupId": str(r.ad_group.id),
+                    "adGroupId": ad_group_id,
                     "adGroupName": r.ad_group.name,
                     "campaignId": str(r.campaign.id),
                     "potentialSavingsMicros": int(cost_micros * 0.1)
                 })
+        
+        # Obtener URLs de los anuncios de cada ad group
+        ad_group_urls = {}
+        if ad_group_ids:
+            ad_groups_filter = " OR ".join([f"ad_group.id = '{ag_id}'" for ag_id in ad_group_ids])
+            ads_query = (
+                "SELECT ad_group.id, ad_group_ad.ad.final_urls "
+                "FROM ad_group_ad "
+                f"WHERE ({ad_groups_filter}) "
+                "AND ad_group_ad.status = 'ENABLED' "
+                "LIMIT 1000"
+            )
+            try:
+                ads_rows = service.search(customer_id=customer_id, query=ads_query)
+                for ad_row in ads_rows:
+                    ag_id = str(ad_row.ad_group.id)
+                    if ad_row.ad_group_ad.ad.final_urls and len(ad_row.ad_group_ad.ad.final_urls) > 0:
+                        # Tomar la primera URL disponible
+                        if ag_id not in ad_group_urls:
+                            ad_group_urls[ag_id] = ad_row.ad_group_ad.ad.final_urls[0]
+            except Exception as url_ex:
+                print(f"⚠️ Error obteniendo URLs: {url_ex}")
+        
+        # Agregar URLs a las oportunidades
+        opportunities = []
+        for opp in opportunities_temp:
+            opp["finalUrl"] = ad_group_urls.get(opp["adGroupId"], "")
+            opportunities.append(opp)
         result = jsonify({"success": True, "opportunities": opportunities})
         result.headers.add('Access-Control-Allow-Origin', '*')
         return result
@@ -2203,10 +2267,45 @@ def generate_adcopy():
                 return None
         def clamp(s, n):
             return (s or '')[:n]
+
+        def normalize_snippet(text: str, limit: int) -> str:
+            if not text:
+                return ''
+            # Consolidate whitespace and trim ends
+            stripped = ' '.join(str(text).split())
+            if len(stripped) <= limit:
+                return stripped
+            truncated = stripped[:limit].rstrip()
+            # Avoid cutting words in half when possible
+            if len(stripped) > limit and not stripped[limit].isspace():
+                last_space = truncated.rfind(' ')
+                if last_space > 10:  # keep at least a short prefix
+                    truncated = truncated[:last_space]
+            return truncated.strip()
         prompt = (
-            "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 3 'headlines' (<=30 chars) y 2 'descriptions' (<=90). "
-            "Incluye exactamente el término en el primer headline. Español persuasivo. Responde SOLO JSON con {\"headlines\":[],\"descriptions\":[]}. "
-            f"term: {term}"
+            "ACTÚA COMO: Copywriter experto en Google Ads (Direct Response) especializado en SKAGs de alto CTR.\n"
+            f"TAREA: Genera un objeto JSON crudo con 15 'headlines' y 4 'descriptions' para el término de búsqueda: '{term}'.\n\n"
+            
+            "--- REGLAS CRÍTICAS (NO ROMPER) ---\n"
+            "1. LONGITUD HEADLINES: MÁXIMO 30 caracteres. Si te pasas, el anuncio será rechazado. Sé conciso.\n"
+            "2. LONGITUD DESCRIPTIONS: MÁXIMO 90 caracteres.\n"
+            "3. INTEGRIDAD: NUNCA cortes palabras a la mitad (ej: NO 'Amar', 'Gar', 'Por'). Si no cabe, reescribe la frase.\n"
+            "4. GRAMÁTICA: No termines con preposiciones sueltas ('de', 'en', 'y', 'con'). La frase debe tener sentido completo.\n"
+            "5. FORMATO: Usa 'Title Case' (Primera Letra Mayúscula) para mayor impacto visual.\n\n"
+            
+            "--- ESTRATEGIA DE CONTENIDO ---\n"
+            "1. INSERCIÓN DE KEYWORD: El término (o su abreviación lógica) DEBE aparecer:\n"
+            "   - Mínimo 6 veces en los headlines.\n"
+            "   - Mínimo 3 veces en las descriptions.\n"
+            "2. ABREVIACIÓN INTELIGENTE: Si el término es largo (>25 chars), abrévialo naturalmente.\n"
+            "   - 'amarres de amor cerca de mi' -> 'Amarres Amor Cerca' (BIEN)\n"
+            "   - 'amarres de amor cerca de mi' -> 'Amarres De Amor Cer' (MAL)\n"
+            "3. ÁNGULOS DE VENTA: Mezcla urgencia, beneficios, autoridad y localidad.\n\n"
+            
+            "--- FORMATO DE RESPUESTA ---\n"
+            "Responde SOLO con el JSON válido. NO uses bloques de código markdown (```json). \n"
+            "Estructura: {\"headlines\": [...], \"descriptions\": [...]}\n"
+            f"TÉRMINO OBJETIVO: {term}"
         )
         def use_openai(p):
             key = os.environ.get('OPENAI_API_KEY')
@@ -2249,12 +2348,27 @@ def generate_adcopy():
             data_out = use_gemini(prompt) or use_openai(prompt)
         else:
             data_out = use_deepseek(prompt) or use_openai(prompt)
-        hs = [clamp(str(h),30) for h in (data_out.get('headlines') if isinstance(data_out, dict) else []) if str(h).strip()][:3]
-        ds = [clamp(str(d),90) for d in (data_out.get('descriptions') if isinstance(data_out, dict) else []) if str(d).strip()][:2]
+        hs = [normalize_snippet(clamp(str(h), 40), 30) for h in (data_out.get('headlines') if isinstance(data_out, dict) else []) if str(h).strip()][:15]
+        ds = [normalize_snippet(clamp(str(d), 110), 90) for d in (data_out.get('descriptions') if isinstance(data_out, dict) else []) if str(d).strip()][:4]
+        
+        # Validación estricta: Asegurar que ningún headline exceda 30 caracteres
+        hs = [normalize_snippet(h, 30) for h in hs]
+        ds = [normalize_snippet(d, 90) for d in ds]
+        
         if not hs:
-            hs = [term, f"{term} oferta", f"{term} hoy"]
+            # Fallbacks seguros de máximo 30 caracteres
+            term_short = term[:20] if len(term) > 20 else term
+            hs = [
+                normalize_snippet(term_short, 30),
+                normalize_snippet(f"{term_short} Hoy", 30),
+                normalize_snippet(f"Expertos {term_short}", 30)
+            ]
         if not ds:
-            ds = [f"La mejor opción para {term}", f"Descubre {term}"]
+            ds = [
+                normalize_snippet(f"La mejor opción para {term}", 90),
+                normalize_snippet(f"Descubre {term}", 90)
+            ]
+        
         result = jsonify({"success": True, "headlines": hs, "descriptions": ds})
         result.headers.add('Access-Control-Allow-Origin', '*')
         return result
@@ -2282,7 +2396,7 @@ def execute_skag():
             res.status_code = 400
             res.headers.add('Access-Control-Allow-Origin', '*')
             return res
-        ga = get_google_ads_client()
+        ga = get_client_from_request()
         def extract_json(text):
             if not text:
                 return None
@@ -2302,8 +2416,8 @@ def execute_skag():
 
         def generate_ad_copy(term, prov):
             prompt = (
-                "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 3 'headlines' (<=30 chars) y 2 'descriptions' (<=90). "
-                "Incluye exactamente el término en el primer headline. Español persuasivo. Responde SOLO JSON con {\"headlines\":[],\"descriptions\":[]}. "
+                "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 15 'headlines' (cada uno <=30 chars) y 4 'descriptions' (cada una <=90 chars). "
+                "Incluye exactamente el término en el primer headline. Genera variaciones persuasivas en español. Responde SOLO JSON con {\"headlines\":[...15 items...],\"descriptions\":[...4 items...]}. "
                 f"term: {term}"
             )
             last_error = None
@@ -2352,13 +2466,33 @@ def execute_skag():
             else:
                 data_out = use_deepseek(prompt) or use_openai(prompt)
             if not isinstance(data_out, dict):
-                return {"headlines": [term, f"{term} oferta", f"{term} hoy"], "descriptions": [f"La mejor opción para {term}", f"Descubre {term}"]}
-            hs = [clamp(str(h),30) for h in (data_out.get('headlines') or []) if str(h).strip()][:3]
-            ds = [clamp(str(d),90) for d in (data_out.get('descriptions') or []) if str(d).strip()][:2]
-            if not hs:
-                hs = [term, f"{term} oferta", f"{term} hoy"]
-            if not ds:
-                ds = [f"La mejor opción para {term}", f"Descubre {term}"]
+                return {
+                    "headlines": [term, f"{term} Efectivo", f"{term} Profesional", f"Expertos en {term}", f"Consulta {term} Hoy", f"{term} Garantizado", f"Resultados {term}", f"{term} Confiable", f"Mejor {term}", f"{term} Rápido", f"{term} Seguro", f"{term} 24/7", f"Llama {term}", f"{term} Cerca", f"Top {term}"],
+                    "descriptions": [f"La mejor opción para {term}. Resultados garantizados y rápidos. Consulta ahora.", f"Expertos en {term} con años de experiencia. Atención personalizada y confidencial.", f"Descubre {term} profesional. Primera consulta gratis. Contáctanos hoy mismo.", f"Servicio de {term} disponible 24/7. Soluciones efectivas para tus necesidades."]
+                }
+            hs = [clamp(str(h),30) for h in (data_out.get('headlines') or []) if str(h).strip()][:15]
+            ds = [clamp(str(d),90) for d in (data_out.get('descriptions') or []) if str(d).strip()][:4]
+            if len(hs) < 15:
+                # Generate fallback headlines to complete to 15
+                fallback_hs = [term, f"{term} Efectivo", f"{term} Profesional", f"Expertos {term}", f"Consulta {term}", f"{term} Garantizado", f"Resultados {term}", f"{term} Confiable", f"Mejor {term}", f"{term} Rápido", f"{term} Seguro", f"{term} 24/7", f"Llama {term}", f"{term} Cerca", f"Top {term}"]
+                for fh in fallback_hs:
+                    if len(hs) >= 15:
+                        break
+                    if fh not in hs:
+                        hs.append(clamp(fh, 30))
+            if len(ds) < 4:
+                # Generate fallback descriptions to complete to 4
+                fallback_ds = [
+                    f"La mejor opción para {term}. Resultados garantizados y rápidos. Consulta ahora.",
+                    f"Expertos en {term} con años de experiencia. Atención personalizada y confidencial.",
+                    f"Descubre {term} profesional. Primera consulta gratis. Contáctanos hoy mismo.",
+                    f"Servicio de {term} disponible 24/7. Soluciones efectivas para tus necesidades."
+                ]
+                for fd in fallback_ds:
+                    if len(ds) >= 4:
+                        break
+                    if fd not in ds:
+                        ds.append(clamp(fd, 90))
             return {"headlines": hs, "descriptions": ds}
 
         if not new_ad_copy or not new_ad_copy.get('headlines'):
@@ -2366,9 +2500,14 @@ def execute_skag():
             new_ad_copy['headlines'] = gen.get('headlines')
             new_ad_copy['descriptions'] = gen.get('descriptions')
 
+        def short_negative(s):
+            stop = {"brujos","brujo","brujeria","de","la","las","el","los","en","y","para","que","un","una"}
+            toks = [t for t in s.lower().split() if t not in stop]
+            frag = ' '.join(toks).strip()
+            return frag if frag else s
         if dry_run:
             created_group_name = f"SKAG - {search_term}"
-            negative_exact = f"[{search_term}]"
+            negative_exact = f"[{short_negative(search_term)}]"
             result = jsonify({
                 "success": True,
                 "dryRun": True,
@@ -2596,7 +2735,7 @@ def pause_ad():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_ad_service = client.get_service("AdGroupAdService")
         
         # Limpiar customer_id
@@ -2703,7 +2842,7 @@ def update_keyword_bid():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         
         # Limpiar customer_id
@@ -2838,7 +2977,7 @@ def search_ads():
             return result
         
         # Crear cliente
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
         
         # Limpiar customer_id
@@ -2992,7 +3131,7 @@ def list_campaigns():
             result[0].headers.add('Access-Control-Allow-Origin', '*')
             return result
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
         customer_id = customer_id.replace('-', '')
         
@@ -3090,7 +3229,7 @@ def list_adgroups():
             result[0].headers.add('Access-Control-Allow-Origin', '*')
             return result
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
         customer_id = customer_id.replace('-', '')
         
@@ -3188,7 +3327,7 @@ def create_campaign_budget():
         
         print(f"💰 Creando budget: {name} con ${amount_micros/1_000_000} COP")
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         campaign_budget_service = client.get_service("CampaignBudgetService")
         
         campaign_budget_operation = client.get_type("CampaignBudgetOperation")
@@ -3268,7 +3407,7 @@ def create_campaign():
         
         print(f"🚀 Creando campaña: {name}")
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         campaign_service = client.get_service("CampaignService")
         
         campaign_operation = client.get_type("CampaignOperation")
@@ -3381,7 +3520,7 @@ def create_ad_group_copy():
         
         print(f"📂 Creando ad group: {name}")
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_service = client.get_service("AdGroupService")
         
         ad_group_operation = client.get_type("AdGroupOperation")
@@ -3482,7 +3621,7 @@ def create_keyword():
         
         print(f"🔑 Creando keyword: {keyword_text} ({match_type})")
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         
         operation = client.get_type("AdGroupCriterionOperation")
@@ -3574,7 +3713,7 @@ def execute_query():
         print(f"📊 Ejecutando query para cuenta {customer_id}")
         print(f"📝 Query: {query[:200]}...")
         
-        client = get_google_ads_client()
+        client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
         
         # Ejecutar búsqueda
@@ -3589,6 +3728,28 @@ def execute_query():
             for row in batch.results:
                 # Convertir el resultado a diccionario
                 row_dict = {}
+                
+                # customer_client (para queries de cuentas MCC)
+                if hasattr(row, 'customer_client'):
+                    client = row.customer_client
+                    row_dict['customerClient'] = {
+                        'id': str(client.id),
+                        'descriptiveName': client.descriptive_name,
+                        'currencyCode': client.currency_code,
+                        'timeZone': client.time_zone,
+                        'status': client.status.name if hasattr(client, 'status') else 'UNKNOWN'
+                    }
+                
+                # customer (para queries de información de cuenta)
+                if hasattr(row, 'customer'):
+                    customer = row.customer
+                    row_dict['customer'] = {
+                        'id': str(customer.id),
+                        'descriptiveName': customer.descriptive_name,
+                        'currencyCode': customer.currency_code,
+                        'timeZone': customer.time_zone,
+                        'status': customer.status.name if hasattr(customer, 'status') else 'UNKNOWN'
+                    }
                 
                 # Extraer campos según lo que tenga el row
                 if hasattr(row, 'ad_group_criterion'):
