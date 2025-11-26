@@ -37,6 +37,7 @@ def get_google_ads_client(refresh_token=None, login_customer_id=None):
         return GoogleAdsClient.load_from_dict({
             "developer_token": os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
             "client_id": "82393641971-2qpch75fpo28p7dmpqcibbp0vk6aj0g9.apps.googleusercontent.com",  # iOS Client ID
+            "client_secret": "",  # iOS Client no tiene secret, pero la librería lo requiere
             "refresh_token": refresh_token,
             "login_customer_id": login_customer_id,
             "use_proto_plus": True
