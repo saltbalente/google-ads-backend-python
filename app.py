@@ -3715,6 +3715,28 @@ def execute_query():
                 # Convertir el resultado a diccionario
                 row_dict = {}
                 
+                # customer_client (para queries de cuentas MCC)
+                if hasattr(row, 'customer_client'):
+                    client = row.customer_client
+                    row_dict['customerClient'] = {
+                        'id': str(client.id),
+                        'descriptiveName': client.descriptive_name,
+                        'currencyCode': client.currency_code,
+                        'timeZone': client.time_zone,
+                        'status': client.status.name if hasattr(client, 'status') else 'UNKNOWN'
+                    }
+                
+                # customer (para queries de información de cuenta)
+                if hasattr(row, 'customer'):
+                    customer = row.customer
+                    row_dict['customer'] = {
+                        'id': str(customer.id),
+                        'descriptiveName': customer.descriptive_name,
+                        'currencyCode': customer.currency_code,
+                        'timeZone': customer.time_zone,
+                        'status': customer.status.name if hasattr(customer, 'status') else 'UNKNOWN'
+                    }
+                
                 # Extraer campos según lo que tenga el row
                 if hasattr(row, 'ad_group_criterion'):
                     criterion = row.ad_group_criterion
