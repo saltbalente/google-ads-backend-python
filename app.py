@@ -2502,19 +2502,33 @@ def execute_skag():
                         ds.append(clamp(fd, 90))
             return {"headlines": hs, "descriptions": ds}
 
-        if not new_ad_copy or not new_ad_copy.get('headlines'):
+        # Si no hay variaciones, generar una automáticamente
+        if not ad_variations:
             gen = generate_ad_copy(search_term, provider)
-            new_ad_copy['headlines'] = gen.get('headlines')
-            new_ad_copy['descriptions'] = gen.get('descriptions')
+            ad_variations.append({
+                'headlines': gen.get('headlines', []),
+                'descriptions': gen.get('descriptions', []),
+                'finalUrl': final_url
+            })
 
         def short_negative(s):
             stop = {"brujos","brujo","brujeria","de","la","las","el","los","en","y","para","que","un","una"}
             toks = [t for t in s.lower().split() if t not in stop]
             frag = ' '.join(toks).strip()
             return frag if frag else s
+            
         if dry_run:
             created_group_name = f"SKAG - {search_term}"
             negative_exact = f"[{short_negative(search_term)}]"
+            
+            # Preparar preview de anuncios para dry run
+            ads_preview = []
+            for var in ad_variations:
+                ads_preview.append({
+                    "headlines": var.get('headlines', [search_term]),
+                    "descriptions": var.get('descriptions', [f"La mejor opción para {search_term}"])
+                })
+                
             result = jsonify({
                 "success": True,
                 "dryRun": True,
@@ -2522,11 +2536,13 @@ def execute_skag():
                 "wouldCreate": {
                     "adGroupName": created_group_name,
                     "keywordExact": negative_exact,
-                    "rsa": {
-                        "headlines": new_ad_copy.get('headlines', [search_term]),
-                        "descriptions": new_ad_copy.get('descriptions', [f"La mejor opción para {search_term}", f"Descubre {search_term}"])
-                    },
-                    "negativeInOriginal": negative_exact
+                    "ads": ads_preview,
+                    "negativeInOriginal": negative_exact,
+                    "matchTypes": {
+                        "exact": True,
+                        "phrase": data.get('includePhraseMatch', True),
+                        "broad": data.get('includeBroadMatch', False)
+                    }
                 }
             })
             result.headers.add('Access-Control-Allow-Origin', '*')
