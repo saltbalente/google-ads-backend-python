@@ -2567,6 +2567,14 @@ def execute_skag():
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         keyword_operations = []
         
+        # Helper para redondear CPC a unidad válida (1M micros = 1 unidad estándar)
+        def round_cpc(micros):
+            # Redondear al millón más cercano para evitar errores de "billable unit"
+            # Ejemplo: 1,275,000,000 -> 1,275,000,000 (Ok)
+            # Ejemplo: 1,275,500,000 -> 1,276,000,000 (Redondeo)
+            unit = 1000000
+            return int(round(micros / unit) * unit)
+
         # 1. EXACTA (siempre incluida) - CPC 100%
         kw_exact_op = client.get_type("AdGroupCriterionOperation")
         kw_exact = kw_exact_op.create
@@ -2575,9 +2583,9 @@ def execute_skag():
         kw_exact.keyword = client.get_type("KeywordInfo")
         kw_exact.keyword.text = search_term
         kw_exact.keyword.match_type = client.enums.KeywordMatchTypeEnum.EXACT
-        kw_exact.cpc_bid_micros = base_cpc_micros  # 100% del CPC base
+        kw_exact.cpc_bid_micros = round_cpc(base_cpc_micros)
         keyword_operations.append(kw_exact_op)
-        print(f"✅ Keyword EXACTA agregada: [{search_term}] - CPC: {base_cpc_micros} micros")
+        print(f"✅ Keyword EXACTA agregada: [{search_term}] - CPC: {kw_exact.cpc_bid_micros} micros")
         
         # 2. FRASE (opcional) - CPC 85%
         if include_phrase:
@@ -2588,9 +2596,9 @@ def execute_skag():
             kw_phrase.keyword = client.get_type("KeywordInfo")
             kw_phrase.keyword.text = search_term
             kw_phrase.keyword.match_type = client.enums.KeywordMatchTypeEnum.PHRASE
-            kw_phrase.cpc_bid_micros = int(base_cpc_micros * 0.85)  # 85% del CPC base
+            kw_phrase.cpc_bid_micros = round_cpc(base_cpc_micros * 0.85)
             keyword_operations.append(kw_phrase_op)
-            print(f"✅ Keyword FRASE agregada: \"{search_term}\" - CPC: {int(base_cpc_micros * 0.85)} micros")
+            print(f"✅ Keyword FRASE agregada: \"{search_term}\" - CPC: {kw_phrase.cpc_bid_micros} micros")
         
         # 3. AMPLIA (opcional) - CPC 70%
         if include_broad:
@@ -2601,9 +2609,9 @@ def execute_skag():
             kw_broad.keyword = client.get_type("KeywordInfo")
             kw_broad.keyword.text = search_term
             kw_broad.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
-            kw_broad.cpc_bid_micros = int(base_cpc_micros * 0.70)  # 70% del CPC base
+            kw_broad.cpc_bid_micros = round_cpc(base_cpc_micros * 0.70)
             keyword_operations.append(kw_broad_op)
-            print(f"✅ Keyword AMPLIA agregada: {search_term} - CPC: {int(base_cpc_micros * 0.70)} micros")
+            print(f"✅ Keyword AMPLIA agregada: {search_term} - CPC: {kw_broad.cpc_bid_micros} micros")
         
         # Ejecutar todas las operaciones de keywords en batch
         ad_group_criterion_service.mutate_ad_group_criteria(customer_id=customer_id, operations=keyword_operations)
