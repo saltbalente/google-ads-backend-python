@@ -1,0 +1,7 @@
+
+# Automation System databases
+circuit_breaker.db
+automation_jobs.db
+*.db-journal
+*.db-wal
+*.db-shm
