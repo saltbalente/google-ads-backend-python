@@ -4180,9 +4180,22 @@ def get_trends_from_google_ads(keywords, geo, time_range, resolution):
         if idea.text not in keywords and idea.text not in related_queries:
             related_queries.append(idea.text)
     
-    # Generar datos de región sintéticos basados en el país
+    # Generar datos de región (SOLO NIVEL PAÍS para ser honestos con los datos)
+    # Google Ads API no entrega desglose regional, así que devolvemos el total del país
+    # en lugar de inventar una distribución simulada.
     if geo:
-        region_data = generate_region_data_for_country(geo, resolution, int(metrics.avg_monthly_searches) if metrics else 10000)
+        # Mapeo de códigos a nombres para visualización
+        country_names = {
+            'US': 'Estados Unidos', 'MX': 'México', 'ES': 'España', 'CO': 'Colombia',
+            'AR': 'Argentina', 'CL': 'Chile', 'PE': 'Perú', 'VE': 'Venezuela'
+        }
+        country_name = country_names.get(geo, geo)
+        
+        region_data = [{
+            'geoName': country_name,
+            'value': 100, # 100% del interés está en el país (dato real)
+            'geoCode': geo
+        }]
     
     # Ordenar timeline por fecha
     timeline_data.sort(key=lambda x: x['date'])
@@ -4330,46 +4343,76 @@ def generate_synthetic_trends_data(keywords, geo, time_range, resolution):
     }
 
 
-def generate_region_data_for_country(geo, resolution, total_volume):
-    """Genera datos de región basados en el país y granularidad"""
+def generate_region_data_for_country(geo, resolution, total_volume, keyword_seed=None):
+    """Genera datos de región basados en el país y granularidad, con variación por keyword"""
     
     import random
     
+    # Usar el keyword como semilla para que la aleatoriedad sea consistente por término
+    if keyword_seed:
+        random.seed(sum(ord(c) for c in keyword_seed))
+    
     regions_by_country = {
         'US': {
-            'REGION': ['California', 'Texas', 'Florida', 'New York', 'Illinois'],
-            'DMA': ['New York NY', 'Los Angeles CA', 'Chicago IL', 'Philadelphia PA', 'Dallas-Ft. Worth TX'],
-            'CITY': ['Los Angeles', 'New York', 'Chicago', 'Houston', 'Phoenix']
+            'REGION': ['California', 'Texas', 'Florida', 'New York', 'Illinois', 'Pennsylvania', 'Ohio', 'Georgia', 'North Carolina', 'Michigan'],
+            'DMA': ['New York NY', 'Los Angeles CA', 'Chicago IL', 'Philadelphia PA', 'Dallas-Ft. Worth TX', 'San Francisco-Oakland-San Jose CA', 'Atlanta GA', 'Houston TX', 'Washington DC', 'Boston MA-Manchester NH'],
+            'CITY': ['Los Angeles', 'New York', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose']
         },
         'MX': {
-            'REGION': ['Ciudad de México', 'Jalisco', 'Nuevo León', 'Estado de México', 'Puebla'],
-            'DMA': ['Área Metropolitana CDMX', 'Monterrey', 'Guadalajara', 'Puebla', 'Tijuana'],
-            'CITY': ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana']
+            'REGION': ['Ciudad de México', 'Jalisco', 'Nuevo León', 'Estado de México', 'Puebla', 'Veracruz', 'Guanajuato', 'Baja California', 'Chihuahua', 'Sonora'],
+            'DMA': ['Área Metropolitana CDMX', 'Monterrey', 'Guadalajara', 'Puebla', 'Tijuana', 'León', 'Mérida', 'San Luis Potosí', 'Querétaro', 'Toluca'],
+            'CITY': ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana', 'León', 'Juárez', 'Zapopan', 'Mérida', 'San Luis Potosí']
         },
         'ES': {
-            'REGION': ['Madrid', 'Cataluña', 'Andalucía', 'Valencia', 'País Vasco'],
-            'DMA': ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Bilbao'],
-            'CITY': ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Bilbao']
+            'REGION': ['Madrid', 'Cataluña', 'Andalucía', 'Valencia', 'País Vasco', 'Galicia', 'Castilla y León', 'Canarias', 'Aragón', 'Murcia'],
+            'DMA': ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Bilbao', 'Málaga', 'Zaragoza', 'Alicante', 'Las Palmas', 'Murcia'],
+            'CITY': ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Bilbao', 'Málaga', 'Zaragoza', 'Murcia', 'Palma', 'Las Palmas']
         }
     }
     
-    if geo not in regions_by_country or resolution not in regions_by_country[geo]:
-        # Fallback genérico si no tenemos datos específicos para el país/resolución
-        return [{'geoName': geo or 'Global', 'value': 100, 'geoCode': None}]
+    # Fallback para otros países (lista genérica de "Región X")
+    if geo not in regions_by_country:
+        return [{'geoName': f"{geo} Region 1", 'value': 100, 'geoCode': None}]
+        
+    if resolution not in regions_by_country[geo]:
+        # Si la resolución no está definida, usar la primera disponible o fallback
+        available_resolutions = list(regions_by_country[geo].keys())
+        if available_resolutions:
+            resolution = available_resolutions[0]
+        else:
+            return [{'geoName': geo or 'Global', 'value': 100, 'geoCode': None}]
     
-    regions = regions_by_country[geo][resolution]
+    regions = regions_by_country[geo][resolution].copy()
+    
+    # Mezclar regiones aleatoriamente (pero consistente con la semilla)
+    random.shuffle(regions)
+    
+    # Tomar top 5-8 regiones
+    num_regions = random.randint(5, min(len(regions), 8))
+    selected_regions = regions[:num_regions]
+    
     region_data = []
     
-    # Distribuir volumen con distribución realista (ley de potencia)
-    percentages = [0.30, 0.22, 0.18, 0.15, 0.15]
-    
-    for i, region in enumerate(regions):
-        value = int(percentages[i] * 100)  # Valor normalizado 0-100
+    # Generar porcentajes distribuidos aleatoriamente
+    remaining_value = 100
+    for i, region in enumerate(selected_regions):
+        if i == len(selected_regions) - 1:
+            value = max(1, remaining_value) # El último toma el resto
+        else:
+            # Valor aleatorio decreciente
+            max_val = int(remaining_value * 0.6)
+            min_val = int(remaining_value * 0.1)
+            value = random.randint(min_val, max(min_val + 1, max_val))
+            remaining_value -= value
+            
         region_data.append({
             'geoName': region,
             'value': value,
             'geoCode': f"{geo}-{i+1}"
         })
+    
+    # Ordenar por valor descendente
+    region_data.sort(key=lambda x: x['value'], reverse=True)
     
     return region_data
 
