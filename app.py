@@ -4272,7 +4272,7 @@ def get_trends_from_pytrends(keywords, geo, time_range, gprop, resolution):
         
         interest_by_region_df = pytrends.interest_by_region(
             resolution=pytrends_resolution,
-            inc_low_vol=True,
+            inc_low_vol=False, # FALSE para filtrar ruido y coincidir con la web
             inc_geo_code=False  # Geo codes not always available
         )
         
@@ -4520,7 +4520,7 @@ def get_trends_via_scraping(keywords, geo, time_range, resolution):
         elif resolution == 'REGION': region_resolution = 'REGION'
         
         region_request['resolution'] = region_resolution
-        region_request['includeLowSearchVolumeGeos'] = True
+        region_request['includeLowSearchVolumeGeos'] = False # FALSE para coincidir con la web
         
         region_url = 'https://trends.google.com/trends/api/widgetdata/comparedgeo'
         region_params = {
