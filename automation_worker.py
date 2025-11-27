@@ -501,10 +501,10 @@ Formato JSON:
         
         # Llamar al proveedor de IA correspondiente
         if provider == 'openai':
-            import openai
-            openai.api_key = os.environ.get('OPENAI_API_KEY')
+            from openai import OpenAI
+            client_openai = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
             
-            response = openai.ChatCompletion.create(
+            response = client_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7
