@@ -4214,7 +4214,7 @@ def get_trends_from_google_ads(keywords, geo, time_range, resolution):
     
     return {
         'timelineData': timeline_data[-12:] if timeline_data else None,  # Últimos 12 meses
-        'interestByRegion': region_data[:10] if region_data else None,
+        'interestByRegion': region_data if region_data else None,
         'relatedQueries': related_queries[:10] if related_queries else None,
         'source': 'google_ads'
     }
@@ -4280,8 +4280,8 @@ def get_trends_from_pytrends(keywords, geo, time_range, gprop, resolution):
             # Sort by interest value
             interest_by_region_df = interest_by_region_df.sort_values(by=keywords[0], ascending=False)
             
-            # Get top 20 regions with non-zero values
-            for region_name, row in interest_by_region_df.head(20).iterrows():
+            # Get all regions with non-zero values (no limit)
+            for region_name, row in interest_by_region_df.iterrows():
                 value = int(row[keywords[0]]) if keywords[0] in row else 0
                 if value > 0:
                     region_data.append({
