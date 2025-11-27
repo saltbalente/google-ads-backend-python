@@ -628,10 +628,15 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
             from openai import OpenAI
             import httpx
             
-            # Crear cliente HTTP sin proxy para evitar conflictos en Render.com
+            # Limpiar variables de entorno de proxy que puedan interferir
+            # Esto es más seguro que pasar proxies=None que falla en algunas versiones de httpx
+            for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
+                if proxy_var in os.environ:
+                    del os.environ[proxy_var]
+            
+            # Crear cliente HTTP sin proxy explícito
             http_client = httpx.Client(
                 timeout=30.0,
-                proxies=None,  # Deshabilitar explícitamente proxies
                 transport=httpx.HTTPTransport(retries=2)
             )
             
@@ -685,9 +690,13 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
             from openai import OpenAI
             import httpx
             
+            # Limpiar variables de entorno de proxy
+            for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
+                if proxy_var in os.environ:
+                    del os.environ[proxy_var]
+            
             http_client = httpx.Client(
                 timeout=30.0,
-                proxies=None,
                 transport=httpx.HTTPTransport(retries=2)
             )
             
