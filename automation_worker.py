@@ -371,12 +371,12 @@ class AutomationWorker:
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         ad_group_service = client.get_service("AdGroupService")
         
-        # ESTRATEGIA: Agregar keywords en lotes pequeños para detectar cuáles fallan
+        # ESTRATEGIA: Intentar agregar todas juntas, si falla por políticas, agregar una por una
         successful_keywords = 0
         failed_keywords = []
         
-        # Intentar agregar todas juntas primero
         try:
+            # Intentar agregar todas las keywords en un solo batch
             operations = []
             for keyword_text in keywords:
                 operation = client.get_type("AdGroupCriterionOperation")
@@ -391,28 +391,17 @@ class AutomationWorker:
             
             response = ad_group_criterion_service.mutate_ad_group_criteria(
                 customer_id=customer_id,
-                operations=operations,
-                partial_failure=True  # CRÍTICO: Permite éxito parcial
+                operations=operations
             )
             
-            # Contar éxitos
-            successful_keywords = len([r for r in response.results if r.resource_name])
-            
-            # Si hay partial_failure_error, algunas keywords fallaron
-            if hasattr(response, 'partial_failure_error') and response.partial_failure_error:
-                print(f"⚠️ Algunas keywords fallaron por políticas de Google Ads")
-                # Extraer keywords que fallaron del error
-                error_msg = str(response.partial_failure_error)
-                if 'POLICY_ERROR' in error_msg or 'NON_FAMILY_SAFE' in error_msg:
-                    print(f"⚠️ Políticas violadas detectadas - {len(keywords) - successful_keywords} keywords rechazadas")
-            
+            successful_keywords = len(response.results)
             return successful_keywords
             
         except Exception as e:
             error_str = str(e)
             
             # Si el error es por políticas, intentar agregar keywords una por una
-            if 'POLICY_ERROR' in error_str or 'POLICY_VIOLATION' in error_str:
+            if 'POLICY_ERROR' in error_str or 'POLICY_VIOLATION' in error_str or 'policy_violation_error' in error_str:
                 print(f"⚠️ Error de políticas detectado. Intentando agregar keywords individualmente...")
                 
                 for keyword_text in keywords:
@@ -433,15 +422,22 @@ class AutomationWorker:
                         successful_keywords += 1
                         
                     except Exception as kw_error:
+                        kw_error_str = str(kw_error)
                         failed_keywords.append(keyword_text)
-                        print(f"❌ Keyword rechazada: '{keyword_text}' - {str(kw_error)[:100]}")
+                        
+                        # Log más limpio del error
+                        if 'POLICY_ERROR' in kw_error_str:
+                            print(f"❌ Keyword rechazada por políticas: '{keyword_text}'")
+                        else:
+                            print(f"❌ Keyword rechazada: '{keyword_text}' - {kw_error_str[:100]}")
                 
                 if failed_keywords:
-                    print(f"📊 Resumen: {successful_keywords} keywords agregadas, {len(failed_keywords)} rechazadas por políticas")
+                    print(f"📊 Resumen: {successful_keywords}/{len(keywords)} keywords agregadas, {len(failed_keywords)} rechazadas por políticas")
                 
                 return successful_keywords
             else:
                 # Error diferente, propagar
+                print(f"❌ Error inesperado agregando keywords: {error_str[:200]}")
                 raise
         
         return 0
