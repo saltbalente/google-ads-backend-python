@@ -4200,7 +4200,23 @@ def get_trends_from_pytrends(keywords, geo, time_range, gprop, resolution):
     
     from pytrends.request import TrendReq
     
-    pytrends = TrendReq(hl='es-ES', tz=360)
+    # Configurar headers para simular un navegador real y evitar bloqueo
+    requests_args = {
+        'headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
+        }
+    }
+    
+    # Inicializar con reintentos y backoff
+    pytrends = TrendReq(
+        hl='es-ES', 
+        tz=360, 
+        retries=3, 
+        backoff_factor=0.5,
+        requests_args=requests_args
+    )
+    
     pytrends.build_payload(kw_list=keywords[:5], timeframe=time_range, geo=geo, gprop=gprop)
     
     timeline_data = []
