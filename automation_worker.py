@@ -145,14 +145,17 @@ class AutomationWorker:
             if not keywords:
                 raise ValueError("No se encontraron keywords en el reporte")
             
+            # Limitar keywords al total permitido: num_groups * max_keywords_per_group
+            max_total_keywords = num_groups * max_keywords_per_group
+            if len(keywords) > max_total_keywords:
+                keywords = keywords[:max_total_keywords]
+                add_log(job_id, 'INFO', f'Keywords limitadas a {max_total_keywords} (máx {max_keywords_per_group} por grupo × {num_groups} grupos)')
+            
             # PASO 2: Distribuir keywords en grupos (20% progreso)
-            # Calcular número óptimo de grupos basado en límite
-            optimal_groups = max(num_groups, (len(keywords) + max_keywords_per_group - 1) // max_keywords_per_group)
+            update_job(job_id, progress=20.0, current_step=f'Distribuyendo {len(keywords)} keywords en {num_groups} grupos...')
+            add_log(job_id, 'INFO', f'Distribuyendo {len(keywords)} keywords en {num_groups} grupos (máx {max_keywords_per_group} por grupo)')
             
-            update_job(job_id, progress=20.0, current_step=f'Distribuyendo keywords en {optimal_groups} grupos...')
-            add_log(job_id, 'INFO', f'Distribuyendo {len(keywords)} keywords en {optimal_groups} grupos (máx {max_keywords_per_group} por grupo)')
-            
-            groups = self._distribute_keywords(keywords, optimal_groups, max_keywords_per_group)
+            groups = self._distribute_keywords(keywords, num_groups, max_keywords_per_group)
             add_log(job_id, 'SUCCESS', 'Keywords distribuidas', {
                 'groups': len(groups),
                 'keywords_per_group': [len(g) for g in groups]
@@ -164,7 +167,7 @@ class AutomationWorker:
             total_ads_created = 0
             
             # PASO 3: Crear ad groups, keywords y ads (20% - 90% progreso)
-            total_steps = optimal_groups
+            total_steps = num_groups
             base_progress = 20.0
             step_increment = 70.0 / total_steps
             
@@ -176,7 +179,7 @@ class AutomationWorker:
                 update_job(
                     job_id,
                     progress=current_progress,
-                    current_step=f'Creando grupo de anuncios {group_num}/{optimal_groups}...'
+                    current_step=f'Creando grupo de anuncios {group_num}/{num_groups}...'
                 )
                 
                 ad_group_name = f"AutoGroup_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{group_num}"
@@ -320,9 +323,9 @@ class AutomationWorker:
         Elimina duplicados y normaliza.
         
         Args:
-            keywords: Lista de keywords a distribuir
-            num_groups: Número mínimo de grupos
-            max_per_group: Máximo de keywords permitidas por grupo
+            keywords: Lista de keywords a distribuir (ya limitada al máximo total)
+            num_groups: Número de grupos a crear
+            max_per_group: Máximo de keywords permitidas por grupo (informativo)
         """
         # Normalizar y eliminar duplicados
         unique_keywords = list(set([
@@ -334,21 +337,14 @@ class AutomationWorker:
         if not unique_keywords:
             return []
         
-        # Calcular tamaño óptimo por grupo (respetando límite)
-        keywords_per_group = min(
-            len(unique_keywords) // num_groups,
-            max_per_group
-        )
-        
-        # Si aún excede el límite, recalcular grupos necesarios
-        actual_groups = max(num_groups, (len(unique_keywords) + max_per_group - 1) // max_per_group)
-        keywords_per_group = len(unique_keywords) // actual_groups
-        remainder = len(unique_keywords) % actual_groups
+        # Distribuir uniformemente en num_groups
+        keywords_per_group = len(unique_keywords) // num_groups
+        remainder = len(unique_keywords) % num_groups
         
         groups = []
         start = 0
         
-        for i in range(actual_groups):
+        for i in range(num_groups):
             # Agregar 1 keyword extra a los primeros grupos para distribuir remainder
             group_size = keywords_per_group + (1 if i < remainder else 0)
             end = start + group_size
