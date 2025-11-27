@@ -191,8 +191,11 @@ class AutomationWorker:
                     campaign_id,
                     ad_group_name
                 )
-                ad_groups_created.append(ad_group_id)
-                add_log(job_id, 'SUCCESS', f'Ad group creado: {ad_group_id}')
+                ad_groups_created.append({
+                    'id': ad_group_id,
+                    'name': ad_group_name
+                })
+                add_log(job_id, 'SUCCESS', f'Ad group creado: {ad_group_name} ({ad_group_id})')
                 
                 # 3.2: Agregar keywords al grupo
                 update_job(
@@ -250,6 +253,9 @@ class AutomationWorker:
                         # Continuar con el siguiente anuncio
             
             # PASO 4: Completar job (100% progreso)
+            # Extraer IDs para compatibilidad hacia atrás
+            ad_group_ids = [g['id'] for g in ad_groups_created]
+            
             update_job(
                 job_id,
                 status='completed',
@@ -257,7 +263,8 @@ class AutomationWorker:
                 current_step='Automatización completada exitosamente',
                 completed_at=datetime.utcnow(),
                 results={
-                    'ad_groups_created': ad_groups_created,
+                    'ad_groups_created': ad_group_ids,
+                    'ad_groups_details': ad_groups_created,
                     'keywords_added': total_keywords_added,
                     'ads_created': total_ads_created,
                     'groups_processed': len(groups)
