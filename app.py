@@ -4964,3 +4964,46 @@ def get_automation_logs(job_id):
         
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
+
+# ============================================================================
+# DIAGNOSTIC ENDPOINT
+# ============================================================================
+
+@app.route('/api/diagnostic', methods=['GET'])
+def diagnostic():
+    """Endpoint de diagnóstico para verificar versiones de dependencias"""
+    import sys
+    try:
+        import openai
+        openai_version = openai.__version__
+    except:
+        openai_version = "not installed"
+    
+    try:
+        import google.generativeai as genai
+        genai_version = genai.__version__
+    except:
+        genai_version = "not installed"
+    
+    try:
+        import sqlalchemy
+        sqlalchemy_version = sqlalchemy.__version__
+    except:
+        sqlalchemy_version = "not installed"
+    
+    result = jsonify({
+        "success": True,
+        "python_version": sys.version,
+        "dependencies": {
+            "openai": openai_version,
+            "google-generativeai": genai_version,
+            "sqlalchemy": sqlalchemy_version
+        },
+        "worker_status": {
+            "active_jobs": len(automation_worker.active_jobs),
+            "max_workers": automation_worker.executor._max_workers
+        }
+    })
+    
+    result.headers.add('Access-Control-Allow-Origin', '*')
+    return result
