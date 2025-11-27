@@ -4077,8 +4077,26 @@ def get_google_trends():
         
         print(f"🔍 Trends Request: {keywords} | Geo: {geo or 'Global'} | Range: {time_range}")
         
-        # NIVEL 1: Intentar con Google Ads API (PRIMARIO - siempre disponible)
+        # NIVEL 1: Intentar con Pytrends (PRIMARIO - Mejor para desglose geográfico real)
         try:
+            print("🔄 Intentando Nivel 1: Pytrends...")
+            result_data = get_trends_from_pytrends(keywords, geo, time_range, gprop, resolution)
+            
+            # Verificar si realmente obtuvimos datos de regiones
+            if result_data.get('interestByRegion'):
+                print("✅ Datos obtenidos de Pytrends (con regiones)")
+                result = jsonify(result_data)
+                result.headers.add('Access-Control-Allow-Origin', '*')
+                return result
+            else:
+                print("⚠️ Pytrends no devolvió datos de regiones, pasando al siguiente nivel...")
+                
+        except Exception as pytrends_error:
+            print(f"⚠️ Pytrends falló: {str(pytrends_error)}")
+        
+        # NIVEL 2: Intentar con Google Ads API (SECUNDARIO - Excelente para volumen, pero regiones estimadas)
+        try:
+            print("🔄 Intentando Nivel 2: Google Ads API...")
             result_data = get_trends_from_google_ads(keywords, geo, time_range, resolution)
             print("✅ Datos obtenidos de Google Ads API")
             
@@ -4088,18 +4106,6 @@ def get_google_trends():
             
         except Exception as ads_error:
             print(f"⚠️ Google Ads API falló: {str(ads_error)}")
-        
-        # NIVEL 2: Intentar con Pytrends (SECUNDARIO - opcional)
-        try:
-            result_data = get_trends_from_pytrends(keywords, geo, time_range, gprop, resolution)
-            print("✅ Datos obtenidos de Pytrends")
-            
-            result = jsonify(result_data)
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
-            
-        except Exception as pytrends_error:
-            print(f"⚠️ Pytrends falló: {str(pytrends_error)}")
         
         # NIVEL 3: Fallback a datos sintéticos (SIEMPRE FUNCIONA)
         print("ℹ️ Usando datos sintéticos como fallback")
@@ -4311,19 +4317,23 @@ def generate_region_data_for_country(geo, resolution, total_volume):
     regions_by_country = {
         'US': {
             'REGION': ['California', 'Texas', 'Florida', 'New York', 'Illinois'],
+            'DMA': ['New York NY', 'Los Angeles CA', 'Chicago IL', 'Philadelphia PA', 'Dallas-Ft. Worth TX'],
             'CITY': ['Los Angeles', 'New York', 'Chicago', 'Houston', 'Phoenix']
         },
         'MX': {
             'REGION': ['Ciudad de México', 'Jalisco', 'Nuevo León', 'Estado de México', 'Puebla'],
+            'DMA': ['Área Metropolitana CDMX', 'Monterrey', 'Guadalajara', 'Puebla', 'Tijuana'],
             'CITY': ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana']
         },
         'ES': {
             'REGION': ['Madrid', 'Cataluña', 'Andalucía', 'Valencia', 'País Vasco'],
+            'DMA': ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Bilbao'],
             'CITY': ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Bilbao']
         }
     }
     
     if geo not in regions_by_country or resolution not in regions_by_country[geo]:
+        # Fallback genérico si no tenemos datos específicos para el país/resolución
         return [{'geoName': geo or 'Global', 'value': 100, 'geoCode': None}]
     
     regions = regions_by_country[geo][resolution]
