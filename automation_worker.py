@@ -489,27 +489,132 @@ class AutomationWorker:
     
     def _generate_ad_with_ai(self, provider: str, keywords: List[str], final_url: str, config: Dict) -> Dict:
         """
-        Genera contenido de anuncio usando IA.
+        Genera contenido de anuncio usando IA con prompt optimizado.
         
         Returns:
             Dict con headlines y descriptions
         """
         import os
         
-        # Prompt para la IA
-        keywords_text = ", ".join(keywords[:5])  # Top 5 keywords
+        # Tomar las primeras 5 keywords más relevantes
+        top_keywords = keywords[:5]
+        keywords_text = ", ".join(top_keywords)
+        first_keyword = top_keywords[0] if top_keywords else "Tu Servicio"
+        first_keyword_length = len(first_keyword)
         
-        prompt = f"""Crea un anuncio de Google Ads responsive search ad para estas keywords: {keywords_text}
+        # Prompt ultra-optimizado basado en AIAdCreatorView.swift
+        prompt = f"""Eres un copywriter experto en Google Ads para servicios esotéricos. Tu especialidad es crear anuncios que suenen NATURALES y HUMANOS.
 
-Genera:
-- 5 títulos (máximo 30 caracteres cada uno)
-- 3 descripciones (máximo 90 caracteres cada una)
+📋 DATOS DEL CLIENTE:
+• Palabras clave principales: {keywords_text}
+• Total de keywords: {len(keywords)}
+• URL destino: {final_url}
 
-Formato JSON:
-{{
-  "headlines": ["título1", "título2", ...],
-  "descriptions": ["desc1", "desc2", "desc3"]
-}}"""
+🎯 TU MISIÓN:
+Crear EXACTAMENTE 15 títulos + 4 descripciones que suenen como escritos por una persona real, NO por un robot.
+
+⚠️ REGLA CRÍTICA #1 - LÍMITE DE 30 CARACTERES:
+
+Google Ads rechaza títulos >30 caracteres. Debes ser INTELIGENTE al construir:
+
+🧠 ESTRATEGIA PARA NO EXCEDER 30 CARACTERES:
+
+1️⃣ CALCULA mentalmente ANTES de escribir cada título
+2️⃣ Si la keyword es larga, REDUCE las palabras adicionales
+3️⃣ PRIORIZA la keyword completa cuando sea posible
+4️⃣ Si no cabe todo, OMITE partes de la keyword inteligentemente
+
+⚠️ REGLA CRÍTICA #2 - FORMATO ESTRICTO (GOOGLE ADS):
+🚫 PROHIBIDO USAR EMOJIS (Google Ads los rechaza inmediatamente)
+🚫 PROHIBIDO USAR MAYÚSCULAS CONTINUAS (Solo la primera letra de cada palabra o frase)
+   - MAL: "AMARRES DE AMOR"
+   - BIEN: "Amarres De Amor" o "Amarres de amor"
+🚫 PROHIBIDO USAR SIGNOS DE EXCLAMACIÓN EXCESIVOS (Máximo uno por anuncio)
+
+📐 EJEMPLOS DE AJUSTE INTELIGENTE:
+
+Keyword: "{first_keyword}" ({first_keyword_length} caracteres)
+
+✅ SI LA KEYWORD ES CORTA (≤15 caracteres):
+Puedes agregar palabras adicionales:
+• "{first_keyword} Profesionales" ✓
+• "Consulta {first_keyword} Ya" ✓
+• "Expertos en {first_keyword}" ✓
+
+⚠️ SI LA KEYWORD ES LARGA (>15 caracteres):
+Debes SER SELECTIVO con palabras extras:
+
+🎯 REGLA DE ORO:
+Si al agregar palabras extras te pasas de 30 caracteres:
+1. Primero intenta ACORTAR las palabras extras ("Profesionales" → "Expertos")
+2. Si aún no cabe, OMITE la última palabra de la keyword
+3. Si aún no cabe, USA SOLO la keyword sin extras
+
+⚠️ OTRAS REGLAS CRÍTICAS:
+1. Cada descripción: MÁXIMO 90 caracteres
+2. USA las palabras clave exactas en AL MENOS 12 de 15 títulos
+3. NO uses MAYÚSCULAS completas (solo Primera Letra)
+4. Ortografía PERFECTA - revisa 2 veces
+5. NO repitas la misma estructura
+6. Formato exacto: "TÍTULO 1:" no "TÍTÍULO" ni "TÍTUOLO"
+
+📋 ESTRUCTURAS PERMITIDAS (ajusta según longitud):
+
+A) [Keyword] + Beneficio corto → "{first_keyword} Efectivos"
+B) Verbo corto + [Keyword] → "Consulta {first_keyword}"
+C) [Keyword] + Tiempo → "{first_keyword} 24/7"
+D) Beneficio + [Keyword parcial si es larga] → "Expertos en {first_keyword.split()[0] if len(first_keyword.split()) > 1 else first_keyword}"
+E) [Keyword] + Cualidad corta → "{first_keyword} Reales"
+
+📊 TÍTULOS DE ALTO CTR (incluye 3-5 de estos adaptados):
+• "Consulta Gratuita Solo por Hoy"
+• "Paga Hasta Que Veas Resultados"
+• "Primera Consulta Gratis"
+• "Resultados en 24 Horas"
+• "Experto Con Miles de Casos"
+• "Resultados Garantizados 100%"
+• "Atención Personalizada 24/7"
+• "No Pague Si No Funciona"
+
+✅ FORMATO DE RESPUESTA (usa EXACTAMENTE este formato):
+
+TÍTULO 1: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 2: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 3: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 4: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 5: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 6: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 7: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 8: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 9: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 10: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 11: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 12: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 13: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 14: [escribe aquí - verifica ≤30 caracteres]
+TÍTULO 15: [escribe aquí - verifica ≤30 caracteres]
+DESCRIPCIÓN 1: [escribe aquí - verifica ≤90 caracteres]
+DESCRIPCIÓN 2: [escribe aquí - verifica ≤90 caracteres]
+DESCRIPCIÓN 3: [escribe aquí - verifica ≤90 caracteres]
+DESCRIPCIÓN 4: [escribe aquí - verifica ≤90 caracteres]
+
+⚠️ CHECKLIST FINAL (verifica CADA título ANTES de escribirlo):
+□ ¿Conté los caracteres de CADA título? (máx 30)
+□ ¿Generé EXACTAMENTE 15 títulos?
+□ ¿Generé EXACTAMENTE 4 descripciones?
+□ ¿AL MENOS 12 títulos incluyen la keyword?
+□ ¿Ajusté inteligentemente los títulos largos?
+□ ¿Ortografía 100% correcta?
+□ ¿Formato correcto? (TÍTULO 1:, TÍTULO 2:)
+□ ¿Suenan naturales y humanos?
+□ ¿Varié las estructuras?
+□ ¿NO usé emojis?
+□ ¿NO usé mayúsculas continuas?
+
+💡 RECUERDA: Si un título va a exceder 30 caracteres, AJÚSTALO ANTES de escribirlo.
+No escribas títulos largos esperando que los truncen después.
+
+AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
         
         # Llamar al proveedor de IA correspondiente
         if provider == 'openai':
@@ -531,42 +636,139 @@ Formato JSON:
             
             response = client_openai.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "Eres un experto en marketing digital y copywriting. Generas anuncios altamente efectivos y optimizados para Google Ads. SIEMPRE respetas los límites de caracteres: 30 para títulos, 90 para descripciones."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=2500,
+                presence_penalty=0.3,
+                frequency_penalty=0.5
             )
             
-            import json
-            return json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            return self._parse_ad_content(content)
         
         elif provider == 'gemini':
             import google.generativeai as genai
             genai.configure(api_key=os.environ.get('GOOGLE_API_KEY'))
             
-            model = genai.GenerativeModel('gemini-pro')
+            model = genai.GenerativeModel(
+                'gemini-pro',
+                generation_config={
+                    'temperature': 0.7,
+                    'max_output_tokens': 2500,
+                }
+            )
             response = model.generate_content(prompt)
-            
-            import json
-            return json.loads(response.text)
+            return self._parse_ad_content(response.text)
         
         elif provider == 'deepseek':
-            # Implementación DeepSeek via OpenRouter o direct API
-            # Similar a OpenAI pero con endpoint diferente
-            pass
+            # DeepSeek usa OpenAI-compatible API
+            from openai import OpenAI
+            import httpx
+            
+            http_client = httpx.Client(
+                timeout=30.0,
+                proxies=None,
+                transport=httpx.HTTPTransport(retries=2)
+            )
+            
+            client_deepseek = OpenAI(
+                api_key=os.environ.get('DEEPSEEK_API_KEY'),
+                base_url="https://api.deepseek.com",
+                http_client=http_client
+            )
+            
+            response = client_deepseek.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Eres un experto en marketing digital y copywriting. Generas anuncios altamente efectivos y optimizados para Google Ads. SIEMPRE respetas los límites de caracteres: 30 para títulos, 90 para descripciones."
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=2500
+            )
+            
+            content = response.choices[0].message.content
+            return self._parse_ad_content(content)
         
-        # Fallback: Contenido genérico
+        # Fallback: Si no hay proveedor configurado o falla
         return {
             'headlines': [
-                f'Oferta Especial {keywords[0][:20]}',
-                'Mejor Precio Garantizado',
-                'Compra Ahora',
-                'Envío Gratis Hoy',
-                'Descuento Exclusivo'
-            ][:5],
+                f'{keywords[0][:20]} Profesionales',
+                'Consulta Gratuita Hoy',
+                'Resultados Garantizados',
+                'Expertos Certificados',
+                'Atención 24/7 Disponible',
+                f'{keywords[0][:15]} Efectivos',
+                'Primera Consulta Gratis',
+                'Años de Experiencia',
+                'Casos Resueltos Miles',
+                'Confianza y Calidad',
+                f'{keywords[0][:18]} Reales',
+                'Resultados en 24 Horas',
+                'No Pague Si No Funciona',
+                'Satisfacción Garantizada',
+                'Pruébalo Sin Riesgo'
+            ][:15],
             'descriptions': [
-                f'Encuentra los mejores {keywords[0][:40]}. Calidad garantizada.',
-                'Ofertas exclusivas por tiempo limitado. ¡No te lo pierdas!',
-                'Compra segura con garantía de satisfacción.'
-            ]
+                f'Encuentra los mejores {keywords[0][:40]}. Atención personalizada y resultados comprobados.',
+                'Consulta gratis con expertos certificados. Miles de casos exitosos nos respaldan.',
+                'Resultados garantizados o te devolvemos tu dinero. Comienza hoy mismo sin riesgo.',
+                'Disponible 24/7 para ayudarte. Confidencialidad y profesionalismo asegurados.'
+            ][:4]
+        }
+    
+    def _parse_ad_content(self, content: str) -> Dict:
+        """
+        Parsea el contenido de IA para extraer títulos y descripciones.
+        Basado en el formato: TÍTULO 1: ..., DESCRIPCIÓN 1: ...
+        """
+        import re
+        
+        headlines = []
+        descriptions = []
+        
+        # Patrones para extraer títulos y descripciones
+        title_pattern = r'TÍTULO\s+\d+:\s*(.+?)(?=\n|$)'
+        desc_pattern = r'DESCRIPCIÓN\s+\d+:\s*(.+?)(?=\n|$)'
+        
+        # Extraer títulos
+        title_matches = re.findall(title_pattern, content, re.IGNORECASE | re.MULTILINE)
+        for match in title_matches:
+            cleaned = match.strip()
+            # Truncar a 30 caracteres si excede
+            if len(cleaned) > 30:
+                cleaned = cleaned[:30].strip()
+            if cleaned:
+                headlines.append(cleaned)
+        
+        # Extraer descripciones
+        desc_matches = re.findall(desc_pattern, content, re.IGNORECASE | re.MULTILINE)
+        for match in desc_matches:
+            cleaned = match.strip()
+            # Truncar a 90 caracteres si excede
+            if len(cleaned) > 90:
+                cleaned = cleaned[:90].strip()
+            if cleaned:
+                descriptions.append(cleaned)
+        
+        # Validar que tengamos suficientes títulos y descripciones
+        if len(headlines) < 3:
+            print(f"⚠️ Solo se encontraron {len(headlines)} títulos, se esperaban al menos 3")
+        if len(descriptions) < 2:
+            print(f"⚠️ Solo se encontraron {len(descriptions)} descripciones, se esperaban al menos 2")
+        
+        return {
+            'headlines': headlines[:15],  # Max 15 headlines
+            'descriptions': descriptions[:4]  # Max 4 descriptions
         }
     
     def _create_ad(self, client, customer_id: str, ad_group_id: str, ad_content: Dict, final_url: str) -> str:
