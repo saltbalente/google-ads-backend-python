@@ -5,3 +5,10 @@ automation_jobs.db
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Secrets
+.env
+__pycache__/
+*.pyc
+venv/
+.DS_Store

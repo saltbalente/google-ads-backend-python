@@ -1,22 +1,14 @@
 from flask import Flask, request, jsonify
 from google.ads.googleads.client import GoogleAdsClient
-from datetime import date, timedelta
-from google.ads.googleads.errors import GoogleAdsException
-from google.protobuf.field_mask_pb2 import FieldMask
-from circuit_breaker import circuit_breaker_bp, start_circuit_breaker_scheduler
 from dotenv import load_dotenv
 import os
-from PIL import Image
-import base64
-from io import BytesIO
-import json
-import requests
-import unicodedata
-from pytrends.request import TrendReq
-import uuid
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from landing_generator import LandingPageGenerator
 
 # Imports para sistema de automatización en background
-from automation_models import init_db, create_job, get_job, update_job, get_user_jobs, get_job_logs
+from automation_models import init_db
 from automation_worker import get_worker
 
 # Cargar variables de entorno
@@ -70,6 +62,37 @@ def get_client_from_request():
     refresh_token = request.headers.get('X-Google-Ads-Refresh-Token')
     login_customer_id = request.headers.get('X-Google-Ads-Login-Customer-Id')
     return get_google_ads_client(refresh_token, login_customer_id)
+
+@app.route('/api/landing/build', methods=['POST', 'OPTIONS'])
+def build_landing():
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    try:
+        data = request.get_json() or {}
+        customer_id = data.get('customerId') or data.get('customer_id')
+        ad_group_id = data.get('adGroupId') or data.get('ad_group_id')
+        whatsapp_number = data.get('whatsappNumber') or data.get('whatsapp_number')
+        gtm_id = data.get('gtmId') or data.get('gtm_id')
+        phone_number = data.get('phoneNumber') or data.get('phone_number')
+        webhook_url = data.get('webhookUrl') or data.get('webhook_url')
+        
+        if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
+            result = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'}), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
+        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url)
+        result = jsonify({'success': True, 'url': out['url'], 'alias': out['alias']}), 200
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except Exception as e:
+        result = jsonify({'success': False, 'error': str(e)}), 500
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
 
 @app.route('/api/health', methods=['GET'])
 def health():
