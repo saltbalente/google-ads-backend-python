@@ -4460,10 +4460,10 @@ def get_trends_via_scraping(keywords, geo, time_range, resolution):
         # PASO 2: Obtener el TOKEN de exploración
         print("🕷️ Paso 2: Obteniendo tokens de widget...")
         keyword = keywords[0]
-        # Mapeo de tiempo simple
-        time_param = 'today 12-m'
-        if 'today 12-m' in time_range: time_param = 'today 12-m'
-        elif 'now 7-d' in time_range: time_param = 'now 7-d'
+        
+        # Usar el time_range que viene de la app directamente
+        # La app envía formatos estándar de Trends: "now 7-d", "today 1-m", "today 12-m", "today 5-y"
+        time_param = time_range
         
         explore_url = 'https://trends.google.com/trends/api/explore'
         params = {
