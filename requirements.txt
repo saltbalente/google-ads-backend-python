@@ -6,3 +6,4 @@ APScheduler==3.10.4
 Pillow==10.4.0
 requests==2.32.3
 pytrends==4.9.2
+urllib3<2.0.0
