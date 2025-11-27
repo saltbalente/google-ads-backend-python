@@ -4077,36 +4077,20 @@ def get_google_trends():
         
         print(f"🔍 Trends Request: {keywords} | Geo: {geo or 'Global'} | Range: {time_range}")
         
-        # NIVEL 1: Intentar con Pytrends (PRIMARIO - Mejor para desglose geográfico real)
+        # NIVEL 1: Intentar con Scraping Manual (PRIORIDAD MÁXIMA)
         try:
-            print("🔄 Intentando Nivel 1: Pytrends...")
-            result_data = get_trends_from_pytrends(keywords, geo, time_range, gprop, resolution)
+            print("🔄 Intentando Nivel 1: Scraping Manual...")
+            # Habilitamos bajo volumen para tener TODAS las ubicaciones en el CSV
+            result_data = get_trends_via_scraping(keywords, geo, time_range, resolution)
+            print("✅ Datos obtenidos de Scraping Manual")
             
-            # Verificar si realmente obtuvimos datos de regiones
-            if result_data.get('interestByRegion'):
-                print("✅ Datos obtenidos de Pytrends (con regiones)")
-                result = jsonify(result_data)
-                result.headers.add('Access-Control-Allow-Origin', '*')
-                return result
-            else:
-                print("⚠️ Pytrends no devolvió datos de regiones, pasando al siguiente nivel...")
-                
-        except Exception as pytrends_error:
-            print(f"⚠️ Pytrends falló: {str(pytrends_error)}")
-            
-            # NIVEL 1.5: Intentar con Scraping Manual (Simulación de navegador)
-            try:
-                print("🔄 Intentando Nivel 1.5: Scraping Manual...")
-                result_data = get_trends_via_scraping(keywords, geo, time_range, resolution)
-                print("✅ Datos obtenidos de Scraping Manual")
-                
-                result = jsonify(result_data)
-                result.headers.add('Access-Control-Allow-Origin', '*')
-                return result
-            except Exception as scraping_error:
-                print(f"⚠️ Scraping Manual falló: {str(scraping_error)}")
-        
-        # NIVEL 2: Intentar con Google Ads API (SECUNDARIO - Excelente para volumen, pero regiones estimadas)
+            result = jsonify(result_data)
+            result.headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        except Exception as scraping_error:
+            print(f"⚠️ Scraping Manual falló: {str(scraping_error)}")
+
+        # NIVEL 2: Intentar con Google Ads API (SECUNDARIO - Robusto, sin regiones)
         try:
             print("🔄 Intentando Nivel 2: Google Ads API...")
             result_data = get_trends_from_google_ads(keywords, geo, time_range, resolution)
@@ -4272,7 +4256,7 @@ def get_trends_from_pytrends(keywords, geo, time_range, gprop, resolution):
         
         interest_by_region_df = pytrends.interest_by_region(
             resolution=pytrends_resolution,
-            inc_low_vol=False, # FALSE para filtrar ruido y coincidir con la web
+            inc_low_vol=True, # TRUE para tener todas las ubicaciones en el CSV
             inc_geo_code=False  # Geo codes not always available
         )
         
@@ -4520,7 +4504,7 @@ def get_trends_via_scraping(keywords, geo, time_range, resolution):
         elif resolution == 'REGION': region_resolution = 'REGION'
         
         region_request['resolution'] = region_resolution
-        region_request['includeLowSearchVolumeGeos'] = False # FALSE para coincidir con la web
+        region_request['includeLowSearchVolumeGeos'] = True # TRUE para tener todas las ubicaciones en el CSV
         
         region_url = 'https://trends.google.com/trends/api/widgetdata/comparedgeo'
         region_params = {
