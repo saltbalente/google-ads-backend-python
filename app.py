@@ -156,13 +156,13 @@ def create_ad():
             return jsonify({
                 "success": False,
                 "error": f"Headlines debe tener entre 3-15 elementos (recibidos: {len(headlines)})"
-            ), 400
+            }), 400
         
         if not (2 <= len(descriptions) <= 4):
             return jsonify({
                 "success": False,
                 "error": f"Descriptions debe tener entre 2-4 elementos (recibidos: {len(descriptions)})"
-            ), 400
+            }), 400
         
         # Crear cliente
         refresh_token = request.headers.get('X-Google-Ads-Refresh-Token')
