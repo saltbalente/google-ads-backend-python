@@ -243,7 +243,10 @@ class AutomationWorker:
                         add_log(job_id, 'SUCCESS', f'Anuncio creado: {ad_resource_name}')
                         
                     except Exception as ad_error:
-                        add_log(job_id, 'ERROR', f'Error creando anuncio {ad_num + 1}: {str(ad_error)}')
+                        error_trace = traceback.format_exc()
+                        print(f"❌ ERROR CREANDO ANUNCIO: {str(ad_error)}")
+                        print(f"TRACEBACK: {error_trace}")
+                        add_log(job_id, 'ERROR', f'Error creando anuncio {ad_num + 1}: {str(ad_error)}\n{error_trace}')
                         # Continuar con el siguiente anuncio
             
             # PASO 4: Completar job (100% progreso)
@@ -496,6 +499,10 @@ class AutomationWorker:
         """
         import os
         
+        print(f"🤖 Generando anuncio con provider: {provider}")
+        print(f"📝 Keywords: {keywords[:3]}...")
+        print(f"🔗 URL: {final_url}")
+        
         # Tomar las primeras 5 keywords más relevantes
         top_keywords = keywords[:5]
         keywords_text = ", ".join(top_keywords)
@@ -650,7 +657,11 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
             )
             
             content = response.choices[0].message.content
-            return self._parse_ad_content(content)
+            print(f"✅ Respuesta recibida de OpenAI ({len(content)} caracteres)")
+            print(f"Primeros 200 chars: {content[:200]}...")
+            result = self._parse_ad_content(content)
+            print(f"📊 Parseado: {len(result.get('headlines', []))} títulos, {len(result.get('descriptions', []))} descripciones")
+            return result
         
         elif provider == 'gemini':
             import google.generativeai as genai
@@ -664,7 +675,10 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
                 }
             )
             response = model.generate_content(prompt)
-            return self._parse_ad_content(response.text)
+            print(f"✅ Respuesta recibida de Gemini ({len(response.text)} caracteres)")
+            result = self._parse_ad_content(response.text)
+            print(f"📊 Parseado: {len(result.get('headlines', []))} títulos, {len(result.get('descriptions', []))} descripciones")
+            return result
         
         elif provider == 'deepseek':
             # DeepSeek usa OpenAI-compatible API
@@ -697,7 +711,10 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
             )
             
             content = response.choices[0].message.content
-            return self._parse_ad_content(content)
+            print(f"✅ Respuesta recibida de DeepSeek ({len(content)} caracteres)")
+            result = self._parse_ad_content(content)
+            print(f"📊 Parseado: {len(result.get('headlines', []))} títulos, {len(result.get('descriptions', []))} descripciones")
+            return result
         
         # Fallback: Si no hay proveedor configurado o falla
         return {
@@ -733,6 +750,11 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
         """
         import re
         
+        print(f"🔍 Parseando contenido de IA...")
+        print(f"Contenido completo ({len(content)} chars):")
+        print(content)
+        print("=" * 80)
+        
         headlines = []
         descriptions = []
         
@@ -742,20 +764,24 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
         
         # Extraer títulos
         title_matches = re.findall(title_pattern, content, re.IGNORECASE | re.MULTILINE)
+        print(f"🎯 Encontrados {len(title_matches)} títulos con regex")
         for match in title_matches:
             cleaned = match.strip()
             # Truncar a 30 caracteres si excede
             if len(cleaned) > 30:
+                print(f"⚠️ Título muy largo ({len(cleaned)} chars): '{cleaned}' -> truncando")
                 cleaned = cleaned[:30].strip()
             if cleaned:
                 headlines.append(cleaned)
         
         # Extraer descripciones
         desc_matches = re.findall(desc_pattern, content, re.IGNORECASE | re.MULTILINE)
+        print(f"📝 Encontradas {len(desc_matches)} descripciones con regex")
         for match in desc_matches:
             cleaned = match.strip()
             # Truncar a 90 caracteres si excede
             if len(cleaned) > 90:
+                print(f"⚠️ Descripción muy larga ({len(cleaned)} chars) -> truncando")
                 cleaned = cleaned[:90].strip()
             if cleaned:
                 descriptions.append(cleaned)
@@ -766,10 +792,12 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
         if len(descriptions) < 2:
             print(f"⚠️ Solo se encontraron {len(descriptions)} descripciones, se esperaban al menos 2")
         
-        return {
+        result = {
             'headlines': headlines[:15],  # Max 15 headlines
             'descriptions': descriptions[:4]  # Max 4 descriptions
         }
+        print(f"✅ Parser resultado final: {len(result['headlines'])} headlines, {len(result['descriptions'])} descriptions")
+        return result
     
     def _create_ad(self, client, customer_id: str, ad_group_id: str, ad_content: Dict, final_url: str) -> str:
         """Crea un responsive search ad y retorna su resource name"""
