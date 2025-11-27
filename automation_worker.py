@@ -514,12 +514,19 @@ Formato JSON:
         # Llamar al proveedor de IA correspondiente
         if provider == 'openai':
             from openai import OpenAI
+            import httpx
             
-            # Crear cliente sin configuraciones legacy
+            # Crear cliente HTTP sin proxy para evitar conflictos en Render.com
+            http_client = httpx.Client(
+                timeout=30.0,
+                proxies=None,  # Deshabilitar explícitamente proxies
+                transport=httpx.HTTPTransport(retries=2)
+            )
+            
+            # Crear cliente OpenAI con configuración explícita
             client_openai = OpenAI(
                 api_key=os.environ.get('OPENAI_API_KEY'),
-                timeout=30.0,
-                max_retries=2
+                http_client=http_client
             )
             
             response = client_openai.chat.completions.create(
