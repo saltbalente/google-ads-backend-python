@@ -1,14 +1,26 @@
 from flask import Flask, request, jsonify
 from google.ads.googleads.client import GoogleAdsClient
+from datetime import date, timedelta
+from google.ads.googleads.errors import GoogleAdsException
+from google.protobuf.field_mask_pb2 import FieldMask
+from circuit_breaker import circuit_breaker_bp, start_circuit_breaker_scheduler
 from dotenv import load_dotenv
 import os
+from PIL import Image
+import base64
+from io import BytesIO
+import json
+import requests
+import unicodedata
+from pytrends.request import TrendReq
+import uuid
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from landing_generator import LandingPageGenerator
 
 # Imports para sistema de automatización en background
-from automation_models import init_db
+from automation_models import init_db, create_job, get_job, update_job, get_user_jobs, get_job_logs
 from automation_worker import get_worker
 
 # Cargar variables de entorno
@@ -1141,8 +1153,8 @@ def get_demographic_stats():
 # ==========================================
 # CIRCUIT BREAKER - Budget Protection System
 # ==========================================
-# app.register_blueprint(circuit_breaker_bp)
-# start_circuit_breaker_scheduler()
+app.register_blueprint(circuit_breaker_bp)
+start_circuit_breaker_scheduler()
 
 
 # ==========================================
