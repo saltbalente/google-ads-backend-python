@@ -80,6 +80,7 @@ class AutomationJob(Base):
     
     def to_dict(self):
         """Serializa el job a diccionario para JSON response"""
+        config = self.config_snapshot or {}
         return {
             'id': self.id,
             'status': self.status,
@@ -93,6 +94,7 @@ class AutomationJob(Base):
             'config': {
                 'customerId': self.customer_id,
                 'campaignId': self.campaign_id,
+                'campaignName': config.get('campaignName', 'Campaña ' + self.campaign_id),
                 'reportId': self.report_id,
                 'numberOfGroups': self.number_of_groups,
                 'adsPerGroup': self.ads_per_group,
@@ -301,6 +303,59 @@ def cleanup_old_jobs(days=30):
             .filter(AutomationJob.status.in_(['completed', 'failed']))\
             .filter(AutomationJob.completed_at < cutoff_date)\
             .delete()
+        session.commit()
+        return deleted
+    finally:
+        close_session()
+
+
+def delete_job(job_id):
+    """
+    Elimina un job específico y sus logs asociados.
+    
+    Args:
+        job_id: ID del job a eliminar
+        
+    Returns:
+        bool: True si se eliminó, False si no existía
+    """
+    session = get_session()
+    try:
+        # Eliminar logs asociados primero
+        session.query(AutomationLog).filter_by(job_id=job_id).delete()
+        
+        # Eliminar el job
+        deleted = session.query(AutomationJob).filter_by(id=job_id).delete()
+        session.commit()
+        return deleted > 0
+    finally:
+        close_session()
+
+
+def delete_user_jobs(user_identifier):
+    """
+    Elimina todos los jobs de un usuario y sus logs asociados.
+    
+    Args:
+        user_identifier: ID del usuario
+        
+    Returns:
+        int: Número de jobs eliminados
+    """
+    session = get_session()
+    try:
+        # Obtener IDs de jobs del usuario
+        jobs = session.query(AutomationJob.id).filter_by(user_identifier=user_identifier).all()
+        job_ids = [j.id for j in jobs]
+        
+        if not job_ids:
+            return 0
+            
+        # Eliminar logs asociados
+        session.query(AutomationLog).filter(AutomationLog.job_id.in_(job_ids)).delete(synchronize_session=False)
+        
+        # Eliminar jobs
+        deleted = session.query(AutomationJob).filter_by(user_identifier=user_identifier).delete(synchronize_session=False)
         session.commit()
         return deleted
     finally:
