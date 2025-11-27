@@ -1141,8 +1141,8 @@ def get_demographic_stats():
 # ==========================================
 # CIRCUIT BREAKER - Budget Protection System
 # ==========================================
-app.register_blueprint(circuit_breaker_bp)
-start_circuit_breaker_scheduler()
+# app.register_blueprint(circuit_breaker_bp)
+# start_circuit_breaker_scheduler()
 
 
 # ==========================================
