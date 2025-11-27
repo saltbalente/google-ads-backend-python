@@ -4607,6 +4607,7 @@ def start_automation():
         "numberOfGroups": 5,
         "adsPerGroup": 2,
         "aiProvider": "openai",
+        "maxKeywordsPerGroup": 100,  // Opcional: límite de keywords por grupo (default: 100)
         "keywords": ["keyword1", "keyword2", ...],  // Opcional: si no se puede cargar desde reportId
         "finalUrl": "https://example.com",  // Opcional
         "refreshToken": "...",  // Opcional: para multi-tenant
