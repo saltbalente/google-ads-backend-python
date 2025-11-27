@@ -4220,9 +4220,14 @@ def get_trends_from_pytrends(keywords, geo, time_range, gprop, resolution):
     # Regiones - FIXED: Properly handle metro/region data
     try:
         # Determine resolution parameter for pytrends
-        pytrends_resolution = 'COUNTRY'
-        if resolution in ['REGION', 'DMA', 'CITY']:
-            pytrends_resolution = 'REGION'  # Pytrends uses 'REGION' for sub-country data
+        # Pytrends supports: COUNTRY, REGION, DMA, CITY
+        pytrends_resolution = resolution
+        
+        # Safety check
+        if pytrends_resolution not in ['COUNTRY', 'REGION', 'DMA', 'CITY']:
+            pytrends_resolution = 'COUNTRY'
+            
+        print(f"📍 Pytrends Resolution: {pytrends_resolution} (Requested: {resolution})")
         
         interest_by_region_df = pytrends.interest_by_region(
             resolution=pytrends_resolution,
