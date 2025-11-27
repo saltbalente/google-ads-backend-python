@@ -467,34 +467,49 @@ class AutomationWorker:
     def _get_final_url(self, client, customer_id: str, campaign_id: str, config: Dict) -> str:
         """
         Obtiene URL final para los anuncios.
-        Usa fallback de 4 niveles como en el sistema actual.
+        Usa fallback inteligente para evitar 'example.com'.
         """
-        # 1. Desde config si está disponible
-        if 'finalUrl' in config:
-            return config['finalUrl']
+        # 1. Desde config si está disponible (prioridad máxima, input del usuario)
+        if 'finalUrl' in config and config['finalUrl'] and config['finalUrl'].strip():
+            return config['finalUrl'].strip()
         
-        # 2. Query a la campaña
+        # 2. Buscar URLs en anuncios existentes de la campaña
         try:
             google_ads_service = client.get_service("GoogleAdsService")
+            # Buscar URLs de anuncios habilitados en esta campaña
             query = f"""
-                SELECT campaign.final_url_suffix
-                FROM campaign
+                SELECT ad_group_ad.ad.final_urls
+                FROM ad_group_ad
                 WHERE campaign.id = '{campaign_id}'
+                AND ad_group_ad.status = 'ENABLED'
+                LIMIT 20
             """
             response = google_ads_service.search(customer_id=customer_id, query=query)
+            
+            # Recolectar URLs encontradas
+            found_urls = []
             for row in response:
-                if row.campaign.final_url_suffix:
-                    return row.campaign.final_url_suffix
-        except:
-            pass
+                if row.ad_group_ad.ad.final_urls:
+                    for url in row.ad_group_ad.ad.final_urls:
+                        if url and url not in found_urls:
+                            found_urls.append(url)
+            
+            # Si encontramos URLs, usar la primera (o la más común si implementáramos esa lógica)
+            if found_urls:
+                print(f"🔗 URL encontrada en anuncios existentes: {found_urls[0]}")
+                return found_urls[0]
+                
+        except Exception as e:
+            print(f"⚠️ Error buscando URLs en campaña: {str(e)}")
         
-        # 3. Desde search input del reporte (si está en config)
+        # 3. Desde search input del reporte (si está en config y parece URL)
         if 'searchInput' in config:
             search_input = config['searchInput']
-            if search_input.startswith('http'):
+            if search_input and search_input.startswith('http'):
                 return search_input
         
-        # 4. Fallback: URL placeholder
+        # 4. Fallback: URL placeholder (último recurso)
+        print("⚠️ No se encontró URL válida, usando fallback example.com")
         return "https://www.ejemplo.com"
     
     def _generate_ad_with_ai(self, provider: str, keywords: List[str], final_url: str, config: Dict) -> Dict:
