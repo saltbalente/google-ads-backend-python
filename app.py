@@ -13,11 +13,22 @@ import json
 import requests
 import unicodedata
 from pytrends.request import TrendReq
+import uuid
+
+# Imports para sistema de automatización en background
+from automation_models import init_db, create_job, get_job, update_job, get_user_jobs, get_job_logs
+from automation_worker import get_worker
 
 # Cargar variables de entorno
 load_dotenv()
 
 app = Flask(__name__)
+
+# Inicializar base de datos para automation jobs
+init_db()
+
+# Inicializar worker para procesamiento en background
+automation_worker = get_worker(max_workers=3)
 
 @app.errorhandler(Exception)
 def handle_unexpected_error(e):
@@ -4577,3 +4588,378 @@ def get_trends_via_scraping(keywords, geo, time_range, resolution):
     except Exception as e:
         print(f"❌ Error en Scraping Manual: {str(e)}")
         raise e # Re-lanzar para que el fallback lo capture
+
+
+# ==========================================
+# AUTOMATION SYSTEM - Background Job Processing
+# ==========================================
+
+@app.route('/api/automation/start', methods=['POST', 'OPTIONS'])
+def start_automation():
+    """
+    Inicia un job de automatización en background.
+    
+    Request Body:
+    {
+        "customerId": "1234567890",
+        "campaignId": "9876543210",
+        "reportId": "uuid-report-id",
+        "numberOfGroups": 5,
+        "adsPerGroup": 2,
+        "aiProvider": "openai",
+        "keywords": ["keyword1", "keyword2", ...],  // Opcional: si no se puede cargar desde reportId
+        "finalUrl": "https://example.com",  // Opcional
+        "refreshToken": "...",  // Opcional: para multi-tenant
+        "loginCustomerId": "..."  // Opcional: para MCC
+    }
+    
+    Response:
+    {
+        "success": true,
+        "jobId": "uuid-job-id",
+        "message": "Automatización iniciada en background",
+        "estimatedTime": "2-5 minutos"
+    }
+    """
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Google-Ads-Refresh-Token,X-Google-Ads-Login-Customer-Id')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        
+        # Validar campos requeridos
+        required = ['customerId', 'campaignId', 'reportId', 'numberOfGroups', 'adsPerGroup']
+        missing = [field for field in required if field not in data]
+        
+        if missing:
+            result = jsonify({
+                "success": False,
+                "error": f"Faltan campos requeridos: {', '.join(missing)}",
+                "required": required
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        # Validar rangos
+        if not (1 <= data['numberOfGroups'] <= 20):
+            result = jsonify({
+                "success": False,
+                "error": "numberOfGroups debe estar entre 1 y 20"
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        if not (1 <= data['adsPerGroup'] <= 5):
+            result = jsonify({
+                "success": False,
+                "error": "adsPerGroup debe estar entre 1 y 5"
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        # Extraer credenciales de headers (multi-tenant support)
+        refresh_token = request.headers.get('X-Google-Ads-Refresh-Token')
+        login_customer_id = request.headers.get('X-Google-Ads-Login-Customer-Id')
+        
+        # Agregar credenciales al config si existen
+        config = data.copy()
+        if refresh_token:
+            config['refreshToken'] = refresh_token
+        if login_customer_id:
+            config['loginCustomerId'] = login_customer_id
+        
+        # Generar job ID
+        job_id = str(uuid.uuid4())
+        
+        # Crear job en base de datos
+        user_identifier = data['customerId']
+        job = create_job(job_id, config, user_identifier)
+        
+        print(f"📝 Nuevo automation job creado: {job_id}")
+        print(f"   Customer: {data['customerId']}")
+        print(f"   Campaign: {data['campaignId']}")
+        print(f"   Groups: {data['numberOfGroups']}, Ads per group: {data['adsPerGroup']}")
+        
+        # Factory function para crear cliente de Google Ads
+        def client_factory(refresh_token=None, login_customer_id=None):
+            return get_google_ads_client(
+                refresh_token=refresh_token or config.get('refreshToken'),
+                login_customer_id=login_customer_id or config.get('loginCustomerId')
+            )
+        
+        # Enviar job al worker pool
+        automation_worker.submit_job(job_id, config, client_factory)
+        
+        print(f"✅ Job {job_id} enviado al worker pool")
+        
+        # Estimar tiempo
+        total_operations = data['numberOfGroups'] * (1 + data['adsPerGroup'])  # groups + ads
+        estimated_minutes = max(2, min(10, total_operations // 3))
+        
+        result = jsonify({
+            "success": True,
+            "jobId": job_id,
+            "message": "Automatización iniciada en background",
+            "estimatedTime": f"{estimated_minutes}-{estimated_minutes + 3} minutos",
+            "status": "queued"
+        }), 202  # 202 Accepted
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"❌ Error iniciando automation: {str(e)}")
+        print(error_trace)
+        
+        result = jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Error iniciando automatización"
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+
+@app.route('/api/automation/status/<job_id>', methods=['GET', 'OPTIONS'])
+def get_automation_status(job_id):
+    """
+    Obtiene el estado actual de un job de automatización.
+    
+    Response:
+    {
+        "success": true,
+        "job": {
+            "id": "uuid",
+            "status": "running",  // queued, running, completed, failed, cancelled
+            "progress": 45.5,  // 0-100
+            "currentStep": "Creando grupo 3/5...",
+            "createdAt": "2025-11-27T10:30:00Z",
+            "startedAt": "2025-11-27T10:30:05Z",
+            "completedAt": null,
+            "results": {
+                "ad_groups_created": ["123", "456"],
+                "keywords_added": 50,
+                "ads_created": 6
+            },
+            "errors": []
+        }
+    }
+    """
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        return response
+    
+    try:
+        job = get_job(job_id)
+        
+        if not job:
+            result = jsonify({
+                "success": False,
+                "error": "Job no encontrado",
+                "message": f"No existe un job con ID: {job_id}"
+            }), 404
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        result = jsonify({
+            "success": True,
+            "job": job.to_dict()
+        })
+        
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo status del job {job_id}: {str(e)}")
+        
+        result = jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+
+@app.route('/api/automation/history', methods=['POST', 'OPTIONS'])
+def get_automation_history():
+    """
+    Obtiene el historial de automation jobs de un usuario.
+    
+    Request Body:
+    {
+        "customerId": "1234567890",
+        "limit": 50,  // Opcional, default 50
+        "status": "completed"  // Opcional: filtrar por estado
+    }
+    
+    Response:
+    {
+        "success": true,
+        "jobs": [
+            {
+                "id": "uuid",
+                "status": "completed",
+                "createdAt": "2025-11-27T10:00:00Z",
+                "completedAt": "2025-11-27T10:05:00Z",
+                "results": {...}
+            },
+            ...
+        ],
+        "total": 25
+    }
+    """
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId')
+        
+        if not customer_id:
+            result = jsonify({
+                "success": False,
+                "error": "customerId es requerido"
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        limit = data.get('limit', 50)
+        status_filter = data.get('status')
+        
+        jobs = get_user_jobs(customer_id, limit=limit, status=status_filter)
+        
+        result = jsonify({
+            "success": True,
+            "jobs": [job.to_dict() for job in jobs],
+            "total": len(jobs)
+        })
+        
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo historial: {str(e)}")
+        
+        result = jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+
+@app.route('/api/automation/cancel/<job_id>', methods=['POST', 'OPTIONS'])
+def cancel_automation(job_id):
+    """
+    Cancela un job en ejecución.
+    
+    Response:
+    {
+        "success": true,
+        "message": "Job cancelado exitosamente"
+    }
+    """
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        cancelled = automation_worker.cancel_job(job_id)
+        
+        if cancelled:
+            result = jsonify({
+                "success": True,
+                "message": "Job cancelado exitosamente"
+            })
+        else:
+            result = jsonify({
+                "success": False,
+                "message": "No se pudo cancelar el job (ya completado o no existe)"
+            }), 400
+        
+        if isinstance(result, tuple):
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+        else:
+            result.headers.add('Access-Control-Allow-Origin', '*')
+        
+        return result
+        
+    except Exception as e:
+        result = jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+
+@app.route('/api/automation/logs/<job_id>', methods=['GET', 'OPTIONS'])
+def get_automation_logs(job_id):
+    """
+    Obtiene logs detallados de un job.
+    
+    Response:
+    {
+        "success": true,
+        "logs": [
+            {
+                "timestamp": "2025-11-27T10:30:00Z",
+                "level": "INFO",
+                "message": "Creando ad group...",
+                "data": {...}
+            },
+            ...
+        ]
+    }
+    """
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        return response
+    
+    try:
+        logs = get_job_logs(job_id, limit=200)
+        
+        result = jsonify({
+            "success": True,
+            "logs": [log.to_dict() for log in logs]
+        })
+        
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        result = jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
