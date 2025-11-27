@@ -4208,23 +4208,41 @@ def get_trends_from_pytrends(keywords, geo, time_range, gprop, resolution):
             for index, row in interest_over_time_df.iterrows():
                 value = int(row[keywords[0]]) if keywords[0] in row else 0
                 timeline_data.append({'date': index.strftime('%Y-%m-%d'), 'value': value})
-    except:
-        pass
+    except Exception as e:
+        print(f"⚠️ Error en timeline: {str(e)}")
     
-    # Regiones
+    # Regiones - FIXED: Properly handle metro/region data
     try:
+        # Determine resolution parameter for pytrends
+        pytrends_resolution = 'COUNTRY'
+        if resolution in ['REGION', 'DMA', 'CITY']:
+            pytrends_resolution = 'REGION'  # Pytrends uses 'REGION' for sub-country data
+        
         interest_by_region_df = pytrends.interest_by_region(
-            resolution='COUNTRY' if resolution == 'COUNTRY' else 'REGION',
-            inc_low_vol=True
+            resolution=pytrends_resolution,
+            inc_low_vol=True,
+            inc_geo_code=False  # Geo codes not always available
         )
-        if not interest_by_region_df.empty:
+        
+        if not interest_by_region_df.empty and keywords[0] in interest_by_region_df.columns:
+            # Sort by interest value
             interest_by_region_df = interest_by_region_df.sort_values(by=keywords[0], ascending=False)
-            for index, row in interest_by_region_df.head(20).iterrows():
+            
+            # Get top 20 regions with non-zero values
+            for region_name, row in interest_by_region_df.head(20).iterrows():
                 value = int(row[keywords[0]]) if keywords[0] in row else 0
                 if value > 0:
-                    region_data.append({'geoName': str(index), 'value': value, 'geoCode': None})
-    except:
-        pass
+                    region_data.append({
+                        'geoName': str(region_name),  # This will be "Phoenix AZ", "Los Angeles CA", etc.
+                        'value': value,
+                        'geoCode': None
+                    })
+            
+            print(f"✅ Pytrends regions: {len(region_data)} encontradas")
+    except Exception as e:
+        print(f"⚠️ Error en regiones: {str(e)}")
+        import traceback
+        traceback.print_exc()
     
     # Related queries
     try:
@@ -4232,8 +4250,10 @@ def get_trends_from_pytrends(keywords, geo, time_range, gprop, resolution):
         if keywords[0] in related_dict:
             if 'rising' in related_dict[keywords[0]] and related_dict[keywords[0]]['rising'] is not None:
                 related_queries = related_dict[keywords[0]]['rising']['query'].head(10).tolist()
-    except:
-        pass
+            elif 'top' in related_dict[keywords[0]] and related_dict[keywords[0]]['top'] is not None:
+                related_queries = related_dict[keywords[0]]['top']['query'].head(10).tolist()
+    except Exception as e:
+        print(f"⚠️ Error en related queries: {str(e)}")
     
     return {
         'timelineData': timeline_data if timeline_data else None,
