@@ -16,7 +16,7 @@ from pytrends.request import TrendReq
 import uuid
 
 # Imports para sistema de automatización en background
-from automation_models import init_db, create_job, get_job, update_job, get_user_jobs, get_job_logs, delete_job, delete_user_jobs
+from automation_models import init_db, create_job, get_job, update_job, get_user_jobs, get_job_logs
 from automation_worker import get_worker
 
 # Cargar variables de entorno
@@ -156,13 +156,13 @@ def create_ad():
             return jsonify({
                 "success": False,
                 "error": f"Headlines debe tener entre 3-15 elementos (recibidos: {len(headlines)})"
-            ), 400
+            }), 400
         
         if not (2 <= len(descriptions) <= 4):
             return jsonify({
                 "success": False,
                 "error": f"Descriptions debe tener entre 2-4 elementos (recibidos: {len(descriptions)})"
-            ), 400
+            }), 400
         
         # Crear cliente
         refresh_token = request.headers.get('X-Google-Ads-Refresh-Token')
@@ -1116,6 +1116,9 @@ def get_demographic_stats():
 
 
 # ==========================================
+# AGREGAR ESTE ENDPOINT AL FINAL DE app.py
+
+# ==========================================
 # CIRCUIT BREAKER - Budget Protection System
 # ==========================================
 app.register_blueprint(circuit_breaker_bp)
@@ -1426,7 +1429,7 @@ def pause_keyword():
                 'error': 'Faltan parámetros requeridos',
                 'required': ['customer_id', 'ad_group_id', 'criterion_id']
             }), 400
-            result.headers.add('Access-Control-Allow-Origin', '*')
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         # Crear cliente
@@ -1498,17 +1501,1327 @@ def pause_keyword():
         }), 500
         
         result[0].headers.add('Access-Control-Allow-Origin', '*')
-        return result
+    return result
 
-@app.route('/api/adgroup/pause', methods=['POST', 'OPTIONS'])
-def pause_ad_group():
+
+# Assets
+
+def link_asset_to_context(ga_client, customer_id, asset_resource_name, field_type_enum_value, campaign_id, ad_group_id=None):
+    if ad_group_id:
+        svc = ga_client.get_service("AdGroupAssetService")
+        op = ga_client.get_type("AdGroupAssetOperation")
+        create = op.create
+        create.ad_group = f"customers/{customer_id}/adGroups/{ad_group_id}"
+        create.asset = asset_resource_name
+        create.field_type = field_type_enum_value
+        svc.mutate_ad_group_assets(customer_id=customer_id, operations=[op])
+    elif campaign_id:
+        svc = ga_client.get_service("CampaignAssetService")
+        op = ga_client.get_type("CampaignAssetOperation")
+        create = op.create
+        create.campaign = f"customers/{customer_id}/campaigns/{campaign_id}"
+        create.asset = asset_resource_name
+        create.field_type = field_type_enum_value
+        svc.mutate_campaign_assets(customer_id=customer_id, operations=[op])
+    else:
+        svc = ga_client.get_service("CustomerAssetService")
+        op = ga_client.get_type("CustomerAssetOperation")
+        create = op.create
+        create.customer = f"customers/{customer_id}"
+        create.asset = asset_resource_name
+        create.field_type = field_type_enum_value
+        svc.mutate_customer_assets(customer_id=customer_id, operations=[op])
+
+def cors_preflight_ok():
+    response = jsonify({'status': 'ok'})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    return response
+
+@app.route('/api/assets/create-image', methods=['POST', 'OPTIONS'])
+def create_image_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        fmt = data.get('format')
+        image_b64 = data.get('imageBase64')
+        if not all([customer_id, fmt, image_b64]):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        raw = base64.b64decode(image_b64)
+        if len(raw) > 5 * 1024 * 1024:
+            return jsonify({"success": False, "policyViolation": "Imagen supera 5MB"}), 400
+        img = Image.open(BytesIO(raw))
+        w, h = img.size
+        if fmt == 'MARKETING':
+            ratio = w / max(h, 1)
+            if not (w >= 600 and h >= 314 and abs(ratio - 1.91) < 0.15):
+                return jsonify({"success": False, "policyViolation": "Dimensiones/ratio inválidas para Marketing"}), 400
+        elif fmt == 'SQUARE':
+            if not (w >= 300 and h >= 300 and abs(w - h) < 5):
+                return jsonify({"success": False, "policyViolation": "Dimensiones inválidas para Square"}), 400
+        ga = get_client_from_request()
+        svc = ga.get_service("AssetService")
+        op = ga.get_type("AssetOperation")
+        asset = op.create
+        asset.name = "Image Asset"
+        asset.image_asset.data = raw
+        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
+        res_name = resp.results[0].resource_name
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.IMAGE
+        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": res_name})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = []
+        details = []
+        for error in ex.failure.errors:
+            errors.append(error.message)
+            path = []
+            if error.location and error.location.field_path_elements:
+                for fpe in error.location.field_path_elements:
+                    path.append(getattr(fpe, 'field_name', ''))
+            details.append({
+                'message': error.message,
+                'code': ex.error.code().name if hasattr(ex, 'error') else 'UNKNOWN',
+                'path': path
+            })
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors, "details": details})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/campaigns/top-final-urls', methods=['POST', 'OPTIONS'])
+def top_campaign_final_urls():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        if not customer_id:
+            res = jsonify({"success": False, "message": "customerId requerido"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_client_from_request()
+        service = ga.get_service('GoogleAdsService')
+        query = (
+            "SELECT campaign.id, campaign.name, campaign.status, campaign_budget.amount_micros "
+            "FROM campaign WHERE campaign.status = 'ENABLED' ORDER BY campaign_budget.amount_micros DESC LIMIT 1"
+        )
+        rows = service.search(customer_id=customer_id, query=query)
+        top_campaign_id = None
+        for row in rows:
+            top_campaign_id = row.campaign.id
+            break
+        if not top_campaign_id:
+            result = jsonify({"success": True, "finalUrls": []})
+            result.headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        query_urls = (
+            "SELECT ad_group_ad.ad.final_urls FROM ad_group_ad "
+            f"WHERE campaign.id = '{top_campaign_id}' AND ad_group_ad.status = 'ENABLED'"
+        )
+        url_rows = service.search(customer_id=customer_id, query=query_urls)
+        urls = []
+        for row in url_rows:
+            if row.ad_group_ad.ad.final_urls:
+                urls.extend(list(row.ad_group_ad.ad.final_urls))
+        urls = list(dict.fromkeys(urls))
+        result = jsonify({"success": True, "campaignId": str(top_campaign_id), "finalUrls": urls})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/sitelinks/generate', methods=['POST', 'OPTIONS'])
+def generate_sitelinks():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        keywords_raw = data.get('keywords', '')
+        count = int(data.get('count', 4))
+        provider = (data.get('provider') or 'deepseek').lower()
+        if not customer_id:
+            res = jsonify({"success": False, "message": "customerId requerido"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_client_from_request()
+        service = ga.get_service('GoogleAdsService')
+        query = (
+            "SELECT campaign.id, campaign.name, campaign.status, campaign_budget.amount_micros "
+            "FROM campaign WHERE campaign.status = 'ENABLED' ORDER BY campaign_budget.amount_micros DESC LIMIT 1"
+        )
+        rows = service.search(customer_id=customer_id, query=query)
+        top_campaign_id = None
+        for row in rows:
+            top_campaign_id = row.campaign.id
+            break
+        base_url = None
+        if top_campaign_id:
+            query_urls = (
+                "SELECT ad_group_ad.ad.final_urls FROM ad_group_ad "
+                f"WHERE campaign.id = '{top_campaign_id}' AND ad_group_ad.status = 'ENABLED'"
+            )
+            url_rows = service.search(customer_id=customer_id, query=query_urls)
+            for row in url_rows:
+                if row.ad_group_ad.ad.final_urls:
+                    base_url = list(row.ad_group_ad.ad.final_urls)[0]
+                    break
+        seeds = [s.strip() for s in keywords_raw.split(',') if s.strip()]
+        if not seeds:
+            seeds = ['promo']
+        def slugify(s):
+            return ''.join(ch for ch in s.lower() if ch.isalnum() or ch == ' ').replace(' ', '')
+        def clamp(s, n):
+            return s[:n]
+        sitelinks = []
+        prompt = (
+            "You are an expert Google Ads copywriter. Given keywords, generate N sitelinks as JSON array. "
+            "Each item must strictly follow: title<=25 chars, description1<=35, description2<=35. "
+            "Use persuasive Spanish copy. Reply ONLY with JSON. Schema: [{\"title\",\"description1\",\"description2\"}]. "
+            f"keywords: {', '.join(seeds)}; N: {count}."
+        )
+        def extract_json(text):
+            if not text:
+                return None
+            # strip code fences
+            t = text.strip()
+            t = t.replace('```json', '').replace('```', '')
+            # find first [ and last ] to isolate array
+            start = t.find('[')
+            end = t.rfind(']')
+            if start != -1 and end != -1 and end > start:
+                t = t[start:end+1]
+            # normalize quotes
+            t = t.replace('\u201c', '"').replace('\u201d', '"').replace('“', '"').replace('”', '"')
+            try:
+                return json.loads(t)
+            except:
+                return None
+
+        last_error = None
+        last_status = None
+
+        def use_openai(p):
+            key = os.environ.get('OPENAI_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {
+                "model": os.environ.get('OPENAI_MODEL', 'gpt-4o-mini'),
+                "messages": [{"role": "user", "content": p}],
+                "temperature": 0.8
+            }
+            r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                last_status = r.status_code
+                last_error = r.text[:500]
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','[]')
+            return extract_json(content)
+        def use_gemini(p):
+            key = os.environ.get('GOOGLE_API_KEY')
+            if not key:
+                return None
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+            body = {"contents": [{"parts": [{"text": p}]}]}
+            r = requests.post(url, json=body, timeout=30)
+            if r.status_code != 200:
+                last_status = r.status_code
+                last_error = r.text[:500]
+                return None
+            parts = r.json().get('candidates',[{}])[0].get('content',{}).get('parts',[{}])
+            text = parts[0].get('text','[]')
+            return extract_json(text)
+        def use_deepseek(p):
+            key = os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {
+                "model": os.environ.get('DEEPSEEK_MODEL','deepseek-chat'),
+                "messages": [{"role":"user","content": p}],
+                "temperature": 0.8
+            }
+            r = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                last_status = r.status_code
+                last_error = r.text[:500]
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','[]')
+            return extract_json(content)
+        candidates = None
+        if provider == 'openai':
+            candidates = use_openai(prompt)
+            if candidates is None:
+                candidates = use_gemini(prompt)
+        elif provider == 'gemini':
+            candidates = use_gemini(prompt)
+            if candidates is None:
+                candidates = use_openai(prompt)
+        else:
+            candidates = use_deepseek(prompt)
+            if candidates is None:
+                candidates = use_openai(prompt)
+        if not isinstance(candidates, list):
+            candidates = []
+        if not candidates:
+            detail = {
+                "provider": provider,
+                "status": last_status,
+                "error": last_error,
+                "configured": {
+                    "openai": bool(os.environ.get('OPENAI_API_KEY')),
+                    "gemini": bool(os.environ.get('GOOGLE_API_KEY')),
+                    "deepseek": bool(os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY'))
+                }
+            }
+            res = jsonify({"success": False, "message": "AI provider response unavailable", "details": detail})
+            res.status_code = 500
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        for i in range(min(count, len(candidates))):
+            item = candidates[i]
+            title = clamp(str(item.get('title','')).strip(), 25)
+            d1 = clamp(str(item.get('description1','')).strip(), 35)
+            d2 = clamp(str(item.get('description2','')).strip(), 35)
+            base = base_url or 'https://example.com'
+            url = base.split('#')[0] + '#' + slugify(title)
+            sitelinks.append({"title": title, "description1": d1, "description2": d2, "url": url})
+        result = jsonify({"success": True, "sitelinks": sitelinks})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/assets/summary', methods=['POST', 'OPTIONS'])
+def assets_summary():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        if not all([customer_id, campaign_id]):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_client_from_request()
+        service = ga.get_service('GoogleAdsService')
+
+        def list_linked_assets(query, is_campaign=True):
+            rows = service.search(customer_id=customer_id, query=query)
+            out = []
+            for r in rows:
+                if is_campaign:
+                    out.append((str(r.campaign_asset.asset), r.campaign_asset.field_type.name))
+                else:
+                    out.append((str(r.ad_group_asset.asset), r.ad_group_asset.field_type.name))
+            return out
+
+        camp_query = (
+            f"SELECT campaign.id, campaign_asset.asset, campaign_asset.field_type FROM campaign_asset "
+            f"WHERE campaign.id = '{campaign_id}' AND campaign_asset.status = 'ENABLED'"
+        )
+        camp_assets = list_linked_assets(camp_query, is_campaign=True)
+        adg_assets = []
+        if ad_group_id:
+            adg_query = (
+                f"SELECT ad_group.id, ad_group_asset.asset, ad_group_asset.field_type FROM ad_group_asset "
+                f"WHERE ad_group.id = '{ad_group_id}' AND ad_group_asset.status = 'ENABLED'"
+            )
+            adg_assets = list_linked_assets(adg_query, is_campaign=False)
+        linked = []
+        seen = set()
+        for rn, ft in camp_assets + adg_assets:
+            if rn not in seen:
+                seen.add(rn)
+                linked.append((rn, ft))
+
+        def get_asset_fields(res_name):
+            q = f"SELECT asset.resource_name, asset.sitelink_asset.link_text, asset.callout_asset.callout_text, asset.call_asset.country_code, asset.call_asset.phone_number, asset.promotion_asset.promotion_target, asset.promotion_asset.percent_off, asset.promotion_asset.money_amount_off.amount_micros FROM asset WHERE asset.resource_name = '{res_name}'"
+            rows = service.search(customer_id=customer_id, query=q)
+            out = {}
+            for r in rows:
+                out['resource_name'] = r.asset.resource_name
+                if r.asset.sitelink_asset and r.asset.sitelink_asset.link_text:
+                    out['type'] = 'SITELINK'
+                    out['text'] = r.asset.sitelink_asset.link_text
+                if r.asset.callout_asset and r.asset.callout_asset.callout_text:
+                    out['type'] = 'CALLOUT'
+                    out['text'] = r.asset.callout_asset.callout_text
+                if r.asset.call_asset and r.asset.call_asset.phone_number:
+                    out['type'] = 'CALL'
+                    out['phone'] = r.asset.call_asset.phone_number
+                if r.asset.promotion_asset and (r.asset.promotion_asset.promotion_target or r.asset.promotion_asset.percent_off):
+                    out['type'] = 'PROMOTION'
+                    out['event'] = r.asset.promotion_asset.promotion_target
+                    out['percent'] = r.asset.promotion_asset.percent_off
+                    out['amount_micros'] = r.asset.promotion_asset.money_amount_off.amount_micros if r.asset.promotion_asset.money_amount_off else None
+            return out
+
+        sitelinks = []
+        callouts = []
+        calls = []
+        promotions = []
+        for rn, ft in linked:
+            fields = get_asset_fields(rn)
+            t = fields.get('type')
+            if t == 'SITELINK' and fields.get('text'):
+                sitelinks.append({'text': fields.get('text'), 'resourceName': fields.get('resource_name')})
+            elif t == 'CALLOUT' and fields.get('text'):
+                callouts.append({'text': fields.get('text'), 'resourceName': fields.get('resource_name')})
+            elif t == 'CALL' and fields.get('phone'):
+                calls.append({'phone': fields.get('phone'), 'resourceName': fields.get('resource_name')})
+            elif t == 'PROMOTION':
+                promotions.append({'event': fields.get('event'), 'percent': fields.get('percent'), 'resourceName': fields.get('resource_name')})
+
+        result = jsonify({
+            "success": True,
+            "sitelinks": sitelinks,
+            "callouts": callouts,
+            "calls": calls,
+            "promotions": promotions
+        })
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+@app.route('/api/assets/create-sitelink', methods=['POST', 'OPTIONS'])
+def create_sitelink_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        text = data.get('text', '')
+        d1 = data.get('description1', '')
+        d2 = data.get('description2', '')
+        final_url = data.get('finalUrl', '')
+        if not all([customer_id, text, final_url]):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        if len(text) > 25 or len(d1) > 35 or len(d2) > 35:
+            return jsonify({"success": False, "policyViolation": "Longitudes excedidas"}), 400
+        def _slugify(s):
+            t = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
+            t = ''.join(ch for ch in t.lower() if ch.isalnum())
+            return t
+        def _normalize_url(u):
+            u = (u or '').strip().strip('`').strip('"').strip("'")
+            base = u.split('#')[0]
+            frag = ''
+            if '#' in u:
+                frag = u.split('#', 1)[1]
+            frag = frag.lstrip('/').strip()
+            if frag:
+                frag = _slugify(frag)
+                # ensure '/#' pattern
+                base_no_slash = base.rstrip('/')
+                return base_no_slash + '/#' + frag
+            return base.rstrip('/')
+        final_url = _normalize_url(final_url)
+        ga = get_client_from_request()
+        svc = ga.get_service("AssetService")
+        op = ga.get_type("AssetOperation")
+        asset = op.create
+        asset.sitelink_asset.link_text = text
+        if d1:
+            asset.sitelink_asset.description1 = d1
+        if d2:
+            asset.sitelink_asset.description2 = d2
+        # Final URL es requerida por Google Ads para SitelinkAsset; colocar en ambos campos por compatibilidad
+        # Final URL debe establecerse en el asset (no dentro de sitelink_asset)
+        asset.final_urls.append(final_url)
+        print(f"[create-sitelink] customer={customer_id} campaign={campaign_id} adGroup={ad_group_id} text='{text}' url='{final_url}'")
+        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
+        res_name = resp.results[0].resource_name
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.SITELINK
+        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": res_name})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = []
+        details = []
+        for error in ex.failure.errors:
+            errors.append(error.message)
+            path = []
+            if error.location and error.location.field_path_elements:
+                for fpe in error.location.field_path_elements:
+                    path.append(getattr(fpe, 'field_name', ''))
+            details.append({
+                'message': error.message,
+                'code': ex.error.code().name if hasattr(ex, 'error') else 'UNKNOWN',
+                'path': path
+            })
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors, "details": details})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/assets/create-promotion', methods=['POST', 'OPTIONS'])
+def create_promotion_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        p = data.get('promotion', {})
+        final_url = (data.get('finalUrl', '') or '').strip().strip('`').strip('"').strip("'")
+        if not customer_id or not p:
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_client_from_request()
+        svc = ga.get_service("AssetService")
+        op = ga.get_type("AssetOperation")
+        asset = op.create
+        if p.get('event'): asset.promotion_asset.promotion_target = p.get('event')
+        if p.get('language'): asset.promotion_asset.language_code = p.get('language')
+        dt = p.get('discountType')
+        if dt == 'percent':
+            asset.promotion_asset.percent_off = int(p.get('percent', 0))
+        else:
+            money = ga.get_type("Money")
+            money.currency_code = p.get('currency', 'USD')
+            money.amount_micros = int(float(p.get('amount', 0)) * 1_000_000)
+            asset.promotion_asset.money_amount_off = money
+        if p.get('startDate'): asset.promotion_asset.start_date = p.get('startDate').split('T')[0]
+        if p.get('endDate'): asset.promotion_asset.end_date = p.get('endDate').split('T')[0]
+        if final_url:
+            asset.final_urls.append(final_url)
+        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
+        res_name = resp.results[0].resource_name
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.PROMOTION
+        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": res_name})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+# Lead Form creation removed per product decision
+
+# Price Asset creation removed per product decision
+
+@app.route('/api/assets/create-call', methods=['POST', 'OPTIONS'])
+def create_call_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        cc_raw = data.get('countryCode', '')
+        phone = data.get('phoneNumber', '')
+        code_map = {
+            '+52':'MX','52':'MX',
+            '+57':'CO','57':'CO',
+            '+1':'US','1':'US'
+        }
+        cc = code_map.get(cc_raw, cc_raw if len(cc_raw)==2 else '')
+        if not all([customer_id, cc, phone]):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_client_from_request()
+        svc = ga.get_service("AssetService")
+        op = ga.get_type("AssetOperation")
+        asset = op.create
+        asset.call_asset.country_code = cc
+        asset.call_asset.phone_number = phone
+        resp = svc.mutate_assets(customer_id=customer_id, operations=[op])
+        res_name = resp.results[0].resource_name
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.CALL
+        link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": res_name})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/assets/create-callout', methods=['POST', 'OPTIONS'])
+def create_callout_asset():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        ad_group_id = data.get('adGroupId')
+        text = data.get('text')
+        texts = data.get('texts') if isinstance(data.get('texts'), list) else None
+        if not customer_id or (not text and not texts):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_client_from_request()
+        svc = ga.get_service("AssetService")
+        operations = []
+        items = texts if texts else [text]
+        for t in items:
+            if not t: 
+                continue
+            op = ga.get_type("AssetOperation")
+            asset = op.create
+            asset.callout_asset.callout_text = str(t)[:25]
+            operations.append(op)
+        resp = svc.mutate_assets(customer_id=customer_id, operations=operations)
+        created = [r.resource_name for r in resp.results]
+        field_enum = ga.get_type("AssetFieldTypeEnum").AssetFieldType.CALLOUT
+        for res_name in created:
+            link_asset_to_context(ga, customer_id, res_name, field_enum, campaign_id, ad_group_id)
+        result = jsonify({"success": True, "resourceName": created[-1] if created else "", "created": created})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/optimization/analyze-relevance', methods=['POST', 'OPTIONS'])
+def analyze_relevance():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        lookback = int(data.get('lookbackWindow', 30))
+        if not customer_id:
+            res = jsonify({"success": False, "message": "customerId requerido"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        end_date = date.today()
+        start_date = end_date - timedelta(days=lookback)
+        ga = get_client_from_request()
+        service = ga.get_service('GoogleAdsService')
+        query = (
+            "SELECT search_term_view.search_term, metrics.conversions, metrics.clicks, metrics.impressions, "
+            "metrics.ctr, metrics.cost_micros, ad_group.id, ad_group.name, campaign.id "
+            "FROM search_term_view "
+            f"WHERE segments.date >= '{start_date.isoformat()}' AND segments.date <= '{end_date.isoformat()}' "
+            "AND metrics.conversions > 0"
+        )
+        rows = service.search(customer_id=customer_id, query=query)
+        
+        # Recopilar todos los ad_group_ids únicos para obtener sus URLs
+        ad_group_ids = set()
+        opportunities_temp = []
+        for r in rows:
+            clicks = r.metrics.clicks
+            impressions = r.metrics.impressions
+            conversions = r.metrics.conversions
+            ctr = r.metrics.ctr
+            cost_micros = r.metrics.cost_micros
+            cpa_micros = int(cost_micros / conversions) if conversions > 0 else 0
+            low_ctr = ctr < 0.02
+            high_cpa = cpa_micros > 5_000_000
+            if low_ctr or high_cpa:
+                ad_group_id = str(r.ad_group.id)
+                ad_group_ids.add(ad_group_id)
+                opportunities_temp.append({
+                    "searchTerm": r.search_term_view.search_term,
+                    "conversions": float(conversions),
+                    "clicks": int(clicks),
+                    "impressions": int(impressions),
+                    "ctr": float(ctr),
+                    "cpaMicros": int(cpa_micros),
+                    "costMicros": int(cost_micros),
+                    "adGroupId": ad_group_id,
+                    "adGroupName": r.ad_group.name,
+                    "campaignId": str(r.campaign.id),
+                    "potentialSavingsMicros": int(cost_micros * 0.1)
+                })
+        
+        # Obtener URLs de los anuncios de cada ad group
+        ad_group_urls = {}
+        if ad_group_ids:
+            ad_groups_filter = " OR ".join([f"ad_group.id = '{ag_id}'" for ag_id in ad_group_ids])
+            ads_query = (
+                "SELECT ad_group.id, ad_group_ad.ad.final_urls "
+                "FROM ad_group_ad "
+                f"WHERE ({ad_groups_filter}) "
+                "AND ad_group_ad.status = 'ENABLED' "
+                "LIMIT 1000"
+            )
+            try:
+                ads_rows = service.search(customer_id=customer_id, query=ads_query)
+                for ad_row in ads_rows:
+                    ag_id = str(ad_row.ad_group.id)
+                    if ad_row.ad_group_ad.ad.final_urls and len(ad_row.ad_group_ad.ad.final_urls) > 0:
+                        # Tomar la primera URL disponible
+                        if ag_id not in ad_group_urls:
+                            ad_group_urls[ag_id] = ad_row.ad_group_ad.ad.final_urls[0]
+            except Exception as url_ex:
+                print(f"⚠️ Error obteniendo URLs: {url_ex}")
+        
+        # Agregar URLs a las oportunidades
+        opportunities = []
+        for opp in opportunities_temp:
+            opp["finalUrl"] = ad_group_urls.get(opp["adGroupId"], "")
+            opportunities.append(opp)
+        result = jsonify({"success": True, "opportunities": opportunities})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = [error.message for error in ex.failure.errors]
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/optimization/generate-adcopy', methods=['POST', 'OPTIONS'])
+def generate_adcopy():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        term = str(data.get('searchTerm','')).strip()
+        provider = (data.get('provider') or 'deepseek').lower()
+        if not term:
+            res = jsonify({"success": False, "message": "searchTerm requerido"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        def extract_json(text):
+            if not text:
+                return None
+            t = text.strip().replace('```json', '').replace('```', '')
+            start = t.find('{')
+            end = t.rfind('}')
+            if start != -1 and end != -1 and end > start:
+                t = t[start:end+1]
+            t = t.replace('\u201c', '"').replace('\u201d', '"').replace('“', '"').replace('”', '"')
+            try:
+                return json.loads(t)
+            except:
+                return None
+        def clamp(s, n):
+            return (s or '')[:n]
+
+        def normalize_snippet(text: str, limit: int) -> str:
+            if not text:
+                return ''
+            # Consolidate whitespace and trim ends
+            stripped = ' '.join(str(text).split())
+            if len(stripped) <= limit:
+                return stripped
+            truncated = stripped[:limit].rstrip()
+            # Avoid cutting words in half when possible
+            if len(stripped) > limit and not stripped[limit].isspace():
+                last_space = truncated.rfind(' ')
+                if last_space > 10:  # keep at least a short prefix
+                    truncated = truncated[:last_space]
+            return truncated.strip()
+        prompt = (
+            "ACTÚA COMO: Copywriter experto en Google Ads (Direct Response) especializado en SKAGs de alto CTR.\n"
+            f"TAREA: Genera un objeto JSON crudo con 15 'headlines' y 4 'descriptions' para el término de búsqueda: '{term}'.\n\n"
+            
+            "--- REGLAS CRÍTICAS (NO ROMPER) ---\n"
+            "1. LONGITUD HEADLINES: MÁXIMO 30 caracteres. Si te pasas, el anuncio será rechazado. Sé conciso.\n"
+            "2. LONGITUD DESCRIPTIONS: MÁXIMO 90 caracteres.\n"
+            "3. INTEGRIDAD: NUNCA cortes palabras a la mitad (ej: NO 'Amar', 'Gar', 'Por'). Si no cabe, reescribe la frase.\n"
+            "4. GRAMÁTICA: No termines con preposiciones sueltas ('de', 'en', 'y', 'con'). La frase debe tener sentido completo.\n"
+            "5. FORMATO: Usa 'Title Case' (Primera Letra Mayúscula) para mayor impacto visual.\n\n"
+            
+            "--- ESTRATEGIA DE CONTENIDO ---\n"
+            "1. INSERCIÓN DE KEYWORD: El término (o su abreviación lógica) DEBE aparecer:\n"
+            "   - Mínimo 6 veces en los headlines.\n"
+            "   - Mínimo 3 veces en las descriptions.\n"
+            "2. ABREVIACIÓN INTELIGENTE: Si el término es largo (>25 chars), abrévialo naturalmente.\n"
+            "   - 'amarres de amor cerca de mi' -> 'Amarres Amor Cerca' (BIEN)\n"
+            "   - 'amarres de amor cerca de mi' -> 'Amarres De Amor Cer' (MAL)\n"
+            "3. ÁNGULOS DE VENTA: Mezcla urgencia, beneficios, autoridad y localidad.\n\n"
+            
+            "--- FORMATO DE RESPUESTA ---\n"
+            "Responde SOLO con el JSON válido. NO uses bloques de código markdown (```json). \n"
+            "Estructura: {\"headlines\": [...], \"descriptions\": [...]}\n"
+            f"TÉRMINO OBJETIVO: {term}"
+        )
+        def use_openai(p):
+            key = os.environ.get('OPENAI_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {"model": os.environ.get('OPENAI_MODEL','gpt-4o-mini'), "messages": [{"role":"user","content": p}], "temperature": 0.7}
+            r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','{}')
+            return extract_json(content)
+        def use_gemini(p):
+            key = os.environ.get('GOOGLE_API_KEY')
+            if not key:
+                return None
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+            body = {"contents": [{"parts": [{"text": p}]}]}
+            r = requests.post(url, json=body, timeout=30)
+            if r.status_code != 200:
+                return None
+            parts = r.json().get('candidates',[{}])[0].get('content',{}).get('parts',[{}])
+            text = parts[0].get('text','{}')
+            return extract_json(text)
+        def use_deepseek(p):
+            key = os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {"model": os.environ.get('DEEPSEEK_MODEL','deepseek-chat'), "messages": [{"role":"user","content": p}], "temperature": 0.7}
+            r = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','{}')
+            return extract_json(content)
+        data_out = None
+        if provider == 'openai':
+            data_out = use_openai(prompt) or use_gemini(prompt)
+        elif provider == 'gemini':
+            data_out = use_gemini(prompt) or use_openai(prompt)
+        else:
+            data_out = use_deepseek(prompt) or use_openai(prompt)
+        hs = [normalize_snippet(clamp(str(h), 40), 30) for h in (data_out.get('headlines') if isinstance(data_out, dict) else []) if str(h).strip()][:15]
+        ds = [normalize_snippet(clamp(str(d), 110), 90) for d in (data_out.get('descriptions') if isinstance(data_out, dict) else []) if str(d).strip()][:4]
+        
+        # Validación estricta: Asegurar que ningún headline exceda 30 caracteres
+        hs = [normalize_snippet(h, 30) for h in hs]
+        ds = [normalize_snippet(d, 90) for d in ds]
+        
+        if not hs:
+            # Fallbacks seguros de máximo 30 caracteres
+            term_short = term[:20] if len(term) > 20 else term
+            hs = [
+                normalize_snippet(term_short, 30),
+                normalize_snippet(f"{term_short} Hoy", 30),
+                normalize_snippet(f"Expertos {term_short}", 30)
+            ]
+        if not ds:
+            ds = [
+                normalize_snippet(f"La mejor opción para {term}", 90),
+                normalize_snippet(f"Descubre {term}", 90)
+            ]
+        
+        result = jsonify({"success": True, "headlines": hs, "descriptions": ds})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/optimization/execute-skag', methods=['POST', 'OPTIONS'])
+def execute_skag():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        campaign_id = data.get('campaignId')
+        original_ad_group_id = data.get('originalAdGroupId')
+        search_term = data.get('searchTerm', '')
+        ad_variations = data.get('adVariations', [])  # NUEVO: Array de anuncios
+        final_url = data.get('finalUrl', 'https://example.com/')  # URL común
+        ad_group_name = data.get('adGroupName') or f"SKAG - {search_term}" # NUEVO: Nombre personalizado
+        provider = (data.get('provider') or 'deepseek').lower()
+        dry_run = bool(data.get('dryRun', False))
+        
+        print(f"📥 Recibiendo solicitud SKAG:")
+        print(f"   - Nombre Grupo: {ad_group_name}")
+        print(f"   - Número de anuncios: {len(ad_variations)}")
+        print(f"   - Search term: {search_term}")
+        
+        if not all([customer_id, campaign_id, original_ad_group_id, search_term]):
+            res = jsonify({"success": False, "message": "Parámetros requeridos faltantes"})
+            res.status_code = 400
+            res.headers.add('Access-Control-Allow-Origin', '*')
+            return res
+        ga = get_client_from_request()
+        def extract_json(text):
+            if not text:
+                return None
+            t = text.strip().replace('```json', '').replace('```', '')
+            start = t.find('{')
+            end = t.rfind('}')
+            if start != -1 and end != -1 and end > start:
+                t = t[start:end+1]
+            t = t.replace('\u201c', '"').replace('\u201d', '"').replace('“', '"').replace('”', '"')
+            try:
+                return json.loads(t)
+            except:
+                return None
+
+        def clamp(s, n):
+            return (s or '')[:n]
+
+        def generate_ad_copy(term, prov):
+            prompt = (
+                "Eres copywriter experto en Google Ads. Para el término dado genera JSON con 15 'headlines' (cada uno <=30 chars) y 4 'descriptions' (cada una <=90 chars). "
+                "Incluye exactamente el término en el primer headline. Genera variaciones persuasivas en español. Responde SOLO JSON con {\"headlines\":[...15 items...],\"descriptions\":[...4 items...]}. "
+                f"term: {term}"
+            )
+            last_error = None
+            def use_openai(p):
+                key = os.environ.get('OPENAI_API_KEY')
+                if not key:
+                    return None
+                headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+                body = {"model": os.environ.get('OPENAI_MODEL','gpt-4o-mini'), "messages": [{"role":"user","content": p}], "temperature": 0.7}
+                r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+                if r.status_code != 200:
+                    last_error = r.text[:500]
+                    return None
+                content = r.json().get('choices',[{}])[0].get('message',{}).get('content','{}')
+                return extract_json(content)
+            def use_gemini(p):
+                key = os.environ.get('GOOGLE_API_KEY')
+                if not key:
+                    return None
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+                body = {"contents": [{"parts": [{"text": p}]}]}
+                r = requests.post(url, json=body, timeout=30)
+                if r.status_code != 200:
+                    last_error = r.text[:500]
+                    return None
+                parts = r.json().get('candidates',[{}])[0].get('content',{}).get('parts',[{}])
+                text = parts[0].get('text','{}')
+                return extract_json(text)
+            def use_deepseek(p):
+                key = os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY')
+                if not key:
+                    return None
+                headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+                body = {"model": os.environ.get('DEEPSEEK_MODEL','deepseek-chat'), "messages": [{"role":"user","content": p}], "temperature": 0.7}
+                r = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+                if r.status_code != 200:
+                    last_error = r.text[:500]
+                    return None
+                content = r.json().get('choices',[{}])[0].get('message',{}).get('content','{}')
+                return extract_json(content)
+            data_out = None
+            if prov == 'openai':
+                data_out = use_openai(prompt) or use_gemini(prompt)
+            elif prov == 'gemini':
+                data_out = use_gemini(prompt) or use_openai(prompt)
+            else:
+                data_out = use_deepseek(prompt) or use_openai(prompt)
+            if not isinstance(data_out, dict):
+                return {
+                    "headlines": [term, f"{term} Efectivo", f"{term} Profesional", f"Expertos en {term}", f"Consulta {term} Hoy", f"{term} Garantizado", f"Resultados {term}", f"{term} Confiable", f"Mejor {term}", f"{term} Rápido", f"{term} Seguro", f"{term} 24/7", f"Llama {term}", f"{term} Cerca", f"Top {term}"],
+                    "descriptions": [f"La mejor opción para {term}. Resultados garantizados y rápidos. Consulta ahora.", f"Expertos en {term} con años de experiencia. Atención personalizada y confidencial.", f"Descubre {term} profesional. Primera consulta gratis. Contáctanos hoy mismo.", f"Servicio de {term} disponible 24/7. Soluciones efectivas para tus necesidades."]
+                }
+            hs = [clamp(str(h),30) for h in (data_out.get('headlines') or []) if str(h).strip()][:15]
+            ds = [clamp(str(d),90) for d in (data_out.get('descriptions') or []) if str(d).strip()][:4]
+            if len(hs) < 15:
+                # Generate fallback headlines to complete to 15
+                fallback_hs = [term, f"{term} Efectivo", f"{term} Profesional", f"Expertos {term}", f"Consulta {term}", f"{term} Garantizado", f"Resultados {term}", f"{term} Confiable", f"Mejor {term}", f"{term} Rápido", f"{term} Seguro", f"{term} 24/7", f"Llama {term}", f"{term} Cerca", f"Top {term}"]
+                for fh in fallback_hs:
+                    if len(hs) >= 15:
+                        break
+                    if fh not in hs:
+                        hs.append(clamp(fh, 30))
+            if len(ds) < 4:
+                # Generate fallback descriptions to complete to 4
+                fallback_ds = [
+                    f"La mejor opción para {term}. Resultados garantizados y rápidos. Consulta ahora.",
+                    f"Expertos en {term} con años de experiencia. Atención personalizada y confidencial.",
+                    f"Descubre {term} profesional. Primera consulta gratis. Contáctanos hoy mismo.",
+                    f"Servicio de {term} disponible 24/7. Soluciones efectivas para tus necesidades."
+                ]
+                for fd in fallback_ds:
+                    if len(ds) >= 4:
+                        break
+                    if fd not in ds:
+                        ds.append(clamp(fd, 90))
+            return {"headlines": hs, "descriptions": ds}
+
+        # Si no hay variaciones, generar una automáticamente
+        if not ad_variations:
+            gen = generate_ad_copy(search_term, provider)
+            ad_variations.append({
+                'headlines': gen.get('headlines', []),
+                'descriptions': gen.get('descriptions', []),
+                'finalUrl': final_url
+            })
+
+        def short_negative(s):
+            stop = {"brujos","brujo","brujeria","de","la","las","el","los","en","y","para","que","un","una"}
+            toks = [t for t in s.lower().split() if t not in stop]
+            frag = ' '.join(toks).strip()
+            return frag if frag else s
+            
+        if dry_run:
+            created_group_name = f"SKAG - {search_term}"
+            negative_exact = f"[{short_negative(search_term)}]"
+            
+            # Preparar preview de anuncios para dry run
+            ads_preview = []
+            for var in ad_variations:
+                ads_preview.append({
+                    "headlines": var.get('headlines', [search_term]),
+                    "descriptions": var.get('descriptions', [f"La mejor opción para {search_term}"])
+                })
+                
+            result = jsonify({
+                "success": True,
+                "dryRun": True,
+                "message": "Simulación exitosa",
+                "wouldCreate": {
+                    "adGroupName": created_group_name,
+                    "keywordExact": negative_exact,
+                    "ads": ads_preview,
+                    "negativeInOriginal": negative_exact,
+                    "matchTypes": {
+                        "exact": True,
+                        "phrase": data.get('includePhraseMatch', True),
+                        "broad": data.get('includeBroadMatch', False)
+                    }
+                }
+            })
+            result.headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        client = ga
+        ad_group_service = client.get_service("AdGroupService")
+        ad_group_operation = client.get_type("AdGroupOperation")
+        ad_group = ad_group_operation.create
+        ad_group.name = f"SKAG - {search_term}"
+        ad_group.campaign = f"customers/{customer_id}/campaigns/{campaign_id}"
+        ad_group.status = client.enums.AdGroupStatusEnum.ENABLED
+        ad_group_response = ad_group_service.mutate_ad_groups(customer_id=customer_id, operations=[ad_group_operation])
+        new_ad_group_res = ad_group_response.results[0].resource_name
+        new_ad_group_id = new_ad_group_res.split('/')[-1]
+        
+        # NUEVO: Obtener configuración de tipos de concordancia
+        include_phrase = data.get('includePhraseMatch', True)  # Por defecto True
+        include_broad = data.get('includeBroadMatch', False)   # Por defecto False
+        base_cpc_micros = data.get('baseCpcMicros', 1000000)   # 1 COP por defecto
+        
+        # Crear keywords con estrategia multi-nivel
+        ad_group_criterion_service = client.get_service("AdGroupCriterionService")
+        keyword_operations = []
+        
+        # Helper para redondear CPC a unidad válida (1M micros = 1 unidad estándar)
+        def round_cpc(micros):
+            # Redondear al millón más cercano para evitar errores de "billable unit"
+            # Ejemplo: 1,275,000,000 -> 1,275,000,000 (Ok)
+            # Ejemplo: 1,275,500,000 -> 1,276,000,000 (Redondeo)
+            unit = 1000000
+            return int(round(micros / unit) * unit)
+
+        # 1. EXACTA (siempre incluida) - CPC 100%
+        kw_exact_op = client.get_type("AdGroupCriterionOperation")
+        kw_exact = kw_exact_op.create
+        kw_exact.ad_group = new_ad_group_res
+        kw_exact.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+        kw_exact.keyword = client.get_type("KeywordInfo")
+        kw_exact.keyword.text = search_term
+        kw_exact.keyword.match_type = client.enums.KeywordMatchTypeEnum.EXACT
+        kw_exact.cpc_bid_micros = round_cpc(base_cpc_micros)
+        keyword_operations.append(kw_exact_op)
+        print(f"✅ Keyword EXACTA agregada: [{search_term}] - CPC: {kw_exact.cpc_bid_micros} micros")
+        
+        # 2. FRASE (opcional) - CPC 85%
+        if include_phrase:
+            kw_phrase_op = client.get_type("AdGroupCriterionOperation")
+            kw_phrase = kw_phrase_op.create
+            kw_phrase.ad_group = new_ad_group_res
+            kw_phrase.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+            kw_phrase.keyword = client.get_type("KeywordInfo")
+            kw_phrase.keyword.text = search_term
+            kw_phrase.keyword.match_type = client.enums.KeywordMatchTypeEnum.PHRASE
+            kw_phrase.cpc_bid_micros = round_cpc(base_cpc_micros * 0.85)
+            keyword_operations.append(kw_phrase_op)
+            print(f"✅ Keyword FRASE agregada: \"{search_term}\" - CPC: {kw_phrase.cpc_bid_micros} micros")
+        
+        # 3. AMPLIA (opcional) - CPC 70%
+        if include_broad:
+            kw_broad_op = client.get_type("AdGroupCriterionOperation")
+            kw_broad = kw_broad_op.create
+            kw_broad.ad_group = new_ad_group_res
+            kw_broad.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+            kw_broad.keyword = client.get_type("KeywordInfo")
+            kw_broad.keyword.text = search_term
+            kw_broad.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
+            kw_broad.cpc_bid_micros = round_cpc(base_cpc_micros * 0.70)
+            keyword_operations.append(kw_broad_op)
+            print(f"✅ Keyword AMPLIA agregada: {search_term} - CPC: {kw_broad.cpc_bid_micros} micros")
+        
+        # Ejecutar todas las operaciones de keywords en batch
+        ad_group_criterion_service.mutate_ad_group_criteria(customer_id=customer_id, operations=keyword_operations)
+        print(f"🎯 Total keywords creadas: {len(keyword_operations)}")
+        
+        # NUEVO: Crear múltiples anuncios RSA
+        ad_group_ad_service = client.get_service("AdGroupAdService")
+        ad_operations = []
+        
+        # Si no hay variaciones, usar fallback
+        if not ad_variations:
+            ad_variations = [{
+                'headlines': [search_term, f"{search_term} oferta", f"{search_term} hoy"],
+                'descriptions': [f"La mejor opción para {search_term}", f"Descubre {search_term}"],
+                'finalUrl': final_url
+            }]
+        
+        for idx, ad_copy in enumerate(ad_variations, 1):
+            ad_group_ad_operation = client.get_type("AdGroupAdOperation")
+            ad_group_ad = ad_group_ad_operation.create
+            ad_group_ad.ad_group = new_ad_group_res
+            ad_group_ad.status = client.enums.AdGroupAdStatusEnum.ENABLED
+            
+            # URL final
+            ad_final_url = ad_copy.get('finalUrl') or final_url
+            ad_group_ad.ad.final_urls.append(ad_final_url)
+            
+            # Headlines
+            headlines = ad_copy.get('headlines') or [search_term, f"{search_term} oferta", f"{search_term} hoy"]
+            for i, h in enumerate(headlines):
+                asset = client.get_type("AdTextAsset")
+                asset.text = str(h)[:30]  # Truncar a 30 caracteres
+                if i == 0:
+                    asset.pinned_field = client.enums.ServedAssetFieldTypeEnum.HEADLINE_1
+                ad_group_ad.ad.responsive_search_ad.headlines.append(asset)
+            
+            # Descriptions
+            descriptions = ad_copy.get('descriptions') or [f"La mejor opción para {search_term}", f"Descubre {search_term}"]
+            for d in descriptions:
+                asset = client.get_type("AdTextAsset")
+                asset.text = str(d)[:90]  # Truncar a 90 caracteres
+                ad_group_ad.ad.responsive_search_ad.descriptions.append(asset)
+            
+            ad_operations.append(ad_group_ad_operation)
+            print(f"✅ Anuncio #{idx} preparado: {len(headlines)} headlines, {len(descriptions)} descriptions")
+        
+        # Ejecutar todas las operaciones de anuncios en batch
+        ad_group_ad_service.mutate_ad_group_ads(customer_id=customer_id, operations=ad_operations)
+        print(f"📢 Total anuncios RSA creados: {len(ad_operations)}")
+        
+        neg_op = client.get_type("AdGroupCriterionOperation")
+        neg = neg_op.create
+        neg.ad_group = f"customers/{customer_id}/adGroups/{original_ad_group_id}"
+        neg.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+        neg.negative = True
+        neg.keyword = client.get_type("KeywordInfo")
+        def short_negative(s):
+            stop = {"brujos","brujo","brujeria","de","la","las","el","los","en","y","para","que","un","una"}
+            toks = [t for t in s.lower().split() if t not in stop]
+            frag = ' '.join(toks).strip()
+            return frag if frag else s
+        neg.keyword.text = short_negative(search_term)
+        neg.keyword.match_type = client.enums.KeywordMatchTypeEnum.EXACT
+        ad_group_criterion_service.mutate_ad_group_criteria(customer_id=customer_id, operations=[neg_op])
+        result = jsonify({"success": True, "newAdGroupId": new_ad_group_id})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except GoogleAdsException as ex:
+        errors = []
+        for error in ex.failure.errors:
+            errors.append(error.message)
+        res = jsonify({"success": False, "message": "Google Ads API Error", "errors": errors})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+
+@app.route('/api/callouts/generate', methods=['POST', 'OPTIONS'])
+def generate_callouts():
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    try:
+        data = request.get_json()
+        keywords_raw = data.get('keywords', '')
+        count = int(data.get('count', 4))
+        provider = (data.get('provider') or 'deepseek').lower()
+        seeds = [s.strip() for s in keywords_raw.split(',') if s.strip()]
+        if not seeds:
+            seeds = ['promoción']
+
+        prompt = (
+            "Eres copywriter experto en Google Ads. Genera N textos destacados (callouts) en JSON puro: "
+            "[{\"text\"}] en español, cada \"text\" de máximo 25 caracteres, persuasivo y variado. "
+            f"keywords: {', '.join(seeds)}; N: {count}. Responde SOLO JSON."
+        )
+
+        def extract_json(text):
+            if not text:
+                return None
+            t = text.strip().replace('```json', '').replace('```', '')
+            start = t.find('[')
+            end = t.rfind(']')
+            if start != -1 and end != -1 and end > start:
+                t = t[start:end+1]
+            t = t.replace('\u201c', '"').replace('\u201d', '"').replace('“', '"').replace('”', '"')
+            try:
+                return json.loads(t)
+            except:
+                return None
+
+        last_error = None
+        def use_openai(p):
+            key = os.environ.get('OPENAI_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {"model": os.environ.get('OPENAI_MODEL', 'gpt-4o-mini'), "messages": [{"role":"user","content": p}], "temperature": 0.8}
+            r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                last_error = r.text[:500]
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','[]')
+            return extract_json(content)
+        def use_gemini(p):
+            key = os.environ.get('GOOGLE_API_KEY')
+            if not key:
+                return None
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+            body = {"contents": [{"parts": [{"text": p}]}]}
+            r = requests.post(url, json=body, timeout=30)
+            if r.status_code != 200:
+                last_error = r.text[:500]
+                return None
+            parts = r.json().get('candidates',[{}])[0].get('content',{}).get('parts',[{}])
+            text = parts[0].get('text','[]')
+            return extract_json(text)
+        def use_deepseek(p):
+            key = os.environ.get('DEEPSEEK_API_KEY') or os.environ.get('OPEN_ROUTER_API_KEY')
+            if not key:
+                return None
+            headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+            body = {"model": os.environ.get('DEEPSEEK_MODEL','deepseek-chat'), "messages": [{"role":"user","content": p}], "temperature": 0.8}
+            r = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, data=json.dumps(body), timeout=30)
+            if r.status_code != 200:
+                last_error = r.text[:500]
+                return None
+            content = r.json().get('choices',[{}])[0].get('message',{}).get('content','[]')
+            return extract_json(content)
+
+        candidates = None
+        if provider == 'deepseek':
+            candidates = use_deepseek(prompt) or use_openai(prompt) or use_gemini(prompt)
+        elif provider == 'openai':
+            candidates = use_openai(prompt) or use_deepseek(prompt) or use_gemini(prompt)
+        else:
+            candidates = use_gemini(prompt) or use_deepseek(prompt) or use_openai(prompt)
+
+        if not isinstance(candidates, list):
+            return jsonify({"success": False, "message": "AI provider response unavailable", "details": last_error}), 500
+
+        # Clamp to 25 chars, unique
+        seen = set()
+        out = []
+        for item in candidates:
+            t = str(item.get('text','')).strip()[:25]
+            if not t or t in seen:
+                continue
+            seen.add(t)
+            out.append({"text": t})
+            if len(out) >= count:
+                break
+        return jsonify({"success": True, "callouts": out}), 200
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+    except Exception as ex:
+        res = jsonify({"success": False, "message": str(ex)})
+        res.status_code = 500
+        res.headers.add('Access-Control-Allow-Origin', '*')
+        return res
+@app.route('/api/ad/pause', methods=['POST', 'OPTIONS'])
+def pause_ad():
     """
-    Pausa un grupo de anuncios específico
+    Pausa un ad específico
     
     Request Body:
     {
         "customer_id": "1234567890",
-        "ad_group_id": "9876543210"
+        "ad_group_id": "9876543210",
+        "ad_id": "12345678901234"
     }
     """
     if request.method == 'OPTIONS':
@@ -1522,53 +2835,56 @@ def pause_ad_group():
         data = request.get_json()
         customer_id = data.get('customer_id')
         ad_group_id = data.get('ad_group_id')
+        ad_id = data.get('ad_id')
         
-        if not all([customer_id, ad_group_id]):
+        if not all([customer_id, ad_group_id, ad_id]):
             result = jsonify({
                 'success': False,
                 'error': 'Faltan parámetros requeridos',
-                'required': ['customer_id', 'ad_group_id']
-            }), 400
+                'required': ['customer_id', 'ad_group_id', 'ad_id']
+            })
+            result.status_code = 400
             result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         # Crear cliente
         client = get_client_from_request()
-        ad_group_service = client.get_service("AdGroupService")
+        ad_group_ad_service = client.get_service("AdGroupAdService")
         
         # Limpiar customer_id
         customer_id = customer_id.replace('-', '')
         
         # Crear resource name
-        resource_name = ad_group_service.ad_group_path(
+        resource_name = ad_group_ad_service.ad_group_ad_path(
             customer_id,
-            ad_group_id
+            ad_group_id,
+            ad_id
         )
         
-        print(f"⏸️  Pausing ad group: {resource_name}")
+        print(f"⏸️  Pausing ad: {resource_name}")
         
         # Crear operación de actualización
-        ad_group_operation = client.get_type("AdGroupOperation")
-        ad_group = ad_group_operation.update
-        ad_group.resource_name = resource_name
-        ad_group.status = client.enums.AdGroupStatusEnum.PAUSED
+        ad_group_ad_operation = client.get_type("AdGroupAdOperation")
+        ad_group_ad = ad_group_ad_operation.update
+        ad_group_ad.resource_name = resource_name
+        ad_group_ad.status = client.enums.AdGroupAdStatusEnum.PAUSED
         
         # Field mask - solo especificar el campo que cambia
-        ad_group_operation.update_mask.CopyFrom(
+        ad_group_ad_operation.update_mask.CopyFrom(
             FieldMask(paths=["status"])
         )
         
         # Ejecutar
-        response = ad_group_service.mutate_ad_groups(
+        response = ad_group_ad_service.mutate_ad_group_ads(
             customer_id=customer_id,
-            operations=[ad_group_operation]
+            operations=[ad_group_ad_operation]
         )
         
-        print(f"✅ Ad group paused successfully")
+        print(f"✅ Ad paused successfully")
         
         result = jsonify({
             'success': True,
-            'message': 'Grupo de anuncios pausado exitosamente',
+            'message': 'Anuncio pausado exitosamente',
             'resource_name': response.results[0].resource_name
         }), 200
         
@@ -1618,7 +2934,7 @@ def update_keyword_bid():
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'ok'})
         response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         return response
     
@@ -2250,7 +3566,7 @@ def create_campaign():
         )
         
         resource_name = response.results[0].resource_name
-        campaign_id = resource_name.split('/')[-1];
+        campaign_id = resource_name.split('/')[-1]
         
         print(f"✅ Campaña creada: {resource_name}")
         
@@ -2727,6 +4043,8 @@ def get_keyword_ideas():
     except Exception as e:
         print(f"Error generating keyword ideas: {e}")
         # Print stack trace for debugging
+        import traceback
+        traceback.print_exc()
         result = jsonify({'error': str(e)}), 500
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
@@ -2832,7 +4150,7 @@ def get_trends_from_google_ads(keywords, geo, time_range, resolution):
             geo_target_constants.append(
                 client.get_service("GeoTargetConstantService").geo_target_constant_path(geo_map[geo])
             )
-    print(f"DEBUG - geo_target_constants: {geo_target_constants}")
+    
     # Construir request
     request_data = client.get_type("GenerateKeywordIdeasRequest")
     request_data.customer_id = request.headers.get('X-Google-Ads-Login-Customer-Id') or os.environ.get("GOOGLE_ADS_LOGIN_CUSTOMER_ID")
@@ -2885,7 +4203,7 @@ def get_trends_from_google_ads(keywords, geo, time_range, resolution):
             'value': 100, # 100% del interés está en el país (dato real)
             'geoCode': geo
         }]
-    print(f"DEBUG - region_data: {region_data}")
+    
     # Ordenar timeline por fecha
     timeline_data.sort(key=lambda x: x['date'])
     
@@ -3359,17 +4677,13 @@ def start_automation():
         # Generar job ID
         job_id = str(uuid.uuid4())
         
-        # Asegurar que campaignName esté en config si viene en el request
-        if 'campaignName' in data:
-            config['campaignName'] = data['campaignName']
-        
         # Crear job en base de datos
         user_identifier = data['customerId']
         job = create_job(job_id, config, user_identifier)
         
         print(f"📝 Nuevo automation job creado: {job_id}")
         print(f"   Customer: {data['customerId']}")
-        print(f"   Campaign: {data['campaignId']} ({config.get('campaignName', 'Unknown')})")
+        print(f"   Campaign: {data['campaignId']}")
         print(f"   Groups: {data['numberOfGroups']}, Ads per group: {data['adsPerGroup']}")
         
         # Factory function para crear cliente de Google Ads
@@ -3525,9 +4839,9 @@ def get_automation_history():
                 "success": False,
                 "error": "customerId es requerido"
             }), 400
-            result.headers.add('Access-Control-Allow-Origin', '*')
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
             return result
-            
+        
         limit = data.get('limit', 50)
         status_filter = data.get('status')
         
@@ -3554,54 +4868,15 @@ def get_automation_history():
         return result
 
 
-@app.route('/api/automation/history/<job_id>', methods=['DELETE', 'OPTIONS'])
-def delete_automation_job(job_id):
+@app.route('/api/automation/cancel/<job_id>', methods=['POST', 'OPTIONS'])
+def cancel_automation(job_id):
     """
-    Elimina un job específico del historial.
-    """
-    # CORS preflight
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-        response.headers.add('Access-Control-Allow-Methods', 'DELETE, OPTIONS')
-        return response
+    Cancela un job en ejecución.
     
-    try:
-        success = delete_job(job_id)
-        
-        if success:
-            result = jsonify({
-                "success": True,
-                "message": "Job eliminado exitosamente"
-            })
-        else:
-            result = jsonify({
-                "success": False,
-                "message": "Job no encontrado"
-            }), 404
-            
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
-        
-    except Exception as e:
-        print(f"❌ Error eliminando job: {str(e)}")
-        result = jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
-
-
-@app.route('/api/automation/history/clear', methods=['POST', 'OPTIONS'])
-def clear_automation_history():
-    """
-    Elimina todo el historial de jobs de un usuario.
-    
-    Request Body:
+    Response:
     {
-        "customerId": "1234567890"
+        "success": true,
+        "message": "Job cancelado exitosamente"
     }
     """
     # CORS preflight
@@ -3613,33 +4888,122 @@ def clear_automation_history():
         return response
     
     try:
-        data = request.json
-        customer_id = data.get('customerId')
+        cancelled = automation_worker.cancel_job(job_id)
         
-        if not customer_id:
+        if cancelled:
+            result = jsonify({
+                "success": True,
+                "message": "Job cancelado exitosamente"
+            })
+        else:
             result = jsonify({
                 "success": False,
-                "error": "customerId es requerido"
+                "message": "No se pudo cancelar el job (ya completado o no existe)"
             }), 400
+        
+        if isinstance(result, tuple):
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+        else:
             result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
-            
-        deleted_count = delete_user_jobs(customer_id)
+        
+        return result
+        
+    except Exception as e:
+        result = jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+
+@app.route('/api/automation/logs/<job_id>', methods=['GET', 'OPTIONS'])
+def get_automation_logs(job_id):
+    """
+    Obtiene logs detallados de un job.
+    
+    Response:
+    {
+        "success": true,
+        "logs": [
+            {
+                "timestamp": "2025-11-27T10:30:00Z",
+                "level": "INFO",
+                "message": "Creando ad group...",
+                "data": {...}
+            },
+            ...
+        ]
+    }
+    """
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        return response
+    
+    try:
+        logs = get_job_logs(job_id, limit=200)
         
         result = jsonify({
             "success": True,
-            "message": f"Historial eliminado exitosamente ({deleted_count} jobs)",
-            "deletedCount": deleted_count
+            "logs": [log.to_dict() for log in logs]
         })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
-        print(f"❌ Error limpiando historial: {str(e)}")
         result = jsonify({
             "success": False,
             "error": str(e)
         }), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
+        
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
+
+# ============================================================================
+# DIAGNOSTIC ENDPOINT
+# ============================================================================
+
+@app.route('/api/diagnostic', methods=['GET'])
+def diagnostic():
+    """Endpoint de diagnóstico para verificar versiones de dependencias"""
+    import sys
+    try:
+        import openai
+        openai_version = openai.__version__
+    except:
+        openai_version = "not installed"
+    
+    try:
+        import google.generativeai as genai
+        genai_version = genai.__version__
+    except:
+        genai_version = "not installed"
+    
+    try:
+        import sqlalchemy
+        sqlalchemy_version = sqlalchemy.__version__
+    except:
+        sqlalchemy_version = "not installed"
+    
+    result = jsonify({
+        "success": True,
+        "python_version": sys.version,
+        "dependencies": {
+            "openai": openai_version,
+            "google-generativeai": genai_version,
+            "sqlalchemy": sqlalchemy_version
+        },
+        "worker_status": {
+            "active_jobs": len(automation_worker.active_jobs),
+            "max_workers": automation_worker.executor._max_workers
+        }
+    })
+    
+    result.headers.add('Access-Control-Allow-Origin', '*')
+    return result
