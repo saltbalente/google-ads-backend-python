@@ -4093,6 +4093,18 @@ def get_google_trends():
                 
         except Exception as pytrends_error:
             print(f"⚠️ Pytrends falló: {str(pytrends_error)}")
+            
+            # NIVEL 1.5: Intentar con Scraping Manual (Simulación de navegador)
+            try:
+                print("🔄 Intentando Nivel 1.5: Scraping Manual...")
+                result_data = get_trends_via_scraping(keywords, geo, time_range, resolution)
+                print("✅ Datos obtenidos de Scraping Manual")
+                
+                result = jsonify(result_data)
+                result.headers.add('Access-Control-Allow-Origin', '*')
+                return result
+            except Exception as scraping_error:
+                print(f"⚠️ Scraping Manual falló: {str(scraping_error)}")
         
         # NIVEL 2: Intentar con Google Ads API (SECUNDARIO - Excelente para volumen, pero regiones estimadas)
         try:
@@ -4416,6 +4428,168 @@ def generate_region_data_for_country(geo, resolution, total_volume, keyword_seed
     
     return region_data
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', '5000'))
-    app.run(debug=True, port=port)
+def get_trends_via_scraping(keywords, geo, time_range, resolution):
+    """
+    Intenta obtener datos 'rascando' directamente la web de Google Trends
+    simulando una sesión de navegador completa con Cookies y Tokens.
+    """
+    import requests
+    import json
+    import re
+    import time
+    from urllib.parse import quote
+    
+    print("🕷️ Iniciando Scraping Manual de Google Trends...")
+    
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+        'Referer': 'https://trends.google.com/',
+        'Upgrade-Insecure-Requests': '1'
+    })
+    
+    try:
+        # PASO 1: Visitar la home para obtener Cookies iniciales (NID, etc)
+        print("🕷️ Paso 1: Obteniendo cookies base...")
+        resp_home = session.get('https://trends.google.com/trends/?geo=' + geo)
+        if resp_home.status_code != 200:
+            raise Exception(f"Error cargando home: {resp_home.status_code}")
+            
+        # PASO 2: Obtener el TOKEN de exploración
+        print("🕷️ Paso 2: Obteniendo tokens de widget...")
+        keyword = keywords[0]
+        # Mapeo de tiempo simple
+        time_param = 'today 12-m'
+        if 'today 12-m' in time_range: time_param = 'today 12-m'
+        elif 'now 7-d' in time_range: time_param = 'now 7-d'
+        
+        explore_url = 'https://trends.google.com/trends/api/explore'
+        params = {
+            'hl': 'es',
+            'tz': '300',
+            'req': json.dumps({
+                "comparisonItem": [{"keyword": keyword, "geo": geo, "time": time_param}],
+                "category": 0,
+                "property": ""
+            }),
+            'tz': '300'
+        }
+        
+        resp_explore = session.get(explore_url, params=params)
+        content = resp_explore.text
+        
+        # Limpiar el prefijo de seguridad de Google (puede variar)
+        # Buscamos el primer '{' para empezar el JSON
+        first_brace = content.find('{')
+        if first_brace != -1:
+            content = content[first_brace:]
+        else:
+             print(f"⚠️ No se encontró JSON válido en: {content[:100]}")
+            
+        try:
+            data_explore = json.loads(content)
+        except json.JSONDecodeError:
+            print(f"❌ Error decodificando JSON. Contenido recibido (primeros 500 chars):\n{content[:500]}")
+            raise Exception("Google Trends devolvió una respuesta no válida (posible bloqueo)")
+        widgets = data_explore.get('widgets', [])
+        
+        # Buscar el widget de "Interest by subregion" (o CITY/DMA)
+        region_token = None
+        timeline_token = None
+        
+        for widget in widgets:
+            if widget.get('id') == 'GEO_MAP':
+                region_token = widget.get('token')
+                region_request = widget.get('request')
+            if widget.get('id') == 'TIMESERIES':
+                timeline_token = widget.get('token')
+                timeline_request = widget.get('request')
+                
+        if not region_token:
+            raise Exception("No se encontró token de región")
+            
+        # PASO 3: Pedir los datos de región usando el token
+        print(f"🕷️ Paso 3: Descargando datos de región ({resolution})...")
+        
+        # Ajustar resolución en el request
+        region_resolution = 'COUNTRY'
+        if resolution == 'DMA': region_resolution = 'DMA'
+        elif resolution == 'CITY': region_resolution = 'CITY'
+        elif resolution == 'REGION': region_resolution = 'REGION'
+        
+        region_request['resolution'] = region_resolution
+        region_request['includeLowSearchVolumeGeos'] = True
+        
+        region_url = 'https://trends.google.com/trends/api/widgetdata/comparedgeo'
+        region_params = {
+            'hl': 'es',
+            'tz': '300',
+            'req': json.dumps(region_request),
+            'token': region_token,
+            'locale': 'es'
+        }
+        
+        resp_region = session.get(region_url, params=region_params)
+        region_content = resp_region.text
+        
+        # Limpiar prefijo
+        first_brace = region_content.find('{')
+        if first_brace != -1:
+            region_content = region_content[first_brace:]
+            
+        region_json = json.loads(region_content)
+        
+        # Procesar datos de región
+        region_data = []
+        if 'default' in region_json and 'geoMapData' in region_json['default']:
+            for item in region_json['default']['geoMapData']:
+                if item.get('hasData') and item.get('value'):
+                    region_data.append({
+                        'geoName': item.get('geoName'),
+                        'value': item['value'][0], # Valor del primer keyword
+                        'geoCode': item.get('geoCode')
+                    })
+        
+        # PASO 4: Pedir datos de timeline
+        print("🕷️ Paso 4: Descargando timeline...")
+        timeline_data = []
+        if timeline_token:
+            timeline_url = 'https://trends.google.com/trends/api/widgetdata/multiline'
+            timeline_params = {
+                'hl': 'es',
+                'tz': '300',
+                'req': json.dumps(timeline_request),
+                'token': timeline_token,
+                'locale': 'es'
+            }
+            resp_timeline = session.get(timeline_url, params=timeline_params)
+            timeline_content = resp_timeline.text
+            
+            # Limpiar prefijo
+            first_brace = timeline_content.find('{')
+            if first_brace != -1:
+                timeline_content = timeline_content[first_brace:]
+            
+            timeline_json = json.loads(timeline_content)
+            if 'default' in timeline_json and 'timelineData' in timeline_json['default']:
+                for item in timeline_json['default']['timelineData']:
+                    if item.get('hasData') and item.get('value'):
+                        timeline_data.append({
+                            'date': item.get('formattedTime'), # O formattedAxisTime
+                            'value': item['value'][0]
+                        })
+
+        print(f"✅ Scraping exitoso: {len(region_data)} regiones encontradas")
+        
+        return {
+            'timelineData': timeline_data,
+            'interestByRegion': region_data,
+            'relatedQueries': [], # Simplificado por ahora
+            'source': 'pytrends' # Usamos el mismo identificador para el badge azul
+        }
+        
+    except Exception as e:
+        print(f"❌ Error en Scraping Manual: {str(e)}")
+        raise e # Re-lanzar para que el fallback lo capture
