@@ -10,5 +10,5 @@ urllib3<2.0.0
 
 # Automation System Dependencies
 SQLAlchemy==2.0.36
-openai==1.3.7
+openai==1.54.4
 google-generativeai==0.8.3

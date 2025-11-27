@@ -518,7 +518,13 @@ Formato JSON:
         # Llamar al proveedor de IA correspondiente
         if provider == 'openai':
             from openai import OpenAI
-            client_openai = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+            
+            # Crear cliente sin configuraciones legacy
+            client_openai = OpenAI(
+                api_key=os.environ.get('OPENAI_API_KEY'),
+                timeout=30.0,
+                max_retries=2
+            )
             
             response = client_openai.chat.completions.create(
                 model="gpt-4o-mini",
