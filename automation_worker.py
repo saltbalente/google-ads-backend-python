@@ -371,25 +371,80 @@ class AutomationWorker:
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         ad_group_service = client.get_service("AdGroupService")
         
-        operations = []
+        # ESTRATEGIA: Agregar keywords en lotes pequeños para detectar cuáles fallan
+        successful_keywords = 0
+        failed_keywords = []
         
-        for keyword_text in keywords:
-            operation = client.get_type("AdGroupCriterionOperation")
-            criterion = operation.create
+        # Intentar agregar todas juntas primero
+        try:
+            operations = []
+            for keyword_text in keywords:
+                operation = client.get_type("AdGroupCriterionOperation")
+                criterion = operation.create
+                
+                criterion.ad_group = ad_group_service.ad_group_path(customer_id, ad_group_id)
+                criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+                criterion.keyword.text = keyword_text
+                criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
+                
+                operations.append(operation)
             
-            criterion.ad_group = ad_group_service.ad_group_path(customer_id, ad_group_id)
-            criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-            criterion.keyword.text = keyword_text
-            criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
+            response = ad_group_criterion_service.mutate_ad_group_criteria(
+                customer_id=customer_id,
+                operations=operations,
+                partial_failure=True  # CRÍTICO: Permite éxito parcial
+            )
             
-            operations.append(operation)
+            # Contar éxitos
+            successful_keywords = len([r for r in response.results if r.resource_name])
+            
+            # Si hay partial_failure_error, algunas keywords fallaron
+            if hasattr(response, 'partial_failure_error') and response.partial_failure_error:
+                print(f"⚠️ Algunas keywords fallaron por políticas de Google Ads")
+                # Extraer keywords que fallaron del error
+                error_msg = str(response.partial_failure_error)
+                if 'POLICY_ERROR' in error_msg or 'NON_FAMILY_SAFE' in error_msg:
+                    print(f"⚠️ Políticas violadas detectadas - {len(keywords) - successful_keywords} keywords rechazadas")
+            
+            return successful_keywords
+            
+        except Exception as e:
+            error_str = str(e)
+            
+            # Si el error es por políticas, intentar agregar keywords una por una
+            if 'POLICY_ERROR' in error_str or 'POLICY_VIOLATION' in error_str:
+                print(f"⚠️ Error de políticas detectado. Intentando agregar keywords individualmente...")
+                
+                for keyword_text in keywords:
+                    try:
+                        operation = client.get_type("AdGroupCriterionOperation")
+                        criterion = operation.create
+                        
+                        criterion.ad_group = ad_group_service.ad_group_path(customer_id, ad_group_id)
+                        criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+                        criterion.keyword.text = keyword_text
+                        criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
+                        
+                        response = ad_group_criterion_service.mutate_ad_group_criteria(
+                            customer_id=customer_id,
+                            operations=[operation]
+                        )
+                        
+                        successful_keywords += 1
+                        
+                    except Exception as kw_error:
+                        failed_keywords.append(keyword_text)
+                        print(f"❌ Keyword rechazada: '{keyword_text}' - {str(kw_error)[:100]}")
+                
+                if failed_keywords:
+                    print(f"📊 Resumen: {successful_keywords} keywords agregadas, {len(failed_keywords)} rechazadas por políticas")
+                
+                return successful_keywords
+            else:
+                # Error diferente, propagar
+                raise
         
-        response = ad_group_criterion_service.mutate_ad_group_criteria(
-            customer_id=customer_id,
-            operations=operations
-        )
-        
-        return len(response.results)
+        return 0
     
     def _get_final_url(self, client, customer_id: str, campaign_id: str, config: Dict) -> str:
         """
