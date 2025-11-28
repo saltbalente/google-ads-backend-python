@@ -253,15 +253,40 @@ class LandingPageGenerator:
             except Exception as e:
                 raise RuntimeError(f"Gemini API Error: {str(e)}")
         else:
-            import openai
-            openai.api_key = os.getenv("OPENAI_API_KEY")
-            rsp = openai.chat.completions.create(
-                model=self.openai_model,
-                messages=[{"role": "system", "content": self._system_prompt()}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
-                response_format={"type": "json_object"},
-                temperature=0.7,
+            # Fallback to direct API call to avoid httpx compatibility issues
+            import requests
+            
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                raise RuntimeError("OPENAI_API_KEY environment variable is required")
+            
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": self.openai_model,
+                "messages": [
+                    {"role": "system", "content": self._system_prompt()},
+                    {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.7
+            }
+            
+            response = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=60
             )
-            content = rsp.choices[0].message.content
+            
+            if response.status_code != 200:
+                raise RuntimeError(f"OpenAI API error: {response.status_code} - {response.text}")
+            
+            result = response.json()
+            content = result["choices"][0]["message"]["content"]
         
         print("  ✅ [AI] Respuesta recibida. Procesando JSON...")
         # Strip markdown code blocks if present
