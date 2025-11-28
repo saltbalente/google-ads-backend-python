@@ -576,14 +576,14 @@ class LandingPageGenerator:
         if not token:
             raise RuntimeError("GitHub token not configured")
         return {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"token {token}",
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28"
         }
 
     def _github_api(self, path: str) -> str:
         """Build GitHub API URL."""
-        if not path.startswith("/"):
+        if path and not path.startswith("/"):
             path = f"/{path}"
         return f"https://api.github.com/repos/{self.github_owner}/{self.github_repo}{path}"
 
