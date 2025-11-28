@@ -652,6 +652,30 @@ class LandingPageGenerator:
                     "description": "Diseñada para dinero, riqueza y abundancia",
                     "preview_url": f"/api/templates/preview/{template_name}"
                 }
+            elif template_name == "llama-gemela":
+                template_info[template] = {
+                    "name": "Llama Gemela",
+                    "description": "Rituales de amor y reconciliación",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "llamado-del-alma":
+                template_info[template] = {
+                    "name": "El Llamado del Alma",
+                    "description": "Sanación espiritual y chamanismo",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "el-libro-prohibido":
+                template_info[template] = {
+                    "name": "El Libro Prohibido",
+                    "description": "Magia negra y trabajos fuertes",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "la-luz":
+                template_info[template] = {
+                    "name": "La Luz",
+                    "description": "Magia blanca y sanación angelical",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
             else:
                 template_info[template] = {
                     "name": template_name.title(),
@@ -664,7 +688,7 @@ class LandingPageGenerator:
     @staticmethod
     def get_templates_static() -> Dict[str, Dict[str, str]]:
         """Static method to get template information without requiring full initialization."""
-        templates = ["base.html", "mystical.html", "romantic.html", "prosperity.html"]
+        templates = ["base.html", "mystical.html", "romantic.html", "prosperity.html", "llama-gemela.html", "llamado-del-alma.html", "el-libro-prohibido.html", "la-luz.html"]
         template_info = {}
 
         for template in templates:
@@ -693,6 +717,30 @@ class LandingPageGenerator:
                 template_info[template] = {
                     "name": "Prosperidad",
                     "description": "Diseñada para dinero, riqueza y abundancia",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "llama-gemela":
+                template_info[template] = {
+                    "name": "Llama Gemela",
+                    "description": "Rituales de amor y reconciliación",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "llamado-del-alma":
+                template_info[template] = {
+                    "name": "El Llamado del Alma",
+                    "description": "Sanación espiritual y chamanismo",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "el-libro-prohibido":
+                template_info[template] = {
+                    "name": "El Libro Prohibido",
+                    "description": "Magia negra y trabajos fuertes",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "la-luz":
+                template_info[template] = {
+                    "name": "La Luz",
+                    "description": "Magia blanca y sanación angelical",
                     "preview_url": f"/api/templates/preview/{template_name}"
                 }
             else:

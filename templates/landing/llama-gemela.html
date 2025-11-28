@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLAMA GEMELA - Rituales de Amor y Reconciliación</title>
-    <meta name="description" content="Rituales de amor blanco · Reconciliaciones imposibles · Amarres de alma gemela · Endulzamientos eternos">
+    <title>{{ seo_title }}</title>
+    <meta name="description" content="{{ seo_description }}">
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
         * {
@@ -383,9 +383,9 @@
         <!-- Hero Section -->
         <section class="hero">
             <div class="hero-image"></div>
-            <h1 class="hero-title" id="heroTitle">Tu persona amada ya está sintiendo tu falta…<br>En 7 días volverá a tus brazos rogando tu perdón</h1>
-            <p class="hero-subtitle">Rituales de amor blanco · Reconciliaciones imposibles · Amarres de alma gemela · Endulzamientos eternos</p>
-            <button class="cta-button" onclick="scrollToContact()">Quiero que vuelva conmigo HOY</button>
+            <h1 class="hero-title" id="heroTitle">{{ headline_h1 }}</h1>
+            <p class="hero-subtitle">{{ subheadline }}</p>
+            <button class="cta-button" onclick="scrollToContact()">{{ cta_text }}</button>
         </section>
 
         <!-- Dolor Section -->
@@ -402,18 +402,11 @@
         <section class="section">
             <h2 class="section-title">Historias que hacen llorar de felicidad</h2>
             <div class="testimonials">
+                {% for proof in social_proof %}
                 <div class="testimonial">
-                    <p>"Lloré cuando me llamó a las 3 a.m. diciendo que no podía vivir sin mí… Volvimos a ser la pareja perfecta."</p>
-                    <cite>- María G., 28 años</cite>
+                    <p>"{{ proof }}"</p>
                 </div>
-                <div class="testimonial">
-                    <p>"Después de 2 años separados, regresó en 5 días con anillo en mano pidiéndome matrimonio otra vez."</p>
-                    <cite>- Carlos R., 32 años</cite>
-                </div>
-                <div class="testimonial">
-                    <p>"Pensé que lo había perdido para siempre… Hoy dormimos abrazados como la primera vez."</p>
-                    <cite>- Ana L., 25 años</cite>
-                </div>
+                {% endfor %}
             </div>
         </section>
 
@@ -421,26 +414,12 @@
         <section class="section">
             <h2 class="section-title">Rituales del corazón roto</h2>
             <div class="rituals">
+                {% for benefit in benefits %}
                 <div class="ritual-card">
-                    <div class="ritual-icon">💑</div>
-                    <h3 class="ritual-title">Ritual de la Llama Gemela</h3>
-                    <p>Dos velas unidas por el destino eterno</p>
+                    <div class="ritual-icon">✨</div>
+                    <h3 class="ritual-title">{{ benefit }}</h3>
                 </div>
-                <div class="ritual-card">
-                    <div class="ritual-icon">🍯</div>
-                    <h3 class="ritual-title">Endulzamiento con miel y rosas</h3>
-                    <p>Endulza su corazón para que solo piense en ti</p>
-                </div>
-                <div class="ritual-card">
-                    <div class="ritual-icon">💍</div>
-                    <h3 class="ritual-title">Amarre eterno de alma gemela</h3>
-                    <p>Conexión espiritual que trasciende el tiempo</p>
-                </div>
-                <div class="ritual-card">
-                    <div class="ritual-icon">🌙</div>
-                    <h3 class="ritual-title">Vuelta en 7 días garantizada</h3>
-                    <p>Ritual lunar para reconciliaciones imposibles</p>
-                </div>
+                {% endfor %}
             </div>
         </section>
 
@@ -468,14 +447,14 @@
             <div class="contact-item">
                 <span class="contact-icon">📱</span>
                 <div>
-                    <strong class="contact-text">WhatsApp: <span id="whatsapp">TEMPLATE_WHATSAPP</span></strong>
+                    <strong class="contact-text">WhatsApp: <span id="whatsapp">{{ whatsapp_number }}</span></strong>
                 </div>
             </div>
 
             <div class="contact-item">
                 <span class="contact-icon">📞</span>
                 <div>
-                    <strong class="contact-text">Teléfono: <span id="phone">TEMPLATE_PHONE</span></strong>
+                    <strong class="contact-text">Teléfono: <span id="phone">{{ phone_number }}</span></strong>
                 </div>
             </div>
 
@@ -486,7 +465,7 @@
                 </div>
             </div>
 
-            <button class="cta-button" style="margin-top: 40px;">Traerlo/a de vuelta a mis brazos ahora</button>
+            <button class="cta-button" style="margin-top: 40px;">{{ cta_text }}</button>
         </section>
     </div>
 

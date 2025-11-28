@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EL LLAMADO DEL ALMA - Curandero Ancestral y Sanación Espiritual</title>
-    <meta name="description" content="Limpias energéticas · Levantamiento de daños · Sanación del alma · Protección poderosa · Lectura de coca o tabaco · Prosperidad y salud">
+    <title>{{ seo_title }}</title>
+    <meta name="description" content="{{ seo_description }}">
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <style>
         * {
@@ -440,11 +440,12 @@
 
     <div class="container">
         <!-- Hero Section -->
+                <!-- Hero Section -->
         <section class="hero">
             <div class="hero-image"></div>
-            <h1 class="hero-title" id="heroTitle">Ya no tienes que cargar solo/a con ese dolor…<br>Yo te ayudo a soltarlo para siempre</h1>
-            <p class="hero-subtitle">Limpias energéticas · Levantamiento de daños · Sanación del alma · Protección poderosa · Lectura de coca o tabaco · Prosperidad y salud</p>
-            <button class="cta-button" onclick="scrollToContact()">Hablar con el maestro ahora</button>
+            <h1 class="hero-title" id="heroTitle">{{ headline_h1 }}</h1>
+            <p class="hero-subtitle">{{ subheadline }}</p>
+            <button class="cta-button" onclick="scrollToContact()">{{ cta_text }}</button>
         </section>
 
         <!-- Dolor Section -->
@@ -461,18 +462,11 @@
         <section class="section">
             <h2 class="section-title">Milagros que suceden todos los días</h2>
             <div class="testimonials">
+                {% for proof in social_proof %}
                 <div class="testimonial">
-                    <p>"Llegué llorando y salí caminando en paz, se me quitó un peso que llevaba 12 años cargando."</p>
-                    <cite>- María R., 45 años</cite>
+                    <p>"{{ proof }}"</p>
                 </div>
-                <div class="testimonial">
-                    <p>"En 3 días me llamaron para el trabajo que tanto necesitaba. Fue como si se abrieran las puertas."</p>
-                    <cite>- Carlos M., 38 años</cite>
-                </div>
-                <div class="testimonial">
-                    <p>"Mi hijo dejó las drogas después de la limpia. No lo puedo creer, pero aquí está la paz que tanto buscábamos."</p>
-                    <cite>- Ana G., 52 años</cite>
-                </div>
+                {% endfor %}
             </div>
         </section>
 
@@ -480,31 +474,12 @@
         <section class="section">
             <h2 class="section-title">Los trabajos de la medicina viva</h2>
             <div class="works">
+                {% for benefit in benefits %}
                 <div class="work-card">
-                    <div class="work-icon">🥚</div>
-                    <h3 class="work-title">Limpia de 21 días con huevo y hierbas</h3>
-                    <p>Limpieza profunda de energías negativas y entidades</p>
+                    <div class="work-icon">🌿</div>
+                    <h3 class="work-title">{{ benefit }}</h3>
                 </div>
-                <div class="work-card">
-                    <div class="work-icon">🛡️</div>
-                    <h3 class="work-title">Levantamiento de daño y envidia</h3>
-                    <p>Romper maldiciones y proteger tu energía vital</p>
-                </div>
-                <div class="work-card">
-                    <div class="work-icon">🌸</div>
-                    <h3 class="work-title">Baño de florecimiento y prosperidad</h3>
-                    <p>Atraer abundancia y florecer en todos los aspectos</p>
-                </div>
-                <div class="work-card">
-                    <div class="work-icon">👨‍👩‍👧‍👦</div>
-                    <h3 class="work-title">Protección familiar con resguardo</h3>
-                    <p>Blindaje espiritual para toda tu familia</p>
-                </div>
-                <div class="work-card">
-                    <div class="work-icon">🌙</div>
-                    <h3 class="work-title">Sanación de susto y espanto</h3>
-                    <p>Recuperar el alma perdida y volver a la paz</p>
-                </div>
+                {% endfor %}
             </div>
         </section>
 
@@ -533,14 +508,14 @@
             <div class="contact-item">
                 <span class="contact-icon">📱</span>
                 <div>
-                    <strong class="contact-text">WhatsApp: <span id="whatsapp">TEMPLATE_WHATSAPP</span></strong>
+                    <strong class="contact-text">WhatsApp: <span id="whatsapp">{{ whatsapp_number }}</span></strong>
                 </div>
             </div>
 
             <div class="contact-item">
                 <span class="contact-icon">📞</span>
                 <div>
-                    <strong class="contact-text">Teléfono: <span id="phone">TEMPLATE_PHONE</span></strong>
+                    <strong class="contact-text">Teléfono: <span id="phone">{{ phone_number }}</span></strong>
                 </div>
             </div>
 
@@ -551,7 +526,7 @@
                 </div>
             </div>
 
-            <button class="cta-button" style="margin-top: 40px;">Quiero mi consulta y mi limpia ahora</button>
+            <button class="cta-button" style="margin-top: 40px;">{{ cta_text }}</button>
         </section>
     </div>
 

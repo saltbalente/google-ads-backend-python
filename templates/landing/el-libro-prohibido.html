@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EL LIBRO PROHIBIDO - Curandero de lo Oscuro</title>
-    <meta name="description" content="Daños antiguos · entierros · salaciones · trabajos de cementerio · mal de ojo · limpia con sangre">
+    <title>{{ seo_title }}</title>
+    <meta name="description" content="{{ seo_description }}">
     <link href="https://fonts.googleapis.com/css2?family=Nosifer&family=Homemade+Apple&family=Cinzel:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -384,32 +384,30 @@
         <!-- Page 2: Right -->
         <div class="page page-right">
             <div class="ink-stain" style="bottom: 20%; right: 10%;"></div>
-            <h1>YO QUEMO EL MAL QUE TE COMERÁ VIVO</h1>
+            <h1>{{ headline_h1 }}</h1>
             <p style="text-align: center;">
-                Daños antiguos · entierros · salaciones · trabajos de cementerio · mal de ojo que no te deja dormir · almas que te persiguen · limpia con sangre y tabaco negro
+                {{ subheadline }}
             </p>
-            <button class="wax-seal-btn" onclick="scrollToSection('works')">ABRIR MI CASO<br><span style="font-size: 0.8rem; font-weight: normal;">(una sola vez)</span></button>
+            <button class="wax-seal-btn" onclick="scrollToSection('works')">{{ cta_text }}<br><span style="font-size: 0.8rem; font-weight: normal;">(una sola vez)</span></button>
         </div>
 
         <!-- Page 3: Works (Left) -->
         <div class="page page-left" id="works">
             <h2>Los trabajos prohibidos</h2>
+            {% for benefit in benefits[:2] %}
             <div class="forbidden-item">
-                <h3>Levantamiento de entierro</h3>
-                <p>Con tierra de 7 tumbas – 9 días. <br><em>Para cuando sientes que te ahogas en vida.</em></p>
+                <h3>{{ benefit }}</h3>
             </div>
-            <div class="forbidden-item">
-                <h3>Quita muerto</h3>
-                <p>Se hace solo en martes 13. <br><em>Para cuando escuchas pasos y nadie camina.</em></p>
-            </div>
+            {% endfor %}
         </div>
 
         <!-- Page 4: Works (Right) -->
         <div class="page page-right">
+            {% for benefit in benefits[2:] %}
             <div class="forbidden-item">
-                <h3>Rompimiento de trabajo negro</h3>
-                <p>Hecho por enemigo vivo o muerto. <br><em>Devuelvo el daño multiplicado por tres.</em></p>
+                <h3>{{ benefit }}</h3>
             </div>
+            {% endfor %}
             <div class="ink-stain" style="top: 50%; left: 40%;"></div>
             <p class="handwritten shake" style="margin-top: 40px; text-align: center; color: var(--blood);">
                 «No preguntes cómo lo hago.<br>Solo disfruta el silencio cuando ellos se callen.»
@@ -419,18 +417,20 @@
         <!-- Page 5: Testimonials (Left) -->
         <div class="page page-left">
             <h2>Cartas desesperadas</h2>
+            {% if social_proof|length > 0 %}
             <div class="testimonial-letter">
-                <p>«Me estaban comiendo vivo, en 3 días dejó de doler el cuerpo y encontré al que me hizo el daño muerto en su casa. Gracias don Severo.»</p>
-                <p style="text-align: right;">- Anónimo, 1892</p>
+                <p>«{{ social_proof[0] }}»</p>
             </div>
+            {% endif %}
         </div>
 
         <!-- Page 6: Testimonials (Right) -->
         <div class="page page-right">
+            {% if social_proof|length > 1 %}
             <div class="testimonial-letter" style="transform: rotate(-1deg);">
-                <p>«Mi hija hablaba sola, después de la limpia encontró esta foto debajo de la cama… era mi suegra muerta. Ahora la casa está en paz.»</p>
-                <p style="text-align: right;">- M.G.</p>
+                <p>«{{ social_proof[1] }}»</p>
             </div>
+            {% endif %}
             <div class="ink-stain" style="bottom: 10%; left: 10%;"></div>
         </div>
 
@@ -458,11 +458,11 @@
                 
                 <div style="margin: 20px 0; text-align: left; color: #aaa;">
                     <p>Contactar por:</p>
-                    <p>WhatsApp: <span id="whatsapp" style="color: #fff;">TEMPLATE_WHATSAPP</span></p>
-                    <p>Teléfono: <span id="phone" style="color: #fff;">TEMPLATE_PHONE</span></p>
+                    <p>WhatsApp: <span id="whatsapp" style="color: #fff;">{{ whatsapp_number }}</span></p>
+                    <p>Teléfono: <span id="phone" style="color: #fff;">{{ phone_number }}</span></p>
                 </div>
 
-                <button class="wax-seal-btn" style="background: radial-gradient(circle at 30% 30%, #8a0303, #000);">ENTREGAR MI ALMA<br>AL REMEDIO</button>
+                <button class="wax-seal-btn" style="background: radial-gradient(circle at 30% 30%, #8a0303, #000);">{{ cta_text }}</button>
             </div>
         </div>
     </div>
