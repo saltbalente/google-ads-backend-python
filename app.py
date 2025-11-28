@@ -120,6 +120,49 @@ def get_landing_history():
     
     return {"landings": landings}
 
+def delete_landing_from_github(folder_name):
+    github_owner = os.getenv("GITHUB_REPO_OWNER")
+    github_repo = os.getenv("GITHUB_REPO_NAME", "monorepo-landings")
+    github_token = os.getenv("GITHUB_TOKEN")
+    
+    if not all([github_owner, github_token]):
+        raise ValueError("GitHub credentials not configured")
+    
+    headers = {"Authorization": f"token {github_token}"}
+    
+    # Get all files in the folder recursively
+    def get_all_files(path=""):
+        files = []
+        url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{folder_name}/{path}"
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            contents = response.json()
+            for item in contents:
+                if item['type'] == 'file':
+                    files.append(f"{path}/{item['name']}" if path else item['name'])
+                elif item['type'] == 'dir':
+                    sub_path = f"{path}/{item['name']}" if path else item['name']
+                    files.extend(get_all_files(sub_path))
+        return files
+    
+    files_to_delete = get_all_files()
+    
+    # Delete each file
+    for file_path in files_to_delete:
+        delete_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{folder_name}/{file_path}"
+        # Get file SHA
+        resp = requests.get(delete_url, headers=headers)
+        if resp.status_code == 200:
+            sha = resp.json()['sha']
+            delete_data = {
+                "message": f"Delete {file_path} from landing {folder_name}",
+                "sha": sha
+            }
+            requests.delete(delete_url, headers=headers, json=delete_data)
+    
+    # After deleting files, the folder should be empty, but GitHub doesn't have empty folders
+    return True
+
 def update_landing_metadata(folder_name, whatsapp_number=None, phone_number=None, gtm_id=None):
     github_owner = os.getenv("GITHUB_REPO_OWNER")
     github_repo = os.getenv("GITHUB_REPO_NAME", "monorepo-landings")
@@ -264,6 +307,24 @@ def landing_history():
         return result
     except Exception as e:
         result = jsonify({"error": str(e)}), 500
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/landing/delete/<folder_name>', methods=['DELETE', 'OPTIONS'])
+def delete_landing(folder_name):
+    if request.method == 'OPTIONS':
+        result = jsonify({}), 200
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        result.headers.add('Access-Control-Allow-Methods', 'DELETE, OPTIONS')
+        return result
+    try:
+        delete_landing_from_github(folder_name)
+        result = jsonify({"success": True, "message": f"Landing {folder_name} deleted"})
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except Exception as e:
+        result = jsonify({"success": False, "error": str(e)}), 500
         result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
