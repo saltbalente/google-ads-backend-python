@@ -1,0 +1,257 @@
+{
+  "template_name": "jose-amp",
+  "template_title": "José AMP - Landing Page Dinámica",
+  "template_description": "Template AMP de alta conversión adaptado para servicios espirituales y esoterismo",
+  "template_category": "esoterismo",
+  "template_preview": "/static/previews/jose-amp-preview.jpg",
+
+  "variables": {
+    "seo": {
+      "seo_title": "{{ service_type }} - {{ expert_name }} | Especialista en {{ main_keyword }}",
+      "seo_description": "Servicio profesional de {{ service_type }} con {{ expert_name }}. {{ main_keyword }} efectivo, discreto y garantizado. Resultados reales en {{ location }}.",
+      "canonical_url": "{{ domain }}/landing/{{ template_name }}",
+      "meta_keywords": "{{ main_keyword }}, {{ service_type }}, {{ expert_name }}, {{ location }}, {{ secondary_keywords | join(', ') }}"
+    },
+
+    "contact": {
+      "phone_number": "+573001234567",
+      "display_phone": "+57 300 123 4567",
+      "whatsapp_number": "573001234567",
+      "whatsapp_message": "Hola {{ expert_name }}, necesito ayuda con {{ main_keyword }}",
+      "email": "contacto@{{ domain }}"
+    },
+
+    "site": {
+      "site_name": "{{ expert_name }}",
+      "header_tagline": "Especialista en {{ service_type }}",
+      "domain": "tu-dominio.com"
+    },
+
+    "expert": {
+      "expert_name": "José",
+      "expert_title": "Maestro Espiritual",
+      "expert_description": "{{ expert_name }} es un especialista reconocido en {{ service_type }} con más de {{ experience_years }} años de experiencia ayudando a personas en {{ location }} y alrededores.",
+      "experience_years": "15"
+    },
+
+    "content": {
+      "main_keyword": "amarres de amor",
+      "service_type": "amarres de amor",
+      "location": "Colombia",
+      "secondary_keywords": ["rituales espirituales", "limpias energéticas", "hechizos de amor", "consultas espirituales"],
+
+      "main_description": "Descubre el poder de los {{ service_type }} con {{ expert_name }}, especialista reconocido en {{ main_keyword }}. Más de {{ experience_years }} años de experiencia ayudando a parejas a reconectar con el amor verdadero. Resultados garantizados o te devolvemos tu dinero.",
+
+      "success_message": "¡Miles de parejas felices gracias a nuestros {{ service_type }}!",
+
+      "whatsapp_cta": "¡Contactar por WhatsApp Ahora!",
+      "main_cta": "SOLICITAR {{ service_type | upper }} AHORA",
+
+      "free_consultation_text": "CONSULTA GRATUITA - Sin compromiso",
+
+      "services_description": "Nuestros {{ service_type }} incluyen rituales ancestrales, limpias energéticas, hechizos personalizados y consultas espirituales. Cada servicio está diseñado específicamente para tu situación particular.",
+
+      "comprehensive_services": "SERVICIOS INTEGRALES DE {{ service_type | upper }} - RESULTADOS GARANTIZADOS",
+
+      "services_info": "Como especialista en {{ service_type }}, {{ expert_name }} combina técnicas tradicionales con conocimientos modernos para ofrecerte soluciones efectivas y duraderas.",
+
+      "services_benefits": "Beneficios de nuestros servicios: Resultados rápidos, discreción total, seguimiento personalizado, garantía de satisfacción.",
+
+      "expertise_description": "{{ expert_name }} ha ayudado a más de 5000 personas a recuperar el amor perdido, solucionar problemas de pareja y encontrar la felicidad que merecen.",
+
+      "guarantee_title": "¡GARANTÍA TOTAL DE RESULTADOS!",
+      "guarantee_description": "Si no obtienes los resultados prometidos en {{ service_type }}, te devolvemos el 100% de tu dinero. ¡Sin preguntas, sin excusas!",
+
+      "banner_title": "¡No esperes más!",
+      "banner_description": "Contacta ahora mismo con {{ expert_name }} y comienza tu camino hacia el amor verdadero. Consulta gratuita y confidencial.",
+      "banner_cta": "INICIAR CONSULTA GRATUITA",
+
+      "chat_button_text": "Chatear con {{ expert_name }}",
+      "whatsapp_button_text": "Contactar por WhatsApp",
+      "call_button_text": "Llamar Ahora",
+
+      "online_status": "En línea",
+
+      "footer_text": "© 2024 {{ expert_name }} - Especialista en {{ service_type }}. Todos los derechos reservados. Servicio confidencial y discreto."
+    },
+
+    "media": {
+      "main_video": "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4",
+      "video_poster": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1280&h=720&fit=crop",
+      "services_video": "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4",
+      "services_video_2": "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_5mb.mp4",
+      "testimonial_video": "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_10mb.mp4",
+
+      "main_image": "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=1080&h=1920&fit=crop",
+      "main_image_alt": "Especialista {{ expert_name }} en {{ service_type }}",
+
+      "expert_image": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop",
+      "expert_image_alt": "Foto de {{ expert_name }}",
+
+      "expert_portrait": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=600&h=800&fit=crop",
+      "portrait_alt": "Retrato profesional de {{ expert_name }}",
+
+      "chat_icon": "https://img.icons8.com/color/96/whatsapp.png",
+      "whatsapp_logo": "https://img.icons8.com/color/96/whatsapp.png",
+      "whatsapp_icon": "https://img.icons8.com/color/96/whatsapp.png",
+      "call_icon": "https://img.icons8.com/color/96/phone.png",
+
+      "gallery_images": [
+        {
+          "src": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=600&fit=crop",
+          "alt": "Ritual de {{ service_type }}"
+        },
+        {
+          "src": "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=600&fit=crop",
+          "alt": "Ceremonia espiritual"
+        },
+        {
+          "src": "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=600&fit=crop",
+          "alt": "Hierbas y elementos naturales"
+        },
+        {
+          "src": "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&h=600&fit=crop",
+          "alt": "Cristales y piedras sagradas"
+        },
+        {
+          "src": "https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?w=400&h=600&fit=crop",
+          "alt": "Velas y elementos rituales"
+        },
+        {
+          "src": "https://images.unsplash.com/photo-1507699622140-4e6bf2cce243?w=400&h=600&fit=crop",
+          "alt": "Altar espiritual"
+        }
+      ]
+    },
+
+    "testimonials": [
+      {
+        "text": "Gracias a {{ expert_name }}, mi relación se salvó. Los {{ service_type }} funcionaron más allá de mis expectativas. ¡Increíble!",
+        "date": "Hace 2 semanas - {{ location }}",
+        "name": "María González",
+        "city": "Bogotá",
+        "image": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=60&h=60&fit=crop&crop=face"
+      },
+      {
+        "text": "Después de 6 meses separados, mi esposo regresó gracias a los rituales de {{ expert_name }}. Servicio profesional y discreto.",
+        "date": "Hace 1 mes - {{ location }}",
+        "name": "Ana Rodríguez",
+        "city": "Medellín",
+        "image": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=60&h=60&fit=crop&crop=face"
+      },
+      {
+        "text": "Los {{ service_type }} de {{ expert_name }} son realmente efectivos. Mi pareja cambió completamente su actitud. ¡Recomendado!",
+        "date": "Hace 3 semanas - {{ location }}",
+        "name": "Carlos Mendoza",
+        "city": "Cali",
+        "image": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face"
+      }
+    ],
+
+    "keywords": {
+      "keywords_cloud": [
+        "{{ main_keyword }}",
+        "{{ service_type }}",
+        "rituales de amor",
+        "hechizos efectivos",
+        "consultas espirituales",
+        "limpias energéticas",
+        "problemas de pareja",
+        "amor perdido",
+        "reconquista amorosa",
+        "unión de parejas",
+        "rituales ancestrales",
+        "magia blanca",
+        "especialista espiritual",
+        "{{ location }}",
+        "servicio discreto",
+        "resultados garantizados"
+      ],
+
+      "keyword_definitions": [
+        {
+          "term": "{{ main_keyword }}",
+          "definition": "Rituales espirituales diseñados para reconectar parejas y fortalecer vínculos amorosos mediante técnicas ancestrales y energías positivas."
+        },
+        {
+          "term": "Rituales ancestrales",
+          "definition": "Ceremonias tradicionales transmitidas por generaciones, combinadas con conocimientos modernos para resultados efectivos."
+        },
+        {
+          "term": "Limpias energéticas",
+          "definition": "Proceso de purificación espiritual que elimina energías negativas y bloqueos que impiden el flujo natural del amor."
+        },
+        {
+          "term": "Consultas espirituales",
+          "definition": "Sesiones personalizadas donde se analiza tu situación amorosa y se diseña un plan espiritual específico para tu caso."
+        },
+        {
+          "term": "Magia blanca",
+          "definition": "Prácticas espirituales positivas que buscan el bien mayor, utilizando energías constructivas y respetando el libre albedrío."
+        }
+      ]
+    },
+
+    "analytics": {
+      "gtm_id": "GTM-XXXXXXX",
+      "statcounter_project": "12345678",
+      "statcounter_security": "abcdef12"
+    }
+  },
+
+  "keyword_mappings": {
+    "amarres_de_amor": {
+      "main_keyword": "amarres de amor",
+      "service_type": "amarres de amor",
+      "expert_title": "Maestro de Amarres",
+      "expert_description": "{{ expert_name }} es reconocido como uno de los mejores especialistas en amarres de amor en {{ location }}, con técnicas ancestrales que han ayudado a miles de parejas."
+    },
+
+    "limpias_energeticas": {
+      "main_keyword": "limpias energéticas",
+      "service_type": "limpias energéticas",
+      "expert_title": "Especialista en Limpias",
+      "expert_description": "{{ expert_name }} realiza limpias energéticas profundas que eliminan bloqueos espirituales y energías negativas que afectan tu vida amorosa."
+    },
+
+    "rituales_espirituales": {
+      "main_keyword": "rituales espirituales",
+      "service_type": "rituales espirituales",
+      "expert_title": "Chamán Espiritual",
+      "expert_description": "{{ expert_name }} combina rituales ancestrales con conocimientos modernos para ofrecerte soluciones espirituales efectivas y duraderas."
+    },
+
+    "hechizos_de_amor": {
+      "main_keyword": "hechizos de amor",
+      "service_type": "hechizos de amor",
+      "expert_title": "Mago del Amor",
+      "expert_description": "{{ expert_name }} domina los hechizos de amor más poderosos, utilizando técnicas tradicionales que han sido probadas por generaciones."
+    },
+
+    "consultas_espirituales": {
+      "main_keyword": "consultas espirituales",
+      "service_type": "consultas espirituales",
+      "expert_title": "Guía Espiritual",
+      "expert_description": "{{ expert_name }} ofrece consultas espirituales profundas donde analiza tu aura, chakras y situación energética para diseñar el mejor camino espiritual."
+    }
+  },
+
+  "dynamic_content_rules": {
+    "title_generation": {
+      "pattern": "{{ service_type }} - {{ expert_name }} | {{ main_keyword }} en {{ location }}",
+      "max_length": 60
+    },
+
+    "description_generation": {
+      "pattern": "Servicio profesional de {{ service_type }} con {{ expert_name }}. {{ main_keyword }} efectivo y garantizado. Más de {{ experience_years }} años de experiencia en {{ location }}.",
+      "max_length": 160
+    },
+
+    "keyword_expansion": {
+      "base_keywords": ["{{ main_keyword }}", "{{ service_type }}", "{{ expert_name }}"],
+      "location_keywords": ["{{ location }}", "{{ location }} centro", "{{ location }} norte"],
+      "service_keywords": ["rituales", "ceremonias", "consultas", "servicio discreto", "resultados garantizados"],
+      "emotional_keywords": ["amor verdadero", "pareja feliz", "relación armoniosa", "felicidad"]
+    }
+  }
+}

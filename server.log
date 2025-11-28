@@ -1,0 +1,26 @@
+2025-11-28 13:56:58,694 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2025-11-28 13:56:58,694 - INFO - Added job "Monitor campaigns for circuit breaker" to job store "default"
+2025-11-28 13:56:58,694 - INFO - Scheduler started
+✅ Loaded environment variables from .env file
+✅ Base de datos inicializada correctamente
+✅ Circuit Breaker database initialized
+✅ Circuit Breaker Scheduler started (every 30 minutes)
+🔍 [2025-11-28 18:56:58] Circuit Breaker check running...
+   Monitoring 0 campaigns...
+✅ Circuit Breaker check completed
+🚀 Iniciando servidor Flask...
+🌐 URL: http://localhost:8000
+📊 Endpoints disponibles:
+  • GET  /
+  • POST /api/landing/build
+  • GET  /api/landing/history
+  • GET  /api/health
+  • GET  /api/templates
+
+ * Serving Flask app 'app'
+ * Debug mode: off
+2025-11-28 13:56:58,989 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:8000
+2025-11-28 13:56:58,989 - INFO - [33mPress CTRL+C to quit[0m
+2025-11-28 13:57:34,681 - INFO - 127.0.0.1 - - [28/Nov/2025 13:57:34] "GET / HTTP/1.1" 200 -
+2025-11-28 13:57:36,251 - INFO - 127.0.0.1 - - [28/Nov/2025 13:57:36] "GET /api/health HTTP/1.1" 200 -
