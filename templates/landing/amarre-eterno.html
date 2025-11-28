@@ -327,6 +327,13 @@
         <section class="hero visible">
             <div class="hero-visual"></div>
             <h1 id="heroTitle">{{ headline_h1 }}</h1>
+            
+            {% if user_image_top %}
+            <div style="margin: 20px auto; max-width: 800px;">
+                <img src="{{ user_image_top }}" alt="Imagen destacada" style="width: 100%; border-radius: 15px; box-shadow: 0 10px 30px rgba(255, 77, 77, 0.2);">
+            </div>
+            {% endif %}
+
             <p style="font-size: 1.5rem; color: var(--passion-red); font-style: italic;">{{ subheadline }}</p>
             <button class="btn-heartbeat" onclick="scrollToContact()">{{ cta_text }}</button>
         </section>
@@ -346,6 +353,12 @@
                 <p>“{{ proof }}”</p>
             </div>
             {% endfor %}
+
+            {% if user_image_middle %}
+            <div style="margin: 40px auto; max-width: 800px;">
+                <img src="{{ user_image_middle }}" alt="Imagen central" style="width: 100%; border-radius: 15px; box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);">
+            </div>
+            {% endif %}
         </section>
 
         <!-- Services -->
@@ -375,6 +388,12 @@
             <h2>Urgencia Celestial</h2>
             <p>Solo realizo 7 amarres por luna llena.</p>
             <p style="font-size: 1.5rem; color: var(--passion-red);">Esta luna solo quedan <span id="spots">2</span> lugares disponibles.</p>
+            
+            {% if user_image_bottom %}
+            <div style="margin: 40px auto; max-width: 800px;">
+                <img src="{{ user_image_bottom }}" alt="Imagen final" style="width: 100%; border-radius: 15px; box-shadow: 0 10px 30px rgba(255, 77, 77, 0.2);">
+            </div>
+            {% endif %}
         </section>
 
         <!-- Close -->

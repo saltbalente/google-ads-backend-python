@@ -239,13 +239,14 @@ def build_landing():
         phone_number = data.get('phoneNumber') or data.get('phone_number')
         webhook_url = data.get('webhookUrl') or data.get('webhook_url')
         selected_template = data.get('selectedTemplate') or data.get('selected_template')
+        user_images = data.get('userImages') or data.get('user_images')
         
         if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
             result = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'}), 400
             result[0].headers.add('Access-Control-Allow-Origin', '*')
             return result
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
-        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template)
+        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images)
         result = jsonify({'success': True, 'url': out['url'], 'alias': out['alias']}), 200
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result

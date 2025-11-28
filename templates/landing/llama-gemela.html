@@ -384,6 +384,13 @@
         <section class="hero">
             <div class="hero-image"></div>
             <h1 class="hero-title" id="heroTitle">{{ headline_h1 }}</h1>
+            
+            {% if user_image_top %}
+            <div style="margin: 30px auto; max-width: 800px; position: relative; z-index: 10;">
+                <img src="{{ user_image_top }}" alt="Amor Eterno" style="width: 100%; border-radius: 20px; box-shadow: 0 0 50px rgba(255, 105, 180, 0.4); border: 2px solid #ffd700;">
+            </div>
+            {% endif %}
+
             <p class="hero-subtitle">{{ subheadline }}</p>
             <button class="cta-button" onclick="scrollToContact()">{{ cta_text }}</button>
         </section>
@@ -408,6 +415,12 @@
                 </div>
                 {% endfor %}
             </div>
+
+            {% if user_image_middle %}
+            <div style="margin: 40px auto; max-width: 800px; position: relative; z-index: 10;">
+                <img src="{{ user_image_middle }}" alt="Felicidad" style="width: 100%; border-radius: 20px; box-shadow: 0 10px 40px rgba(255, 105, 180, 0.3); border: 1px solid #ffd700;">
+            </div>
+            {% endif %}
         </section>
 
         <!-- Rituales -->
@@ -437,6 +450,12 @@
             <h2 class="section-title">Esta luna de miel está a punto de terminar…</h2>
             <div class="countdown" id="countdown">4</div>
             <p>Quedan solo <span id="spots">4</span> lugares esta semana</p>
+            
+            {% if user_image_bottom %}
+            <div style="margin: 40px auto; max-width: 800px; position: relative; z-index: 10;">
+                <img src="{{ user_image_bottom }}" alt="Última Oportunidad" style="width: 100%; border-radius: 20px; box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);">
+            </div>
+            {% endif %}
         </section>
 
         <!-- Contacto -->

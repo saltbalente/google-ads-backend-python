@@ -586,6 +586,16 @@ class LandingPageGenerator:
             except Exception as fallback_error:
                 raise RuntimeError(f"Template 'base.html' not found or invalid: {str(fallback_error)}")
 
+        # Process user images
+        user_images = config.get("user_images", [])
+        img_context = {}
+        if user_images:
+            for img in user_images:
+                pos = img.get("position", "").lower()
+                url = img.get("url", "")
+                if pos and url:
+                    img_context[f"user_image_{pos}"] = url
+
         try:
             return tpl.render(
                 headline_h1=gen.headline_h1,
@@ -600,6 +610,7 @@ class LandingPageGenerator:
                 webhook_url=config.get("webhook_url", ""),
                 gtm_id=config["gtm_id"],
                 primary_keyword=config.get("primary_keyword", ""),
+                **img_context
             )
         except Exception as e:
             raise RuntimeError(f"Template rendering failed: {str(e)}")
@@ -1623,7 +1634,7 @@ class LandingPageGenerator:
             logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
             return 0
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "auto") -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "auto", user_images: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
         """
         Execute the complete landing page generation pipeline.
 
@@ -1640,6 +1651,7 @@ class LandingPageGenerator:
                 - "update_only": Update existing ads tracking URLs only
                 - "create_only": Create new ads if group is empty, don't update existing
                 - "auto": Full automation (default) - update existing or create new as needed
+            user_images: Optional list of user provided images with position info
         """
         start_time = time.time()
 
@@ -1704,7 +1716,8 @@ class LandingPageGenerator:
                 "webhook_url": webhook_url,
                 "primary_keyword": ctx.primary_keyword,
                 "folder_name": folder_name,
-                "selected_template": selected_template
+                "selected_template": selected_template,
+                "user_images": user_images
             }
 
             # Step 4: Render HTML
