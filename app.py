@@ -16,6 +16,7 @@ from pytrends.request import TrendReq
 import uuid
 import sys
 
+# Import Landing Page Generator
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from landing_generator import LandingPageGenerator
 
@@ -77,10 +78,11 @@ def get_client_from_request():
 
 @app.route('/api/landing/build', methods=['POST', 'OPTIONS'])
 def build_landing():
+    """Genera y despliega una landing page personalizada"""
     if request.method == 'OPTIONS':
         response = jsonify({'status': 'ok'})
         response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Google-Ads-Refresh-Token,X-Google-Ads-Login-Customer-Id')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         return response
     try:
@@ -105,92 +107,6 @@ def build_landing():
         result = jsonify({'success': False, 'error': str(e)}), 500
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
-
-@app.route('/api/query', methods=['POST', 'OPTIONS'])
-def query_google_ads():
-    """Ejecuta una query GAQL en Google Ads API"""
-    
-    # CORS preflight
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,X-Google-Ads-Refresh-Token,X-Google-Ads-Login-Customer-Id')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response
-    
-    try:
-        data = request.json
-        customer_id = data.get('customerId')
-        query = data.get('query')
-        
-        if not customer_id or not query:
-            return jsonify({
-                "success": False,
-                "message": "customerId and query are required"
-            }), 400
-        
-        # Crear cliente con credenciales del request
-        client = get_client_from_request()
-        ga_service = client.get_service("GoogleAdsService")
-        
-        # Ejecutar query SIN configurar page_size (Google Ads usa 10000 por defecto)
-        search_request = client.get_type("SearchGoogleAdsRequest")
-        search_request.customer_id = customer_id.replace('-', '')
-        search_request.query = query
-        # NO configurar page_size - Google Ads lo maneja automáticamente
-        
-        results = []
-        response = ga_service.search(request=search_request)
-        
-        for row in response:
-            # Convertir proto a dict
-            result_dict = {}
-            
-            # Extraer campos según la query
-            if hasattr(row, 'customer_client'):
-                result_dict['customerClient'] = {
-                    'id': row.customer_client.id,
-                    'descriptiveName': row.customer_client.descriptive_name,
-                    'currencyCode': row.customer_client.currency_code,
-                    'timeZone': row.customer_client.time_zone,
-                    'status': row.customer_client.status.name
-                }
-            
-            if hasattr(row, 'customer'):
-                result_dict['customer'] = {
-                    'id': row.customer.id,
-                    'descriptiveName': row.customer.descriptive_name,
-                    'currencyCode': row.customer.currency_code,
-                    'timeZone': row.customer.time_zone
-                }
-            
-            if hasattr(row, 'campaign'):
-                result_dict['campaign'] = {
-                    'id': row.campaign.id,
-                    'name': row.campaign.name,
-                    'status': row.campaign.status.name if hasattr(row.campaign, 'status') else None
-                }
-            
-            if hasattr(row, 'ad_group'):
-                result_dict['adGroup'] = {
-                    'id': row.ad_group.id,
-                    'name': row.ad_group.name,
-                    'status': row.ad_group.status.name if hasattr(row.ad_group, 'status') else None
-                }
-            
-            results.append(result_dict)
-        
-        return jsonify({
-            "success": True,
-            "results": results
-        })
-        
-    except Exception as e:
-        print(f"❌ Error en /api/query: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
 
 @app.route('/api/health', methods=['GET'])
 def health():
