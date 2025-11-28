@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Callable, Tuple
 import io
 import uuid
+import hashlib
+import time
 
 import requests
 from PIL import Image
@@ -1181,6 +1183,32 @@ class LandingPageGenerator:
         # Return jsdelivr URL
         return f"https://cdn.jsdelivr.net/gh/{self.github_owner}/{self.github_repo}@main/{path}"
 
+    def _verify_asset_availability(self, filename: str, max_retries: int = 3) -> bool:
+        """
+        Diagnostic: Verify that the asset was successfully uploaded and is accessible.
+        Checks the raw GitHub URL for immediate availability.
+        """
+        raw_url = f"https://raw.githubusercontent.com/{self.github_owner}/{self.github_repo}/main/assets/images/{filename}"
+        
+        for i in range(max_retries):
+            try:
+                response = requests.head(raw_url, timeout=5)
+                if response.status_code == 200:
+                    logger.info(f"✅ Asset verification successful: {filename}")
+                    return True
+                elif response.status_code == 404:
+                    logger.warning(f"Asset not found yet (attempt {i+1}/{max_retries}): {filename}")
+                else:
+                    logger.warning(f"Asset verification returned {response.status_code} (attempt {i+1}/{max_retries})")
+            except Exception as e:
+                logger.warning(f"Asset verification error (attempt {i+1}/{max_retries}): {e}")
+            
+            if i < max_retries - 1:
+                time.sleep(1) # Wait before retry
+                
+        logger.error(f"❌ Asset verification failed after {max_retries} attempts: {filename}")
+        return False
+
     def publish_as_github_pages(self, folder_name: str, html_content: str) -> Dict[str, Any]:
         """Publish landing page optimized for GitHub Pages."""
         if not folder_name or not isinstance(folder_name, str):
@@ -1746,7 +1774,19 @@ class LandingPageGenerator:
             # Process user images if provided
             if user_images:
                 processed_images = []
+                
+                # Deduplication Strategy 1: Filter by position (Last one wins)
+                # This prevents processing multiple images for the same slot
+                unique_positions = {}
                 for img in user_images:
+                    pos = img.get("position", "middle")
+                    unique_positions[pos] = img
+                
+                # Deduplication Strategy 2: Content Hashing
+                # Avoid uploading the exact same image twice in the same run
+                content_hash_map = {} # hash -> url
+                
+                for pos, img in unique_positions.items():
                     image_bytes = None
                     
                     # Case 1: Base64 Content
@@ -1757,7 +1797,7 @@ class LandingPageGenerator:
                                 b64_data = b64_data.split(",")[1]
                             image_bytes = base64.b64decode(b64_data)
                         except Exception as e:
-                            logger.error(f"Failed to decode base64 for user image: {e}")
+                            logger.error(f"Failed to decode base64 for user image at {pos}: {e}")
                             continue
 
                     # Case 2: URL Content
@@ -1781,28 +1821,43 @@ class LandingPageGenerator:
                     # Process and Upload if we have bytes
                     if image_bytes:
                         try:
-                            # Convert to WebP and compress
-                            with io.BytesIO(image_bytes) as input_buf:
-                                image = Image.open(input_buf)
-                                
-                                # Convert to RGB if mode is not compatible
-                                if image.mode in ('P', 'CMYK'):
-                                    image = image.convert('RGB')
-                                
-                                with io.BytesIO() as output_buf:
-                                    # Save as WebP with compression
-                                    image.save(output_buf, format="WEBP", quality=80, optimize=True)
-                                    webp_data = output_buf.getvalue()
+                            # Calculate hash for deduplication
+                            img_hash = hashlib.md5(image_bytes).hexdigest()
                             
-                            # Generate filename
-                            filename = f"{uuid.uuid4()}.webp"
-                            
-                            # Upload
-                            url = self.upload_asset_to_github(webp_data, filename)
+                            if img_hash in content_hash_map:
+                                # Reuse existing URL for this content
+                                url = content_hash_map[img_hash]
+                                logger.info(f"♻️ Reusing uploaded image for {pos} (Hash match)")
+                            else:
+                                # Convert to WebP and compress
+                                with io.BytesIO(image_bytes) as input_buf:
+                                    image = Image.open(input_buf)
+                                    
+                                    # Convert to RGB if mode is not compatible
+                                    if image.mode in ('P', 'CMYK'):
+                                        image = image.convert('RGB')
+                                    
+                                    with io.BytesIO() as output_buf:
+                                        # Save as WebP with compression
+                                        image.save(output_buf, format="WEBP", quality=80, optimize=True)
+                                        webp_data = output_buf.getvalue()
+                                
+                                # Generate filename
+                                filename = f"{uuid.uuid4()}.webp"
+                                
+                                # Upload
+                                url = self.upload_asset_to_github(webp_data, filename)
+                                
+                                # Diagnostic: Verify upload
+                                if self._verify_asset_availability(filename):
+                                    content_hash_map[img_hash] = url
+                                else:
+                                    logger.error(f"❌ Image verification failed for {pos}. Skipping.")
+                                    continue
                             
                             processed_images.append({
                                 "url": url,
-                                "position": img.get("position", "middle")
+                                "position": pos
                             })
                             logger.info(f"✅ Processed and uploaded user image to {url}")
                         except Exception as e:
