@@ -283,18 +283,18 @@ def update_landing():
         gtm_id = data.get('gtm_id')
         
         if not folder_name:
-            result = jsonify({'success': False, 'error': 'Folder name required'}), 400
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            response = jsonify({'success': False, 'error': 'Folder name required'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         result_data = update_landing_metadata(folder_name, whatsapp_number, phone_number, gtm_id)
-        result = jsonify({'success': True, **result_data}), 200
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify({'success': True, **result_data})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
     except Exception as e:
-        result = jsonify({'success': False, 'error': str(e)}), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @app.route('/api/health', methods=['GET'])
 def health():
