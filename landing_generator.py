@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Callable, Tuple
 import requests
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from dotenv import load_dotenv
+from google.protobuf.field_mask_pb2 import FieldMask
 
 from vercel_client import VercelClient
 
@@ -1189,8 +1190,19 @@ class LandingPageGenerator:
 
                 # Generate URL based on domain configuration
                 if self.custom_domain:
-                    # Use subdomain: https://alias.customdomain.com/
-                    github_pages_url = f"https://{alias}.{self.custom_domain}/"
+                    # Clean alias if it already contains the domain to avoid duplication
+                    clean_alias = alias
+                    if self.custom_domain in alias:
+                        clean_alias = alias.replace(f".{self.custom_domain}", "").replace(self.custom_domain, "")
+                    
+                    # If alias was built with base_domain but custom_domain is different
+                    if self.base_domain in clean_alias and self.base_domain != self.custom_domain:
+                         clean_alias = clean_alias.replace(f".{self.base_domain}", "")
+                    
+                    # Construct URL: https://slug.customdomain.com/ or https://customdomain.com/slug/
+                    # Assuming folder structure in repo, GitHub Pages usually serves at root/folder
+                    # But if CNAME is set, it serves at domain/folder
+                    github_pages_url = f"https://{self.custom_domain}/{folder}/"
                     logger.info(f"🌐 Custom domain URL: {github_pages_url}")
                 else:
                     # Use default GitHub Pages: https://owner.github.io/repo/folder/
@@ -1461,7 +1473,7 @@ class LandingPageGenerator:
 
                 op = client.get_type("AdGroupAdOperation")
                 op.update = update
-                op.update_mask.CopyFrom(client.get_type("FieldMask")(paths=["ad.final_urls"]))
+                op.update_mask.CopyFrom(FieldMask(paths=["ad.final_urls"]))
                 operations.append(op)
 
             if operations:
