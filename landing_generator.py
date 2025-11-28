@@ -1404,7 +1404,7 @@ class LandingPageGenerator:
             logger.error(f"Health check failed: Unexpected error: {str(e)}")
             return False
 
-    def update_final_urls(self, customer_id: str, ad_group_id: str, final_url: str):
+    def update_final_urls(self, customer_id: str, ad_group_id: str, final_url: str, ctx: AdGroupContext = None) -> None:
         """Update Final URLs for all ads in the Ad Group."""
         if not customer_id or not isinstance(customer_id, str):
             raise ValueError("customer_id must be a non-empty string")
@@ -1446,8 +1446,8 @@ class LandingPageGenerator:
             resource_names = [row.ad_group_ad.resource_name for row in rows]
 
             if not resource_names:
-                logger.warning(f"No active ads found in Ad Group {ad_group_id}")
-                return
+                logger.info(f"No active ads found in Ad Group {ad_group_id}, will create new ads with landing page content...")
+                return self.create_ads_for_ad_group(customer_id, ad_group_id, final_url, ctx)
 
             logger.info(f"Found {len(resource_names)} ads to update")
 
@@ -1497,6 +1497,131 @@ class LandingPageGenerator:
         except Exception as e:
             logger.error(f"Failed to update Final URLs: {str(e)}")
             raise RuntimeError(f"Google Ads URL update failed: {str(e)}")
+
+    def create_ads_for_ad_group(self, customer_id: str, ad_group_id: str, final_url: str, ctx: AdGroupContext) -> None:
+        """Create new ads for an ad group using landing page context."""
+        if not customer_id or not isinstance(customer_id, str):
+            raise ValueError("customer_id must be a non-empty string")
+        if not ad_group_id or not isinstance(ad_group_id, str):
+            raise ValueError("ad_group_id must be a non-empty string")
+        if not final_url or not isinstance(final_url, str):
+            raise ValueError("final_url must be a non-empty string")
+        if not ctx or not isinstance(ctx, AdGroupContext):
+            raise ValueError("ctx must be a valid AdGroupContext")
+
+        logger.info(f"Creating new ads for Ad Group {ad_group_id} with landing page URL: {final_url}")
+
+        try:
+            client = self._get_google_ads_client()
+            ag_svc = client.get_service("AdGroupAdService")
+
+            # Normalize IDs
+            customer_id = customer_id.replace("-", "")
+            ad_group_id = ad_group_id.replace("-", "")
+
+            if not customer_id.isdigit():
+                raise ValueError(f"Invalid customer_id format: {customer_id}")
+            if not ad_group_id.isdigit():
+                raise ValueError(f"Invalid ad_group_id format: {ad_group_id}")
+
+            # Create multiple ad variations for A/B testing
+            operations = []
+            num_ads_to_create = min(3, len(ctx.headlines), len(ctx.descriptions))  # Create up to 3 ads
+
+            for i in range(num_ads_to_create):
+                # Create AdGroupAd
+                ad_group_ad = client.get_type("AdGroupAd")
+                ad_group_ad.ad_group = client.get_resource("ad_group", ad_group_id)
+                ad_group_ad.status = client.enums.AdGroupAdStatusEnum.ENABLED
+
+                # Create Responsive Search Ad
+                ad = client.get_type("Ad")
+                ad.type = client.enums.AdTypeEnum.RESPONSIVE_SEARCH_AD
+                ad.final_urls.append(final_url)
+
+                # Add headlines (rotate through available headlines)
+                headlines_to_add = []
+                for j in range(min(3, len(ctx.headlines))):  # Max 3 headlines per ad
+                    headline_idx = (i + j) % len(ctx.headlines)
+                    headline = client.get_type("AdTextAsset")
+                    headline.text = ctx.headlines[headline_idx][:30]  # Max 30 chars
+                    headlines_to_add.append(headline)
+                ad.responsive_search_ad.headlines.extend(headlines_to_add)
+
+                # Add descriptions (rotate through available descriptions)
+                descriptions_to_add = []
+                for j in range(min(2, len(ctx.descriptions))):  # Max 2 descriptions per ad
+                    desc_idx = (i + j) % len(ctx.descriptions)
+                    description = client.get_type("AdTextAsset")
+                    description.text = ctx.descriptions[desc_idx][:90]  # Max 90 chars
+                    descriptions_to_add.append(description)
+                ad.responsive_search_ad.descriptions.extend(descriptions_to_add)
+
+                # Set the ad path (optional)
+                if hasattr(ad.responsive_search_ad, 'path1'):
+                    ad.responsive_search_ad.path1 = ctx.primary_keyword[:15]  # Max 15 chars
+
+                ad_group_ad.ad = ad
+
+                # Create operation
+                operation = client.get_type("AdGroupAdOperation")
+                operation.create = ad_group_ad
+                operations.append(operation)
+
+            if operations:
+                logger.info(f"Creating {len(operations)} new ads for Ad Group {ad_group_id}")
+                response = ag_svc.mutate_ad_group_ads(customer_id=customer_id, operations=operations)
+
+                success_count = len(response.results)
+                logger.info(f"Successfully created {success_count} new ads")
+
+                if success_count != len(operations):
+                    logger.warning(f"Expected {len(operations)} creations but got {success_count} results")
+            else:
+                logger.warning("No ad operations to perform")
+
+        except Exception as e:
+            logger.error(f"Failed to create ads for Ad Group {ad_group_id}: {str(e)}")
+            raise RuntimeError(f"Google Ads ad creation failed: {str(e)}")
+
+    def automate_ad_group_complete_setup(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Complete automation: Extract context, generate landing page, publish, and setup ads.
+
+        This method provides a single entry point for the complete automation workflow:
+        1. Extract ad group context (keywords, headlines, descriptions, locations)
+        2. Generate AI-powered landing page content
+        3. Render HTML with selected template
+        4. Publish to GitHub Pages
+        5. Deploy to Vercel (optional)
+        6. Setup Google Ads (update existing ads or create new ones)
+        7. Health check
+        8. Return complete results
+
+        Args:
+            customer_id: Google Ads customer ID
+            ad_group_id: Ad group ID to work with
+            whatsapp_number: WhatsApp number for the landing page
+            gtm_id: Google Tag Manager ID
+            phone_number: Optional phone number
+            webhook_url: Optional webhook URL for notifications
+            selected_template: Optional template name (defaults to 'base.html')
+
+        Returns:
+            Dict with complete automation results
+        """
+        logger.info("🚀 Starting complete ad group automation...")
+        logger.info(f"Customer ID: {customer_id}, Ad Group ID: {ad_group_id}")
+
+        return self.run(
+            customer_id=customer_id,
+            ad_group_id=ad_group_id,
+            whatsapp_number=whatsapp_number,
+            gtm_id=gtm_id,
+            phone_number=phone_number,
+            webhook_url=webhook_url,
+            selected_template=selected_template
+        )
 
     def _generate_folder_name(self, keywords: List[str]) -> str:
         """Generate a unique folder name based on a random keyword from the list."""
@@ -1630,14 +1755,13 @@ class LandingPageGenerator:
                 logger.info("✅ Health check passed")
 
             # Step 7: Update Google Ads Final URLs
-            logger.info("🔄 Step 6: Updating Google Ads Tracking URL Templates...")
+            logger.info("🔄 Step 6: Setting up Google Ads (updating existing ads or creating new ones)...")
             try:
-                self.update_final_urls(customer_id, ad_group_id, final_url)
-                logger.info("✅ Google Ads tracking URL templates updated")
+                self.update_final_urls(customer_id, ad_group_id, final_url, ctx)
+                logger.info("✅ Google Ads setup completed")
             except Exception as url_error:
-                logger.warning(f"Could not update Google Ads tracking URLs: {str(url_error)}")
-                logger.info("Landing page published successfully, but existing ads will keep their current tracking settings")
-                logger.info("Consider creating new ads with the new landing page URL")
+                logger.warning(f"Could not setup Google Ads: {str(url_error)}")
+                logger.info("Landing page published successfully, but Google Ads setup failed")
 
             # Success!
             execution_time = time.time() - start_time
