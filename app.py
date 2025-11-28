@@ -264,6 +264,21 @@ def get_client_from_request():
     login_customer_id = request.headers.get('X-Google-Ads-Login-Customer-Id')
     return get_google_ads_client(refresh_token, login_customer_id)
 
+@app.route('/', methods=['GET'])
+def index():
+    """Página de inicio básica"""
+    return jsonify({
+        'status': 'ok',
+        'message': 'Google Ads Backend API',
+        'version': '1.0',
+        'endpoints': [
+            '/api/landing/build',
+            '/api/landing/history', 
+            '/api/health',
+            '/api/templates'
+        ]
+    })
+
 @app.route('/api/landing/build', methods=['POST', 'OPTIONS'])
 def build_landing():
     """Genera y despliega una landing page personalizada"""
@@ -417,7 +432,7 @@ def get_template_preview(template_name):
             'el-libro-prohibido', 'la-luz', 'amarre-eterno', 'tarot-akashico', 'brujeria-blanca',
             'santeria-prosperidad', 'curanderismo-ancestral', 'brujeria-negra-venganza',
             'ritual-amor-eterno', 'lectura-aura-sanacion', 'hechizos-abundancia',
-            'conexion-guias-espirituales', 'nocturnal'
+            'conexion-guias-espirituales', 'nocturnal', 'jose-amp'
         ]
         if template_name not in valid_templates:
             result = jsonify({'success': False, 'error': 'Template not found'}), 404

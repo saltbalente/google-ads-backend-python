@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html amp lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>{{ seo_title }}</title>
+    <meta name="description" content="{{ seo_description }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+    <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+    <meta name="keywords" content="{{ meta_keywords }}">
+
+    <!-- AMP Boilerplate -->
+    <style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;-ms-animation:none;animation:none}</style></noscript>
+
+    <!-- AMP Components -->
+    <script async src="https://cdn.ampproject.org/v0.js"></script>
+    <script async custom-element="amp-video" src="https://cdn.ampproject.org/v0/amp-video-0.1.js"></script>
+    <script async custom-element="amp-img" src="https://cdn.ampproject.org/v0/amp-img-0.1.js"></script>
+    <script async custom-element="amp-pixel" src="https://cdn.ampproject.org/v0/amp-pixel-0.1.js"></script>
+    <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>
+
+    <style amp-custom>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #ffffff;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .phone-container {
+            text-align: center;
+        }
+
+        .phone-link {
+            color: #25d366;
+            text-decoration: none;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 25px;
+            background: rgba(37, 211, 102, 0.1);
+            border: 2px solid #25d366;
+            transition: all 0.3s ease;
+        }
+
+        .phone-link:hover {
+            background: #25d366;
+            color: #fff;
+        }
+
+        .description2 {
+            font-size: 14px;
+            color: #ffd700;
+            margin-top: 5px;
+        }
+
+        /* Main Content */
+        main {
+            padding-top: 100px;
+        }
+
+        /* Typography */
+        h1, h2, h3 {
+            text-align: center;
+            margin: 30px 0;
+            color: #ffffff;
+        }
+
+        h1 {
+            font-size: 42px;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 32px;
+            color: #ffd700;
+        }
+
+        h3 {
+            font-size: 24px;
+            color: #25d366;
+        }
+
+        .description {
+            font-size: 18px;
+            text-align: center;
+            margin: 20px auto;
+            max-width: 800px;
+            line-height: 1.8;
+            color: #e0e0e0;
+        }
+
+        /* Buttons */
+        .whatsapp-button,
+        .more-info,
+        .button {
+            display: inline-block;
+            background: linear-gradient(45deg, #25d366, #128c7e);
+            color: #fff;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px auto;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+            cursor: pointer;
+            border: none;
+            width: fit-content;
+        }
+
+        .whatsapp-button:hover,
+        .more-info:hover,
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
+        }
+
+        .centrado {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .chat-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #25d366, #128c7e);
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            margin: 20px auto;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+            transition: all 0.3s ease;
+            max-width: 350px;
+        }
+
+        .chat-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
+        }
+
+        .chat-button amp-img {
+            width: 40px;
+            height: 40px;
+        }
+
+        /* WhatsApp Banner */
+        .whatsapp-banner {
+            background: linear-gradient(135deg, #25d366, #128c7e);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px auto;
+            max-width: 800px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.3);
+        }
+
+        .whatsapp-banner amp-img {
+            width: 100px;
+            height: 100px;
+            flex-shrink: 0;
+        }
+
+        .whatsapp-content {
+            flex: 1;
+        }
+
+        .whatsapp-content h2 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .whatsapp-content p {
+            color: #fff;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        /* Masonry Grid */
+        .masonry-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .masonry-grid-item {
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(255,255,255,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .masonry-grid-item:hover {
+            transform: scale(1.05);
+        }
+
+        .masonry-grid-item amp-img {
+            width: 100%;
+            height: auto;
+        }
+
+        .zoom {
+            transition: transform 0.3s ease;
+        }
+
+        /* Testimonials */
+        .testimonials-container {
+            padding: 30px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .testimonial,
+        .testimonial2 {
+            background: rgba(255,255,255,0.1);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .testimonial-text {
+            color: #fff;
+            font-size: 16px;
+            line-height: 1.8;
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+
+        .testimonial-date {
+            color: #ffff00;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .testimonial-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .testimonial-img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .testimonial-name,
+        .testimonial-name2 {
+            color: #fff;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .testimonial-city,
+        .testimonial-city2 {
+            color: #ccc;
+            font-size: 14px;
+        }
+
+        /* Image Container */
+        .image-container {
+            position: relative;
+            text-align: center;
+            margin: 30px auto;
+            max-width: 600px;
+        }
+
+        .imgfon {
+            width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        /* Fixed Buttons */
+        .container2 {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .whatsapp-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #25d366, #128c7e);
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .circle-text-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: 10px;
+        }
+
+        .circle {
+            width: 8px;
+            height: 8px;
+            background: #00ff00;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .conectado {
+            font-size: 12px;
+            color: #fff;
+        }
+
+        .boton-llamada {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a6f);
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.5);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Footer */
+        .footer {
+            background: #374147;
+            padding: 30px 20px;
+            text-align: center;
+            color: #fff;
+            margin-top: 50px;
+        }
+
+        #footer-info {
+            font-size: 16px;
+            line-height: 1.8;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Keywords List */
+        #wordsContainer,
+        #marcado {
+            text-align: center;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        #wordsContainer strong {
+            display: inline-block;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        #marcado {
+            list-style: none;
+            text-align: left;
+        }
+
+        #marcado li {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border-left: 4px solid #ffff00;
+            color: #fff;
+        }
+
+        #marcado strong {
+            color: #ffff00;
+        }
+
+        /* Sparkling Effect */
+        #sparkling {
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% {
+                text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #25d366, 0 0 20px #25d366;
+            }
+            50% {
+                text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #25d366, 0 0 40px #25d366;
+            }
+        }
+
+        /* Responsive */
+        @media screen and (max-width: 768px) {
+            .logo {
+                font-size: 24px;
+            }
+
+            .phone-link {
+                font-size: 20px;
+                padding: 8px 15px;
+            }
+
+            h1 { font-size: 28px; }
+            h2 { font-size: 24px; }
+            h3 { font-size: 20px; }
+
+            .container {
+                padding: 15px;
+                margin: 15px;
+            }
+
+            .description {
+                font-size: 16px;
+            }
+
+            .whatsapp-banner {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .masonry-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .container2 {
+                bottom: 10px;
+                right: 10px;
+            }
+
+            .boton-llamada {
+                bottom: 70px;
+                right: 10px;
+                font-size: 14px;
+                padding: 10px 15px;
+            }
+
+            .whatsapp-btn {
+                font-size: 14px;
+                padding: 10px 15px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .logo {
+                font-size: 20px;
+            }
+
+            .phone-link {
+                font-size: 18px;
+            }
+
+            .whatsapp-button,
+            .more-info,
+            .button {
+                font-size: 16px;
+                padding: 12px 20px;
+            }
+
+            .chat-button {
+                font-size: 14px;
+                padding: 12px 20px;
+                max-width: 280px;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .container,
+        .testimonial,
+        .masonry-grid-item {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        /* Checked Stars */
+        .checked {
+            color: orange;
+        }
+
+        /* Hide Elements */
+        .hide,
+        .display-none,
+        .no-show {
+            display: none;
+        }
+
+        /* Print */
+        @media print {
+            .container2,
+            .boton-llamada,
+            .whatsapp-btn,
+            .chat-button {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Google Tag Manager (AMP) - Only include if valid GTM ID -->
+    {% if gtm_id and gtm_id != 'GTM-XXXXXXX' %}
+    <amp-analytics config="https://www.googletagmanager.com/amp.json?id={{ gtm_id }}&gtm_auth=&gtm_preview=&gtm_cookies_win=x"></amp-analytics>
+    {% endif %}
+
+    <!-- StatCounter - Only include if valid project ID -->
+    {% if statcounter_project and statcounter_project != '12345678' %}
+    <amp-pixel src="https://c.statcounter.com/{{ statcounter_project }}/{{ statcounter_security }}/1/"></amp-pixel>
+    {% endif %}
+
+    <div class="wrapper home">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">{{ site_name }}</div>
+            <div class="phone-container">
+                <a class="phone-link" href="tel:{{ phone_number }}">{{ display_phone }}</a>
+            </div>
+            <div class="description2">{{ header_tagline }}</div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <div id="contenido-dinamico">
+                <!-- Title Section -->
+                <div id="text">
+                    <h1 style="text-align: center;">
+                        <span style="color: white; font-style: italic;">{{ expert_title }}</span>
+                        <span style="color: white;">{{ expert_name }}</span>
+                    </h1>
+                </div>
+
+                <!-- Introduction -->
+                <div class="container" id="conta2">
+                    <p class="description">{{ main_description }}</p>
+
+                    <!-- Video -->
+                    <amp-video
+                        width="400"
+                        height="600"
+                        layout="responsive"
+                        poster="{{ user_image_video_poster | default(video_poster) }}"
+                        controls
+                        controlslist="nodownload">
+                        <source src="{{ user_image_main_video | default(main_video) }}" type="video/mp4">
+                    </amp-video>
+                </div>
+
+                <!-- Success Message -->
+                <div class="container" id="sparkling">
+                    <p class="description" style="text-align: center; color: palegoldenrod; font-weight: bolder; font-size: x-large;">
+                        {{ success_message }}
+                    </p>
+                </div>
+
+                <!-- WhatsApp Contact -->
+                <div class="container" id="sparkling">
+                    <a class="more-info" href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}">
+                        {{ whatsapp_cta }}
+                    </a>
+                </div>
+
+                <!-- Main Image -->
+                <amp-img
+                    alt="{{ main_image_alt }}"
+                    class="imgfon"
+                    src="{% if user_image_main %}{{ user_image_main }}{% else %}{{ main_image }}{% endif %}"
+                    width="1080"
+                    height="1920"
+                    layout="responsive">
+                </amp-img>
+
+                <!-- CTA Button -->
+                <div class="centrado">
+                    <a class="whatsapp-button" href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}">
+                        {{ main_cta }}
+                    </a>
+                </div>
+
+                <!-- Free Consultation -->
+                <div class="container">
+                    <p class="description" style="text-align: center; font-family: ui-monospace; font-weight: bolder; font-size: 28px;">
+                        {{ free_consultation_text }}
+                    </p>
+                </div>
+
+                <!-- Services Description -->
+                <div class="container">
+                    <p class="description">{{ services_description }}</p>
+                    <amp-video
+                        width="400"
+                        height="600"
+                        layout="responsive"
+                        autoplay
+                        loop
+                        muted>
+                        <source src="{{ services_video }}" type="video/mp4">
+                    </amp-video>
+                </div>
+
+                <div class="container">
+                    <p class="description" style="font-size: 16px; font-weight: bold; color: #fff; text-shadow: 1px 1px #f96f6f; text-align: center; background: repeating-linear-gradient(280deg, black, transparent 100px);">
+                        {{ comprehensive_services }}
+                    </p>
+                    <a class="more-info" href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}">
+                        {{ whatsapp_cta }}
+                    </a>
+                </div>
+
+                <!-- Animated Video -->
+                <div class="container">
+                    <amp-video
+                        width="400"
+                        height="600"
+                        layout="responsive"
+                        poster="{{ video_poster }}"
+                        autoplay
+                        loop
+                        muted>
+                        <source src="{{ testimonial_video }}" type="video/mp4">
+                    </amp-video>
+
+                    <p class="description">{{ expert_description }}</p>
+                    <a class="more-info" href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}">
+                        {{ whatsapp_cta }}
+                    </a>
+                </div>
+
+                <!-- Expert Image -->
+                <div class="container" style="position: relative;">
+                    <amp-img
+                        alt="{{ expert_image_alt }}"
+                        src="{% if user_image_expert %}{{ user_image_expert }}{% else %}{{ expert_image }}{% endif %}"
+                        width="480"
+                        height="800"
+                        layout="responsive"
+                        style="margin-bottom: 11px;">
+                    </amp-img>
+                    <h2 style="color: #e5e5e5; margin-right: 15px;">
+                        {{ expert_title }} <span style="color: gold;">{{ expert_name }}</span>
+                    </h2>
+                    <a href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}">
+                        {{ display_phone }}
+                    </a>
+                </div>
+
+                <!-- Chat Button -->
+                <a href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}">
+                    <button class="chat-button" id="chat-button">
+                        <amp-img
+                            alt="Chat Icon"
+                            src="{{ chat_icon }}"
+                            width="40"
+                            height="40">
+                        </amp-img>
+                        <span id="chat-text">{{ chat_button_text }}</span>
+                    </button>
+                </a>
+
+                <!-- Services Info -->
+                <div class="container">
+                    <p class="description">{{ services_info }}</p>
+
+                    <amp-video
+                        width="400"
+                        height="600"
+                        layout="responsive"
+                        autoplay
+                        loop
+                        muted>
+                        <source src="{{ services_video_2 }}" type="video/mp4">
+                    </amp-video>
+
+                    <p class="description">{{ services_benefits }}</p>
+                    <a href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}">
+                        <button class="button">{{ whatsapp_button_text }}</button>
+                    </a>
+                </div>
+
+                <!-- Expertise Section -->
+                <div class="container">
+                    <p class="description">{{ expertise_description }}</p>
+                </div>
+
+                <!-- Expert Portrait -->
+                <div class="container">
+                    <amp-img
+                        alt="{{ portrait_alt }}"
+                        src="{{ expert_portrait }}"
+                        width="600"
+                        height="800"
+                        layout="responsive">
+                    </amp-img>
+                </div>
+
+                <!-- WhatsApp Banner -->
+                <div class="whatsapp-banner">
+                    <amp-img
+                        alt="WhatsApp Logo"
+                        src="{{ whatsapp_logo }}"
+                        width="100"
+                        height="100">
+                    </amp-img>
+                    <div class="whatsapp-content">
+                        <h2>{{ banner_title }}</h2>
+                        <p>{{ banner_description }}</p>
+                        <a class="whatsapp-button" href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}">
+                            {{ banner_cta }}
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Gallery -->
+                <div class="masonry-grid">
+                    {% if user_images %}
+                        {% for img in user_images %}
+                            {% if img.position not in ['main', 'expert'] %}
+                            <div class="masonry-grid-item">
+                                <amp-img
+                                    alt="Imagen de galería {{ loop.index }}"
+                                    class="zoom"
+                                    src="{{ img.url }}"
+                                    width="400"
+                                    height="600"
+                                    layout="responsive">
+                                </amp-img>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        {% for image in gallery_images %}
+                        <div class="masonry-grid-item">
+                            <amp-img
+                                alt="{{ image.alt }}"
+                                class="zoom"
+                                src="{{ image.src }}"
+                                width="400"
+                                height="600"
+                                layout="responsive">
+                            </amp-img>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- Guarantee Section -->
+                <div class="container">
+                    <h2 id="fire" style="color: #000000; font-weight: bold; text-transform: uppercase; background: #ffff00; padding: 15px; border-radius: 10px;">
+                        {{ guarantee_title }}
+                    </h2>
+                    <p class="description">{{ guarantee_description }}</p>
+                    <a class="more-info" href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}">
+                        {{ whatsapp_cta }}
+                    </a>
+                </div>
+
+                <!-- Testimonials -->
+                <div class="testimonials-container">
+                    {% for testimonial in testimonials %}
+                    <div class="testimonial{{ '2' if loop.first else '' }}">
+                        <p class="testimonial-text">{{ testimonial.text }}</p>
+                        <p class="testimonial-date">{{ testimonial.date }}</p>
+                        <div class="testimonial-info">
+                            <amp-img
+                                alt="Cliente satisfecho"
+                                class="testimonial-img"
+                                src="{{ testimonial.image }}"
+                                width="60"
+                                height="60">
+                            </amp-img>
+                            <div class="testimonial-name-city">
+                                <p class="testimonial-name{{ '2' if loop.first else '' }}">{{ testimonial.name }}</p>
+                                <p class="testimonial-city{{ '2' if loop.first else '' }}">{{ testimonial.city }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Keywords Section -->
+                <ul id="marcado">
+                    {% for keyword_item in keyword_definitions %}
+                    <li>
+                        <strong>{{ keyword_item.term }}</strong>: {{ keyword_item.definition }}
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <!-- Keywords Cloud -->
+                <div id="wordsContainer">
+                    {% for keyword in keywords_cloud %}
+                    <strong>{{ keyword }}</strong>
+                    {% endfor %}
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div id="footer-info">
+                {{ footer_text }}
+            </div>
+        </footer>
+
+        <!-- Fixed WhatsApp Button -->
+        <div class="container2">
+            <a href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}">
+                <button class="whatsapp-btn">
+                    <amp-img
+                        alt="WhatsApp"
+                        id="whatsapp-btn2"
+                        src="{{ whatsapp_icon }}"
+                        width="18"
+                        height="18">
+                    </amp-img>
+                    WhatsApp
+                    <div class="circle-text-container" id="text-center">
+                        <div class="circle"></div>
+                        <div class="conectado">{{ online_status }}</div>
+                    </div>
+                </button>
+            </a>
+        </div>
+
+        <!-- Fixed Call Button -->
+        <a class="boton-llamada" href="tel:{{ phone_number }}">
+            <amp-img
+                alt="Llamar"
+                id="whatsapp-btn2"
+                src="{{ call_icon }}"
+                width="20"
+                height="20">
+            </amp-img>
+            {{ call_button_text }}
+        </a>
+    </div>
+</body>
+</html>

@@ -574,6 +574,8 @@ class LandingPageGenerator:
                 # Lógica de selección de template
                 if "tarot" in primary_keyword or "cartas" in primary_keyword:
                     template_name = "mystical.html"  # Template místico para tarot
+                elif "brujeria" in primary_keyword or "brujo" in primary_keyword or "amarres" in primary_keyword:
+                    template_name = "jose-amp.html"  # Template AMP para brujería y amarres
                 elif "amor" in primary_keyword or "pareja" in primary_keyword:
                     template_name = "romantic.html"  # Template romántico para temas de amor
                 elif "dinero" in primary_keyword or "riqueza" in primary_keyword:
@@ -615,6 +617,7 @@ class LandingPageGenerator:
                 webhook_url=config.get("webhook_url", ""),
                 gtm_id=config["gtm_id"],
                 primary_keyword=config.get("primary_keyword", ""),
+                user_images=user_images,  # Pass the full list for templates that need it
                 **img_context
             )
         except Exception as e:
@@ -2254,3 +2257,155 @@ class LandingPageGenerator:
 
     def system_prompt_text(self) -> str:
         return self._system_prompt()
+
+    @staticmethod
+    def get_available_templates() -> List[str]:
+        """Retorna la lista de nombres de templates disponibles"""
+        templates = LandingPageGenerator.get_templates_static()
+        return [template["name"] for template in templates]
+
+    @staticmethod
+    def get_templates_static() -> List[Dict[str, Any]]:
+        """Retorna la lista estática de templates disponibles para landing pages"""
+        return [
+            {
+                "name": "base",
+                "title": "Template Base",
+                "description": "Template básico y versátil para cualquier tipo de campaña",
+                "category": "general",
+                "preview": "/static/previews/base-preview.jpg"
+            },
+            {
+                "name": "mystical",
+                "title": "Místico",
+                "description": "Template con diseño místico para servicios espirituales y tarot",
+                "category": "esoterismo",
+                "preview": "/static/previews/mystical-preview.jpg"
+            },
+            {
+                "name": "romantic",
+                "title": "Romántico",
+                "description": "Template romántico para servicios de amor y pareja",
+                "category": "amor",
+                "preview": "/static/previews/romantic-preview.jpg"
+            },
+            {
+                "name": "prosperity",
+                "title": "Prosperidad",
+                "description": "Template para servicios de abundancia y prosperidad económica",
+                "category": "prosperidad",
+                "preview": "/static/previews/prosperity-preview.jpg"
+            },
+            {
+                "name": "llama-gemela",
+                "title": "Llama Gemela",
+                "description": "Template especializado en conexión con el alma gemela",
+                "category": "esoterismo",
+                "preview": "/static/previews/llama-gemela-preview.jpg"
+            },
+            {
+                "name": "llamado-del-alma",
+                "title": "Llamado del Alma",
+                "description": "Template para guía espiritual y llamado del alma",
+                "category": "esoterismo",
+                "preview": "/static/previews/llamado-del-alma-preview.jpg"
+            },
+            {
+                "name": "el-libro-prohibido",
+                "title": "El Libro Prohibido",
+                "description": "Template misterioso para conocimientos ocultos",
+                "category": "esoterismo",
+                "preview": "/static/previews/el-libro-prohibido-preview.jpg"
+            },
+            {
+                "name": "la-luz",
+                "title": "La Luz",
+                "description": "Template luminoso para sanación y luz espiritual",
+                "category": "sanacion",
+                "preview": "/static/previews/la-luz-preview.jpg"
+            },
+            {
+                "name": "amarre-eterno",
+                "title": "Amarre Eterno",
+                "description": "Template para rituales de amor eterno",
+                "category": "amor",
+                "preview": "/static/previews/amarre-eterno-preview.jpg"
+            },
+            {
+                "name": "tarot-akashico",
+                "title": "Tarot Akáshico",
+                "description": "Template para lecturas de tarot y registros akáshicos",
+                "category": "esoterismo",
+                "preview": "/static/previews/tarot-akashico-preview.jpg"
+            },
+            {
+                "name": "brujeria-blanca",
+                "title": "Brujería Blanca",
+                "description": "Template para prácticas de brujería blanca y magia positiva",
+                "category": "esoterismo",
+                "preview": "/static/previews/brujeria-blanca-preview.jpg"
+            },
+            {
+                "name": "santeria-prosperidad",
+                "title": "Santería Prosperidad",
+                "description": "Template para rituales de santería y prosperidad",
+                "category": "esoterismo",
+                "preview": "/static/previews/santeria-prosperidad-preview.jpg"
+            },
+            {
+                "name": "curanderismo-ancestral",
+                "title": "Curanderismo Ancestral",
+                "description": "Template para curanderismo y medicina ancestral",
+                "category": "sanacion",
+                "preview": "/static/previews/curanderismo-ancestral-preview.jpg"
+            },
+            {
+                "name": "brujeria-negra-venganza",
+                "title": "Brujería Negra Venganza",
+                "description": "Template para rituales de venganza y justicia",
+                "category": "esoterismo",
+                "preview": "/static/previews/brujeria-negra-venganza-preview.jpg"
+            },
+            {
+                "name": "ritual-amor-eterno",
+                "title": "Ritual Amor Eterno",
+                "description": "Template para rituales de amor eterno y compromiso",
+                "category": "amor",
+                "preview": "/static/previews/ritual-amor-eterno-preview.jpg"
+            },
+            {
+                "name": "lectura-aura-sanacion",
+                "title": "Lectura de Aura Sanación",
+                "description": "Template para lectura de aura y sanación energética",
+                "category": "sanacion",
+                "preview": "/static/previews/lectura-aura-sanacion-preview.jpg"
+            },
+            {
+                "name": "hechizos-abundancia",
+                "title": "Hechizos Abundancia",
+                "description": "Template para hechizos de abundancia y riqueza",
+                "category": "prosperidad",
+                "preview": "/static/previews/hechizos-abundancia-preview.jpg"
+            },
+            {
+                "name": "conexion-guias-espirituales",
+                "title": "Conexión Guías Espirituales",
+                "description": "Template para conexión con guías espirituales",
+                "category": "esoterismo",
+                "preview": "/static/previews/conexion-guias-espirituales-preview.jpg"
+            },
+            {
+                "name": "nocturnal",
+                "title": "Nocturnal",
+                "description": "Template nocturno para rituales y ceremonias nocturnas",
+                "category": "esoterismo",
+                "preview": "/static/previews/nocturnal-preview.jpg"
+            },
+            {
+                "name": "jose-amp",
+                "title": "José AMP",
+                "description": "Template AMP de alta conversión para servicios espirituales y esoterismo",
+                "category": "esoterismo",
+                "preview": "/static/previews/jose-amp-preview.jpg"
+            }
+        ]

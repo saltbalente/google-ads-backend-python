@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Script de prueba para mostrar qué archivos genera el Landing Page Generator
+Incluye pruebas con user_images para verificar integración completa
 """
 import os
 import sys
@@ -23,10 +24,115 @@ os.environ.setdefault("OPENAI_MODEL", "gpt-4o-mini")
 
 from landing_generator import LandingPageGenerator
 
+def test_landing_page_generation_with_user_images():
+    """Prueba la generación completa de landing page con user_images"""
+
+    print("\n🧪 PRUEBA COMPLETA DEL GENERADOR DE LANDING PAGES CON USER_IMAGES")
+    print("=" * 70)
+
+    # Datos de prueba
+    test_data = {
+        "customer_id": "5852810891",
+        "ad_group_id": "175024723431",
+        "whatsapp_number": "+52551234567",
+        "gtm_id": "GTM-XXXXXXX",
+        "phone_number": "+52551234567",
+        "selected_template": "jose-amp"  # Usar el template que modificamos
+    }
+
+    # User images de prueba (formato correcto: lista de diccionarios con position y url)
+    user_images = [
+        {"position": "main", "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=1080&h=1920&fit=crop"},  # main_image
+        {"position": "expert", "url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&h=800&fit=crop"},  # expert_image
+        {"position": "gallery1", "url": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=600&fit=crop"},  # gallery image 1
+        {"position": "gallery2", "url": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=600&fit=crop"},  # gallery image 2
+        {"position": "gallery3", "url": "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=600&fit=crop"}   # gallery image 3
+    ]
+
+    print(f"📊 Datos de prueba:")
+    for key, value in test_data.items():
+        print(f"   {key}: {value}")
+    print(f"   user_images: {len(user_images)} imágenes")
+    print()
+
+    try:
+        # Crear el generador
+        print("🏗️  Creando generador...")
+        generator = LandingPageGenerator()
+        print("✅ Generador creado exitosamente")
+
+        # Ejecutar generación completa con user_images
+        print("\n🚀 Ejecutando generación completa con user_images...")
+        result = generator.run(
+            customer_id=test_data["customer_id"],
+            ad_group_id=test_data["ad_group_id"],
+            whatsapp_number=test_data["whatsapp_number"],
+            gtm_id=test_data["gtm_id"],
+            phone_number=test_data["phone_number"],
+            selected_template=test_data["selected_template"],
+            user_images=user_images
+        )
+
+        print("✅ Generación completada exitosamente!")
+        print(f"   📄 URL generada: {result['url']}")
+        print(f"   🏷️  Alias: {result['alias']}")
+
+        # Verificar que user_images se incluyeron correctamente
+        print("\n🔍 Verificando integración de user_images...")
+
+        # Hacer una petición HTTP para obtener el HTML generado
+        import requests
+        try:
+            response = requests.get(result['url'])
+            if response.status_code == 200:
+                html_content = response.text
+
+                # Verificar que las user_images están en el HTML
+                user_images_found = 0
+                for img_url in user_images:
+                    if img_url in html_content:
+                        user_images_found += 1
+                        print(f"   ✅ Imagen encontrada: {img_url.split('?')[0]}...")
+
+                print(f"\n📊 Resultado: {user_images_found}/{len(user_images)} user_images integradas correctamente")
+
+                if user_images_found == len(user_images):
+                    print("🎉 ¡Todas las user_images se integraron exitosamente!")
+                else:
+                    print("⚠️  Algunas user_images no se encontraron en el HTML generado")
+
+                # Verificar que el template jose-amp se usó
+                if 'jose-amp' in html_content or 'José AMP' in html_content:
+                    print("✅ Template jose-amp usado correctamente")
+                else:
+                    print("❌ Template jose-amp no encontrado")
+
+                # Guardar el HTML para revisión
+                output_dir = Path("test_output")
+                output_dir.mkdir(exist_ok=True)
+                html_file = output_dir / "landing-with-user-images.html"
+                with open(html_file, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                print(f"💾 HTML guardado en: {html_file.absolute()}")
+
+            else:
+                print(f"❌ Error al acceder a la URL generada: HTTP {response.status_code}")
+
+        except Exception as e:
+            print(f"❌ Error al verificar el HTML generado: {e}")
+
+        return result
+
+    except Exception as e:
+        print(f"\n❌ Error durante la prueba: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 def test_landing_page_generation():
     """Prueba la generación de landing page y muestra el resultado"""
 
-    print("\n🧪 PRUEBA DEL GENERADOR DE LANDING PAGES")
+    print("\n🧪 PRUEBA DEL GENERADOR DE LANDING PAGES (SIN USER_IMAGES)")
     print("=" * 60)
 
     # Datos de prueba
@@ -135,4 +241,13 @@ def test_landing_page_generation():
         return None
 
 if __name__ == "__main__":
+    # Ejecutar ambas pruebas
+    print("🚀 Ejecutando pruebas del generador de landing pages...\n")
+
+    # Prueba sin user_images
     test_landing_page_generation()
+
+    print("\n" + "="*70 + "\n")
+
+    # Prueba con user_images
+    test_landing_page_generation_with_user_images()
