@@ -14,8 +14,6 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from dotenv import load_dotenv
 from google.protobuf.field_mask_pb2 import FieldMask
 
-from vercel_client import VercelClient
-
 # Load environment variables
 load_dotenv()
 
@@ -53,9 +51,6 @@ class LandingPageGenerator:
         github_repo: str = os.getenv("GITHUB_REPO_NAME", "monorepo-landings"),
         github_token: str = os.getenv("GITHUB_TOKEN", ""),
         templates_dir: str = os.getenv("LANDING_TEMPLATES_DIR", "templates/landing"),
-        vercel_project_id: Optional[str] = os.getenv("VERCEL_PROJECT_ID"),
-        vercel_team_id: Optional[str] = os.getenv("VERCEL_TEAM_ID"),
-        vercel_token: Optional[str] = os.getenv("VERCEL_TOKEN"),
         base_domain: str = os.getenv("LANDINGS_BASE_DOMAIN", "tudominio.com"),
         custom_domain: Optional[str] = os.getenv("GITHUB_PAGES_CUSTOM_DOMAIN"),
         max_retries: int = 5,
@@ -92,18 +87,12 @@ class LandingPageGenerator:
             raise ValueError("GITHUB_REPO_OWNER cannot be empty")
         if not github_token.strip():
             raise ValueError("GITHUB_TOKEN cannot be empty")
-        if vercel_token and not vercel_token.strip():
-            raise ValueError("VERCEL_TOKEN cannot be empty if provided")
-        if vercel_project_id and not vercel_project_id.strip():
-            raise ValueError("VERCEL_PROJECT_ID cannot be empty if provided")
 
         self.google_ads_client_provider = google_ads_client_provider
         self.openai_model = openai_model
         self.github_owner = github_owner.strip()
         self.github_repo = github_repo.strip()
         self.github_token = github_token.strip()
-        self.vercel_token = vercel_token.strip() if vercel_token else None
-        self.vercel_project_id = vercel_project_id.strip() if vercel_project_id else None
 
         # Templates directory validation
         td = templates_dir
@@ -116,18 +105,6 @@ class LandingPageGenerator:
 
         self.templates_dir = td
         self.env = Environment(loader=FileSystemLoader(td), autoescape=select_autoescape(["html"]))
-
-        # Vercel client (optional)
-        if vercel_token and vercel_project_id:
-            try:
-                self.vercel = VercelClient(token=vercel_token.strip(), team_id=vercel_team_id, project_id=vercel_project_id.strip())
-                logger.info("✅ Vercel client initialized")
-            except Exception as e:
-                logger.warning(f"Failed to initialize Vercel client: {str(e)}")
-                self.vercel = None
-        else:
-            self.vercel = None
-            logger.info("ℹ️ Vercel client not initialized (optional)")
 
         # Domain validation
         if not base_domain or not base_domain.strip():
@@ -1228,119 +1205,6 @@ class LandingPageGenerator:
             k = k[:63].strip('-')
         return f"{k}.{self.base_domain}"
 
-    def wait_vercel_ready_for_commit(self, commit_sha: Optional[str] = None, timeout_sec: int = None) -> Dict[str, Any]:
-        """Wait for Vercel deployment to be ready for a specific commit."""
-        if timeout_sec is None:
-            timeout_sec = 900  # 15 minutes default
-
-        if not commit_sha:
-            logger.warning("No commit SHA provided, fetching latest deployment")
-            try:
-                deployments = self.vercel.list_deployments(limit=1)
-                deployments_list = deployments.get("deployments", [])
-                if not deployments_list:
-                    raise RuntimeError("No deployments found")
-                return deployments_list[0]
-            except Exception as e:
-                raise RuntimeError(f"Failed to get latest deployment: {str(e)}")
-
-        logger.info(f"Waiting for Vercel deployment of commit: {commit_sha}")
-
-        search = {"meta-githubCommitSha": commit_sha}
-        start_time = time.time()
-
-        # Poll for deployment creation
-        while time.time() - start_time < 120:  # Wait up to 2 minutes for deployment to be created
-            try:
-                deployments = self.vercel.list_deployments(limit=50, search=search)
-                deployments_list = deployments.get("deployments", [])
-
-                if deployments_list:
-                    target = deployments_list[0]
-                    dep_id = target.get("uid") or target.get("id")
-                    if not dep_id:
-                        raise RuntimeError("Deployment found but no ID available")
-
-                    logger.info(f"Deployment found: {dep_id}. Waiting for READY status...")
-                    # Once found, poll for readiness
-                    return self.vercel.poll_ready(dep_id, timeout_sec=timeout_sec - int(time.time() - start_time))
-
-                logger.debug("No deployment found yet, waiting...")
-                time.sleep(3)
-
-            except Exception as e:
-                logger.warning(f"Error checking deployments: {str(e)}")
-                time.sleep(3)
-
-        raise RuntimeError(f"No deployment found for commit {commit_sha} after waiting 2 minutes")
-
-    def deploy_to_vercel(self, folder_name: str, commit_sha: str, custom_domain: Optional[str] = None) -> Dict[str, Any]:
-        """Deploy the landing page to Vercel after successful GitHub publishing."""
-        if not self.vercel_token:
-            logger.warning("Vercel token not configured, skipping Vercel deployment")
-            return {"skipped": True, "reason": "Vercel token not configured"}
-
-        if not self.vercel:
-            logger.warning("Vercel client not initialized, skipping Vercel deployment")
-            return {"skipped": True, "reason": "Vercel client not initialized"}
-
-        try:
-            logger.info(f"🚀 Starting Vercel deployment for folder: {folder_name}")
-
-            # Create deployment from GitHub repository
-            deployment = self.vercel.create_deployment(
-                github_repo=self.github_repo,
-                github_owner=self.github_owner,
-                branch="main",
-                project_name=f"landing-{folder_name}"
-            )
-
-            deployment_id = deployment.get("id") or deployment.get("uid")
-            if not deployment_id:
-                raise RuntimeError("Deployment created but no ID returned")
-
-            logger.info(f"✅ Vercel deployment created: {deployment_id}")
-
-            # Wait for deployment to be ready
-            logger.info("⏳ Waiting for Vercel deployment to be ready...")
-            ready_deployment = self.vercel.poll_ready(deployment_id, timeout_sec=600)  # 10 minutes timeout
-
-            vercel_url = ready_deployment.get("url")
-            if not vercel_url:
-                raise RuntimeError("Deployment ready but no URL provided")
-
-            logger.info(f"✅ Vercel deployment ready: {vercel_url}")
-
-            # Assign custom domain if provided
-            final_url = vercel_url
-            if custom_domain:
-                try:
-                    logger.info(f"🔗 Assigning custom domain: {custom_domain}")
-                    self.vercel.create_alias(deployment_id, custom_domain)
-                    final_url = f"https://{custom_domain}"
-                    logger.info(f"✅ Custom domain assigned: {final_url}")
-                except Exception as e:
-                    logger.warning(f"Failed to assign custom domain {custom_domain}: {str(e)}")
-                    logger.info(f"Using Vercel URL instead: {vercel_url}")
-
-            return {
-                "success": True,
-                "deployment_id": deployment_id,
-                "vercel_url": vercel_url,
-                "final_url": final_url,
-                "custom_domain_assigned": custom_domain is not None and final_url.startswith("https://"),
-                "commit_sha": commit_sha
-            }
-
-        except Exception as e:
-            logger.error(f"❌ Vercel deployment failed: {str(e)}")
-            return {
-                "success": False,
-                "error": str(e),
-                "folder_name": folder_name,
-                "commit_sha": commit_sha
-            }
-
     def health_check(self, url: str, whatsapp_number: str, phone_number: str, gtm_id: str) -> bool:
         """Perform comprehensive health check on deployed landing page."""
         if not url or not isinstance(url, str):
@@ -1593,10 +1457,9 @@ class LandingPageGenerator:
         2. Generate AI-powered landing page content
         3. Render HTML with selected template
         4. Publish to GitHub Pages
-        5. Deploy to Vercel (optional)
-        6. Setup Google Ads (update existing ads or create new ones)
-        7. Health check
-        8. Return complete results
+        5. Setup Google Ads (update existing ads or create new ones)
+        6. Health check
+        7. Return complete results
 
         Args:
             customer_id: Google Ads customer ID
@@ -1731,22 +1594,7 @@ class LandingPageGenerator:
             logger.info(f"✅ Published to GitHub Pages (commit: {commit_sha})")
             logger.info(f"🌐 GitHub Pages URL: {final_url}")
 
-            # Step 6: Deploy to Vercel (if configured)
-            vercel_result = None
-            vercel_url = None
-            if self.vercel_token and self.vercel:
-                logger.info("⚡ Step 5: Deploying to Vercel...")
-                vercel_result = self.deploy_to_vercel(folder_name, commit_sha, self.custom_domain)
-                if vercel_result.get("success"):
-                    vercel_url = vercel_result.get("final_url")
-                    final_url = vercel_url  # Use Vercel URL as the primary URL
-                    logger.info(f"✅ Deployed to Vercel: {vercel_url}")
-                else:
-                    logger.warning(f"Vercel deployment failed: {vercel_result.get('error', 'Unknown error')}")
-            else:
-                logger.info("ℹ️ Vercel not configured, using GitHub Pages URL")
-
-            # Step 7: Health check
+            # Step 6: Health check
             logger.info("🏥 Step 6: Performing health check...")
             ok = self.health_check(final_url, whatsapp_number, phone_number, gtm_id)
             if not ok:
@@ -1755,7 +1603,7 @@ class LandingPageGenerator:
                 logger.info("✅ Health check passed")
 
             # Step 7: Update Google Ads Final URLs
-            logger.info("🔄 Step 6: Setting up Google Ads (updating existing ads or creating new ones)...")
+            logger.info("🔄 Step 7: Setting up Google Ads (updating existing ads or creating new ones)...")
             try:
                 self.update_final_urls(customer_id, ad_group_id, final_url, ctx)
                 logger.info("✅ Google Ads setup completed")
@@ -1807,8 +1655,6 @@ class LandingPageGenerator:
             "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
             "GITHUB_REPO_OWNER": self.github_owner,
             "GITHUB_TOKEN": self.github_token,
-            "VERCEL_TOKEN": os.getenv("VERCEL_TOKEN"),
-            "VERCEL_PROJECT_ID": self.vercel_project_id,
         }
 
         for var, value in env_checks.items():
@@ -1862,18 +1708,6 @@ class LandingPageGenerator:
             results["checks"]["github_api"] = "❌"
             results["checks"]["github_repo_exists"] = "❌"
             results["errors"].append(f"GitHub API test failed: {str(e)}")
-
-        # Test Vercel API
-        try:
-            deployments = self.vercel.list_deployments(limit=1)
-            if "deployments" in deployments:
-                results["checks"]["vercel_api"] = "✅"
-            else:
-                results["checks"]["vercel_api"] = "❌"
-                results["errors"].append("Vercel API returned unexpected response")
-        except Exception as e:
-            results["checks"]["vercel_api"] = "❌"
-            results["errors"].append(f"Vercel API test failed: {str(e)}")
 
         # Test OpenAI API
         try:
