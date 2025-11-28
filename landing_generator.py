@@ -123,22 +123,30 @@ class LandingPageGenerator:
             if ad.responsive_search_ad and ad.responsive_search_ad.descriptions:
                 descriptions.extend([d.text for d in ad.responsive_search_ad.descriptions if d.text])
 
-        loc_query = f"""
-            SELECT campaign_criterion.criterion_id,
-                   campaign_criterion.location.geo_target_constant
-            FROM campaign_criterion
-            WHERE campaign_criterion.type = LOCATION
-              AND campaign.id IN (
-                SELECT campaign.id FROM ad_group WHERE ad_group.id = {ad_group_id}
-              )
-            LIMIT 20
-        """
-        loc_rows = svc.search(customer_id=customer_id, query=loc_query)
+        # Obtener ID de campaña primero para evitar subconsulta compleja
+        camp_query = f"SELECT ad_group.campaign FROM ad_group WHERE ad_group.id = {ad_group_id}"
+        camp_rows = svc.search(customer_id=customer_id, query=camp_query)
+        campaign_id = None
+        for row in camp_rows:
+            # ad_group.campaign es un resource name: customers/123/campaigns/456
+            campaign_id = row.ad_group.campaign.split('/')[-1]
+            break
+            
         locations = []
-        for row in loc_rows:
-            rn = row.campaign_criterion.location.geo_target_constant
-            if rn:
-                locations.append(str(rn))
+        if campaign_id:
+            loc_query = f"""
+                SELECT campaign_criterion.criterion_id,
+                       campaign_criterion.location.geo_target_constant
+                FROM campaign_criterion
+                WHERE campaign_criterion.type = LOCATION
+                  AND campaign.id = {campaign_id}
+                LIMIT 20
+            """
+            loc_rows = svc.search(customer_id=customer_id, query=loc_query)
+            for row in loc_rows:
+                rn = row.campaign_criterion.location.geo_target_constant
+                if rn:
+                    locations.append(str(rn))
 
         primary_keyword = keywords[0] if keywords else ""
         return AdGroupContext(keywords=keywords, headlines=headlines, descriptions=descriptions, locations=locations, primary_keyword=primary_keyword)
