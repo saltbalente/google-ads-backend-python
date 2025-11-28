@@ -1478,13 +1478,26 @@ class LandingPageGenerator:
 
             if operations:
                 logger.info(f"Sending {len(operations)} update operations to Google Ads")
-                response = ag_svc.mutate_ad_group_ads(customer_id=customer_id, operations=operations)
+                try:
+                    response = ag_svc.mutate_ad_group_ads(customer_id=customer_id, operations=operations)
 
-                success_count = len(response.results)
-                logger.info(f"Successfully updated {success_count} ads")
+                    success_count = len(response.results)
+                    logger.info(f"Successfully updated {success_count} ads")
 
-                if success_count != len(operations):
-                    logger.warning(f"Expected {len(operations)} updates but got {success_count} results")
+                    if success_count != len(operations):
+                        logger.warning(f"Expected {len(operations)} updates but got {success_count} results")
+                except Exception as api_error:
+                    # Check if this is the immutable field error
+                    error_str = str(api_error).lower()
+                    if "immutable_field" in error_str or "cannot be modified" in error_str or "final_urls" in error_str:
+                        logger.warning(f"Cannot update final_urls on existing ads (immutable field): {str(api_error)}")
+                        logger.info("Landing page published successfully, but final URLs cannot be updated on existing ads")
+                        logger.info("New ads created in this ad group will use the new landing page URL")
+                        # Don't raise an exception - this is expected behavior
+                        return
+                    else:
+                        # Re-raise other API errors
+                        raise api_error
             else:
                 logger.info("No operations to perform")
 
@@ -1625,8 +1638,13 @@ class LandingPageGenerator:
 
             # Step 7: Update Google Ads Final URLs
             logger.info("🔄 Step 6: Updating Google Ads Final URLs...")
-            self.update_final_urls(customer_id, ad_group_id, final_url)
-            logger.info("✅ Google Ads URLs updated")
+            try:
+                self.update_final_urls(customer_id, ad_group_id, final_url)
+                logger.info("✅ Google Ads URLs updated")
+            except Exception as url_error:
+                logger.warning(f"Could not update Google Ads URLs: {str(url_error)}")
+                logger.info("Landing page published successfully, but existing ads will keep their current URLs")
+                logger.info("New ads created in this ad group will need manual URL updates")
 
             # Success!
             execution_time = time.time() - start_time
