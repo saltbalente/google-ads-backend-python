@@ -64,3 +64,4 @@ curl -X POST http://localhost:5000/api/create-ad \
 ##  Solución Final
 
 Este backend en Python reemplaza al de Node.js y **FUNCIONA CORRECTAMENTE** con Google Ads API.
+# Force redeploy on Render - Fri Nov 28 13:10:05 -05 2025
