@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, Response
 from google.ads.googleads.client import GoogleAdsClient
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from google.ads.googleads.errors import GoogleAdsException
 from google.protobuf.field_mask_pb2 import FieldMask
 from circuit_breaker import circuit_breaker_bp, start_circuit_breaker_scheduler
@@ -15,6 +15,8 @@ import unicodedata
 from pytrends.request import TrendReq
 import uuid
 import sys
+from bs4 import BeautifulSoup
+import re
 
 # Import Landing Page Generator
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -39,6 +41,144 @@ init_db()
 
 # Inicializar worker para procesamiento en background
 automation_worker = get_worker(max_workers=3)
+
+def get_landing_history():
+    github_owner = os.getenv("GITHUB_REPO_OWNER")
+    github_repo = os.getenv("GITHUB_REPO_NAME", "monorepo-landings")
+    github_token = os.getenv("GITHUB_TOKEN")
+    
+    if not all([github_owner, github_token]):
+        # Return empty list instead of error to avoid 500 on frontend
+        return {"landings": []}
+    
+    headers = {"Authorization": f"token {github_token}"}
+    
+    # Get contents of root
+    url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents"
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code != 200:
+        # Return empty list instead of error to avoid 500 on frontend
+        return {"landings": []}
+    
+    contents = response.json()
+    landings = []
+    
+    for item in contents:
+        if item['type'] == 'dir':
+            folder_name = item['name']
+            
+            # Get index.html
+            html_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{folder_name}/index.html"
+            html_resp = requests.get(html_url, headers=headers)
+            
+            if html_resp.status_code == 200:
+                html_data = html_resp.json()
+                html_content = base64.b64decode(html_data['content']).decode('utf-8')
+                
+                # Parse metadata
+                soup = BeautifulSoup(html_content, 'html.parser')
+                
+                # WhatsApp
+                whatsapp_link = soup.find('a', href=lambda x: x and 'wa.me' in x)
+                whatsapp_number = None
+                if whatsapp_link:
+                    href = whatsapp_link['href']
+                    if 'wa.me/' in href:
+                        whatsapp_number = href.split('wa.me/')[-1].split('?')[0]
+                
+                # Phone
+                phone_link = soup.find('a', href=lambda x: x and x.startswith('tel:'))
+                phone_number = None
+                if phone_link:
+                    phone_number = phone_link['href'].replace('tel:', '')
+                
+                # GTM
+                gtm_script = soup.find('script', string=lambda x: x and 'GTM-' in x)
+                gtm_id = None
+                if gtm_script:
+                    match = re.search(r'GTM-[A-Z0-9]+', gtm_script.string)
+                    gtm_id = match.group() if match else None
+                
+                # Get creation date from commits
+                commits_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/commits?path={folder_name}/index.html"
+                commits_resp = requests.get(commits_url, headers=headers)
+                created_at = datetime.now().isoformat()
+                if commits_resp.status_code == 200:
+                    commits = commits_resp.json()
+                    if commits:
+                        created_at = commits[0]['commit']['committer']['date']
+                
+                landings.append({
+                    "folder": folder_name,
+                    "whatsapp_number": whatsapp_number,
+                    "phone_number": phone_number,
+                    "gtm_id": gtm_id,
+                    "created_at": created_at,
+                    "url": f"https://{os.getenv('GITHUB_PAGES_CUSTOM_DOMAIN', 'saltbalente.github.io')}/{folder_name}"
+                })
+    
+    return {"landings": landings}
+
+def update_landing_metadata(folder_name, whatsapp_number=None, phone_number=None, gtm_id=None):
+    github_owner = os.getenv("GITHUB_REPO_OWNER")
+    github_repo = os.getenv("GITHUB_REPO_NAME", "monorepo-landings")
+    github_token = os.getenv("GITHUB_TOKEN")
+    
+    if not all([github_owner, github_token]):
+        raise ValueError("GitHub credentials not configured")
+    
+    headers = {"Authorization": f"token {github_token}"}
+    
+    # Get current index.html
+    html_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{folder_name}/index.html"
+    html_resp = requests.get(html_url, headers=headers)
+    
+    if html_resp.status_code != 200:
+        raise ValueError(f"Failed to fetch HTML: {html_resp.text}")
+    
+    html_data = html_resp.json()
+    html_content = base64.b64decode(html_data['content']).decode('utf-8')
+    sha = html_data['sha']
+    
+    soup = BeautifulSoup(html_content, 'html.parser')
+    
+    # Update WhatsApp
+    if whatsapp_number:
+        whatsapp_link = soup.find('a', href=lambda x: x and 'wa.me' in x)
+        if whatsapp_link:
+            whatsapp_link['href'] = f"https://wa.me/{whatsapp_number}"
+    
+    # Update Phone
+    if phone_number:
+        phone_link = soup.find('a', href=lambda x: x and x.startswith('tel:'))
+        if phone_link:
+            phone_link['href'] = f"tel:{phone_number}"
+    
+    # Update GTM
+    if gtm_id:
+        gtm_script = soup.find('script', string=lambda x: x and 'GTM-' in x)
+        if gtm_script:
+            # Replace the GTM ID in the script content
+            script_content = gtm_script.string
+            new_content = re.sub(r'GTM-[A-Z0-9]+', gtm_id, script_content)
+            gtm_script.string = new_content
+    
+    updated_html = str(soup)
+    
+    # Commit back
+    commit_data = {
+        "message": f"Update metadata for {folder_name}",
+        "content": base64.b64encode(updated_html.encode('utf-8')).decode('utf-8'),
+        "sha": sha
+    }
+    
+    update_resp = requests.put(html_url, headers=headers, json=commit_data)
+    
+    if update_resp.status_code not in [200, 201]:
+        raise ValueError(f"Failed to update: {update_resp.text}")
+    
+    return {"success": True, "commit": update_resp.json()['commit']['sha']}
 
 @app.errorhandler(Exception)
 def handle_unexpected_error(e):
@@ -112,6 +252,48 @@ def build_landing():
     except Exception as e:
         result = jsonify({'success': False, 'error': str(e)}), 500
         result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/landing/history', methods=['GET'])
+def landing_history():
+    try:
+        history = get_landing_history()
+        result = jsonify(history)
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except Exception as e:
+        result = jsonify({"error": str(e)}), 500
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/landing/update', methods=['POST', 'OPTIONS'])
+def update_landing():
+    if request.method == 'OPTIONS':
+        result = jsonify({}), 200
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        result.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        return result
+    
+    try:
+        data = request.json
+        folder_name = data.get('folder')
+        whatsapp_number = data.get('whatsapp_number')
+        phone_number = data.get('phone_number')
+        gtm_id = data.get('gtm_id')
+        
+        if not folder_name:
+            result = jsonify({'success': False, 'error': 'Folder name required'}), 400
+            result.headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        result_data = update_landing_metadata(folder_name, whatsapp_number, phone_number, gtm_id)
+        result = jsonify({'success': True, **result_data}), 200
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except Exception as e:
+        result = jsonify({'success': False, 'error': str(e)}), 500
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/health', methods=['GET'])
