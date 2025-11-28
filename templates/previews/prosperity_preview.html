@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vista Previa - Template Prosperidad</title>
+  <meta name="description" content="Vista previa del template de prosperidad para dinero y abundancia" />
+
+  <!-- Prosperity Fonts: Playfair Display for elegance + Inter for clarity -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Playfair Display', 'serif'],
+            prosperity: ['Playfair Display', 'serif'],
+          },
+          colors: {
+            gold: {
+              50: '#fefce8',
+              100: '#fef9c3',
+              200: '#fef08a',
+              300: '#fde047',
+              400: '#facc15',
+              500: '#eab308',
+              600: '#ca8a04',
+              700: '#a16207',
+              800: '#854d0e',
+              900: '#713f12',
+              950: '#422006',
+            },
+            wealth: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              200: '#bbf7d0',
+              300: '#86efac',
+              400: '#4ade80',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+              950: '#052e16',
+            },
+            success: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+              950: '#172554',
+            }
+          },
+          animation: {
+            'coin-flip': 'coin-flip 2s ease-in-out infinite',
+            'gold-shimmer': 'gold-shimmer 3s ease-in-out infinite',
+            'wealth-flow': 'wealth-flow 4s linear infinite',
+          },
+          keyframes: {
+            'coin-flip': {
+              '0%, 100%': { transform: 'rotateY(0deg)' },
+              '50%': { transform: 'rotateY(180deg)' },
+            },
+            'gold-shimmer': {
+              '0%, 100%': { boxShadow: '0 0 20px rgba(234, 179, 8, 0.4)' },
+              '50%': { boxShadow: '0 0 30px rgba(234, 179, 8, 0.8)' },
+            },
+            'wealth-flow': {
+              '0%': { transform: 'translateX(-100%)' },
+              '100%': { transform: 'translateX(100%)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .prosperity-bg {
+      background:
+        radial-gradient(circle at 25% 75%, rgba(234, 179, 8, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 75% 25%, rgba(34, 197, 94, 0.1) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(240, 253, 244, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%);
+    }
+
+    .gold-border {
+      position: relative;
+    }
+
+    .gold-border::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, #eab308, #f59e0b, #eab308);
+      border-radius: inherit;
+      z-index: -1;
+      opacity: 0.6;
+    }
+
+    .wealth-particles {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .wealth-particles::after {
+      content: '💰💎🏆';
+      position: absolute;
+      top: 20%;
+      left: 10%;
+      font-size: 1.5rem;
+      opacity: 0.1;
+      animation: wealth-flow 8s linear infinite;
+    }
+  </style>
+</head>
+
+<body class="prosperity-bg text-success-900 font-sans antialiased min-h-screen relative overflow-x-hidden">
+  <!-- Wealth particles -->
+  <div class="wealth-particles fixed inset-0 pointer-events-none z-0"></div>
+
+  <!-- Prosperity Navbar -->
+  <nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md border-b border-gold-200 py-4">
+    <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+      <div class="font-prosperity text-3xl text-gold-600 font-bold">
+        Prosperidad Infinita
+      </div>
+      <a href="tel:+52551234567"
+        class="flex items-center gap-2 text-success-600 hover:text-gold-600 transition-colors font-medium gold-border px-4 py-2 rounded-lg">
+        <svg xmlns="http://www.w3.org" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+        </svg>
+        <span>+52551234567</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero Section - Wealth & Prosperity -->
+  <header class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+    <div class="relative max-w-5xl mx-auto px-6 text-center z-10">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-100 text-gold-700 text-sm font-medium mb-8 gold-border">
+        <span class="animate-coin-flip">💰</span>
+        Prosperidad Garantizada
+        <span class="animate-coin-flip" style="animation-delay: 0.5s">💎</span>
+      </div>
+
+      <h1 class="text-5xl md:text-6xl lg:text-7xl font-prosperity font-bold text-success-800 mb-6 leading-tight">
+        Atrae la Abundancia
+      </h1>
+
+      <p class="text-xl md:text-2xl text-success-700 mb-12 max-w-3xl mx-auto leading-relaxed">
+        Descubre cómo manifestar riqueza y prosperidad en tu vida
+      </p>
+
+      <!-- Prosperity CTA -->
+      <div class="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
+        <a href="https://wa.me/52551234567"
+          class="group relative inline-flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-gold-500 to-success-500 text-white text-xl font-prosperity font-bold rounded-2xl shadow-2xl hover:shadow-gold-500/50 hover:-translate-y-2 transition-all duration-500 overflow-hidden">
+          <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+          <span class="animate-coin-flip mr-2">💰</span>
+          ¡Atraer Dinero Ahora!
+        </a>
+      </div>
+
+      <!-- Wealth prophecy -->
+      <div class="bg-white/70 backdrop-blur-sm p-6 rounded-2xl max-w-2xl mx-auto gold-border">
+        <p class="text-success-700 italic text-lg font-serif">
+          "La abundancia fluye hacia aquellos que saben atraerla. Déjame mostrarte el camino hacia la riqueza infinita..."
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Prosperity Benefits -->
+  <section class="py-24 bg-white/60">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-20">
+        <h2 class="text-4xl md:text-5xl font-prosperity font-bold text-success-800 mb-6">
+          Bendiciones de la Abundancia
+        </h2>
+        <p class="text-xl text-success-700 max-w-3xl mx-auto">
+          Descubre las riquezas que el universo tiene preparadas para ti
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        
+        <div class="group bg-white p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-gold-500/20 text-center gold-border">
+          <div class="w-16 h-16 bg-gradient-to-br from-gold-400 to-success-400 rounded-2xl flex items-center justify-center mb-6 mx-auto text-white text-2xl animate-coin-flip">
+            💎
+          </div>
+          <p class="text-success-700 leading-relaxed font-medium">Lecturas especializadas en prosperidad</p>
+        </div>
+        
+        <div class="group bg-white p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-gold-500/20 text-center gold-border">
+          <div class="w-16 h-16 bg-gradient-to-br from-gold-400 to-success-400 rounded-2xl flex items-center justify-center mb-6 mx-auto text-white text-2xl animate-coin-flip">
+            💎
+          </div>
+          <p class="text-success-700 leading-relaxed font-medium">Rituales de abundancia probados</p>
+        </div>
+        
+        <div class="group bg-white p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-gold-500/20 text-center gold-border">
+          <div class="w-16 h-16 bg-gradient-to-br from-gold-400 to-success-400 rounded-2xl flex items-center justify-center mb-6 mx-auto text-white text-2xl animate-coin-flip">
+            💎
+          </div>
+          <p class="text-success-700 leading-relaxed font-medium">Consejos para inversiones inteligentes</p>
+        </div>
+        
+        <div class="group bg-white p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-gold-500/20 text-center gold-border">
+          <div class="w-16 h-16 bg-gradient-to-br from-gold-400 to-success-400 rounded-2xl flex items-center justify-center mb-6 mx-auto text-white text-2xl animate-coin-flip">
+            💎
+          </div>
+          <p class="text-success-700 leading-relaxed font-medium">Limpieza energética financiera</p>
+        </div>
+        
+      </div>
+    </div>
+  </section>
+
+  <!-- Success Testimonials -->
+  <section class="py-24 bg-gradient-to-r from-wealth-50 to-gold-50">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-20">
+        <h2 class="text-4xl md:text-5xl font-prosperity font-bold text-success-800 mb-6">
+          Historias de Éxito Financiero
+        </h2>
+        <div class="flex justify-center gap-2 text-gold-400 mb-4">
+          
+          <span class="animate-gold-shimmer" style="animation-delay: 0.0s">⭐</span>
+          
+          <span class="animate-gold-shimmer" style="animation-delay: 0.2s">⭐</span>
+          
+          <span class="animate-gold-shimmer" style="animation-delay: 0.4s">⭐</span>
+          
+          <span class="animate-gold-shimmer" style="animation-delay: 0.6000000000000001s">⭐</span>
+          
+          <span class="animate-gold-shimmer" style="animation-delay: 0.8s">⭐</span>
+          
+        </div>
+        <p class="text-success-700 font-medium text-lg">Valoración de prosperidad de 5.0/5 basada en fortunas cambiadas</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"M"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"á"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"d"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"e"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"8"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"0"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"0"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"0"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"p"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"e"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"r"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"o"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"n"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"h"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"n"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"l"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"o"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"g"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"r"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"d"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"o"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"p"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"r"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"o"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"p"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"e"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"r"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"i"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"d"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"d"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"f"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"i"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"n"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"n"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"c"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"i"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"e"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"r"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-gold-500/10 transition-all duration-500 group gold-border">
+          <p class="text-success-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gold-400 to-success-400 flex items-center justify-center text-white font-prosperity text-lg">
+              🏆
+            </div>
+            <div>
+              <p class="text-gold-600 font-prosperity font-medium">Visionario de Éxito</p>
+              <p class="text-success-500 text-sm">Abundancia manifestada</p>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </section>
+
+  <!-- Final Prosperity Call to Action -->
+  <section class="py-24 bg-gradient-to-br from-success-900 via-gold-900 to-success-900 text-white relative overflow-hidden">
+    <div class="relative max-w-5xl mx-auto px-6 text-center">
+      <div class="mb-12">
+        <h2 class="text-4xl md:text-6xl font-prosperity font-bold mb-6 leading-tight">
+          ¿Listo para Atraer la Abundancia?
+        </h2>
+        <p class="text-xl text-gold-200 mb-8 max-w-3xl mx-auto leading-relaxed">
+          La riqueza te espera con los brazos abiertos. Las leyes del universo ya están trabajando a tu favor...
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-6 justify-center mb-16">
+        <a href="https://wa.me/52551234567"
+          class="group inline-flex items-center justify-center gap-4 px-12 py-6 bg-gradient-to-r from-gold-500 to-success-500 text-white text-2xl font-prosperity font-bold rounded-3xl hover:from-gold-400 hover:to-success-400 transition-all duration-500 shadow-2xl hover:shadow-gold-500/50 hover:scale-105">
+          <span class="animate-coin-flip mr-2">💰</span>
+          Iniciar Camino a la Riqueza
+        </a>
+      </div>
+
+      <!-- Prosperity prophecy -->
+      <div class="bg-white/10 backdrop-blur-sm p-8 rounded-3xl max-w-4xl mx-auto">
+        <p class="text-gold-200 italic text-xl font-serif leading-relaxed">
+          "La abundancia no es un accidente, es una elección. Cada decisión que tomas te acerca más
+          a la prosperidad infinita que mereces. Permíteme guiarte hacia ese futuro dorado."
+        </p>
+        <div class="mt-6 flex justify-center">
+          <div class="flex gap-2">
+            <span class="animate-gold-shimmer">💎</span>
+            <span class="animate-gold-shimmer" style="animation-delay: 0.5s">🏆</span>
+            <span class="animate-gold-shimmer" style="animation-delay: 1s">💰</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Prosperity Footer -->
+  <footer class="bg-gradient-to-t from-success-950 to-gold-950 border-t border-gold-900/30 py-16 text-center text-gold-400 text-sm relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute top-10 left-10 animate-coin-flip">💰</div>
+      <div class="absolute bottom-20 right-20 animate-gold-shimmer" style="animation-delay: 1s">💎</div>
+    </div>
+
+    <div class="relative">
+      <p class="mb-4">&copy; 2024 Prosperidad Infinita. Todos los derechos reservados en el reino de la abundancia.</p>
+      <p class="text-gold-500 italic">"La riqueza es tu derecho divino"</p>
+    </div>
+  </footer>
+
+  <!-- Prosperity WhatsApp Button -->
+  <a href="https://wa.me/52551234567"
+    class="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-gold-500 to-success-500 text-white p-4 rounded-full shadow-2xl hover:shadow-gold-500/50 hover:scale-110 transition-all duration-300 animate-coin-flip lg:hidden">
+    <span class="text-xl">💰</span>
+  </a>
+</body>
+
+</html>

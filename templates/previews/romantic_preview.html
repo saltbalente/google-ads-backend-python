@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vista Previa - Template Romántica</title>
+  <meta name="description" content="Vista previa del template romántico para temas de amor" />
+
+  <!-- Romantic Fonts: Dancing Script for elegance + Nunito for readability -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Nunito:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Nunito', 'sans-serif'],
+            serif: ['Dancing Script', 'serif'],
+            romantic: ['Dancing Script', 'serif'],
+          },
+          colors: {
+            romantic: {
+              50: '#fdf2f8',
+              100: '#fce7f3',
+              200: '#fbcfe8',
+              300: '#f9a8d4',
+              400: '#f472b6',
+              500: '#ec4899',
+              600: '#db2777',
+              700: '#be185d',
+              800: '#9d174d',
+              900: '#831843',
+              950: '#500724',
+            },
+            passion: {
+              50: '#fef2f2',
+              100: '#fee2e2',
+              200: '#fecaca',
+              300: '#fca5a5',
+              400: '#f87171',
+              500: '#ef4444',
+              600: '#dc2626',
+              700: '#b91c1c',
+              800: '#991b1b',
+              900: '#7f1d1d',
+              950: '#450a0a',
+            }
+          },
+          animation: {
+            'heartbeat': 'heartbeat 1.5s ease-in-out infinite',
+            'float-gentle': 'float-gentle 4s ease-in-out infinite',
+            'sparkle-love': 'sparkle-love 2s ease-in-out infinite',
+          },
+          keyframes: {
+            heartbeat: {
+              '0%, 100%': { transform: 'scale(1)' },
+              '50%': { transform: 'scale(1.1)' },
+            },
+            'float-gentle': {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-5px)' },
+            },
+            'sparkle-love': {
+              '0%, 100%': { opacity: '0', transform: 'scale(0.8)' },
+              '50%': { opacity: '1', transform: 'scale(1.2)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .romantic-bg {
+      background:
+        radial-gradient(circle at 30% 70%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 70% 30%, rgba(239, 68, 68, 0.1) 0%, transparent 50%),
+        linear-gradient(135deg, rgba(253, 242, 248, 0.8) 0%, rgba(255, 255, 255, 0.9) 100%);
+    }
+
+    .heart-glow {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .heart-glow::after {
+      content: '♥';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2rem;
+      color: rgba(236, 72, 153, 0.3);
+      animation: heartbeat 2s ease-in-out infinite;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body class="romantic-bg text-passion-900 font-sans antialiased min-h-screen relative overflow-x-hidden">
+  <!-- Floating hearts -->
+  <div class="fixed inset-0 pointer-events-none z-0">
+    <div class="absolute top-1/4 left-1/4 text-romantic-400 opacity-20 animate-float-gentle">♥</div>
+    <div class="absolute top-1/3 right-1/3 text-passion-400 opacity-25 animate-float-gentle" style="animation-delay: 1s">♥</div>
+    <div class="absolute bottom-1/4 left-1/2 text-romantic-500 opacity-15 animate-float-gentle" style="animation-delay: 2s">♥</div>
+  </div>
+
+  <!-- Romantic Navbar -->
+  <nav class="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-romantic-200 py-4">
+    <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+      <div class="font-romantic text-3xl text-romantic-600">
+        Amor Eterno
+      </div>
+      <a href="tel:+52551234567"
+        class="flex items-center gap-2 text-passion-600 hover:text-romantic-600 transition-colors font-medium">
+        <svg xmlns="http://www.w3.org" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+        </svg>
+        <span>+52551234567</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero Section - Romantic Love -->
+  <header class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+    <div class="relative max-w-5xl mx-auto px-6 text-center z-10">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-romantic-100 text-romantic-700 text-sm font-medium mb-8">
+        <span class="animate-heartbeat">♥</span>
+        Amor Verdadero
+        <span class="animate-heartbeat">♥</span>
+      </div>
+
+      <h1 class="text-5xl md:text-6xl lg:text-7xl font-romantic font-bold text-passion-800 mb-6 leading-tight">
+        Encuentra el Amor Verdadero
+      </h1>
+
+      <p class="text-xl md:text-2xl text-passion-700 mb-12 max-w-3xl mx-auto leading-relaxed">
+        Deja que el universo te guíe hacia tu alma gemela
+      </p>
+
+      <!-- Romantic CTA -->
+      <div class="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
+        <a href="https://wa.me/52551234567"
+          class="group relative inline-flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-romantic-500 to-passion-500 text-white text-xl font-romantic font-bold rounded-2xl shadow-2xl hover:shadow-romantic-500/50 hover:-translate-y-2 transition-all duration-500 overflow-hidden heart-glow">
+          <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+          <span class="animate-heartbeat">♥</span>
+          ¡Encontrar Mi Pareja!
+        </a>
+      </div>
+
+      <!-- Love prophecy -->
+      <div class="bg-white/60 backdrop-blur-sm p-6 rounded-2xl max-w-2xl mx-auto animate-float-gentle">
+        <p class="text-passion-700 italic text-lg font-serif">
+          "El amor verdadero trasciende el tiempo y el espacio. Déjame guiarte hacia el alma gemela que te espera..."
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Love Benefits -->
+  <section class="py-24 bg-white/50">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-20">
+        <h2 class="text-4xl md:text-5xl font-romantic font-bold text-passion-800 mb-6">
+          Bendiciones del Amor
+        </h2>
+        <p class="text-xl text-passion-700 max-w-3xl mx-auto">
+          Descubre las maravillas que el amor verdadero puede traerte
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        
+        <div class="group bg-white p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-romantic-500/20 text-center">
+          <div class="w-16 h-16 bg-gradient-to-br from-romantic-400 to-passion-400 rounded-2xl flex items-center justify-center mb-6 mx-auto text-white text-2xl">
+            ♥
+          </div>
+          <p class="text-passion-700 leading-relaxed font-medium">Lecturas especializadas en amor</p>
+        </div>
+        
+        <div class="group bg-white p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-romantic-500/20 text-center">
+          <div class="w-16 h-16 bg-gradient-to-br from-romantic-400 to-passion-400 rounded-2xl flex items-center justify-center mb-6 mx-auto text-white text-2xl">
+            ♥
+          </div>
+          <p class="text-passion-700 leading-relaxed font-medium">Consejos para mejorar tu relación</p>
+        </div>
+        
+        <div class="group bg-white p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-romantic-500/20 text-center">
+          <div class="w-16 h-16 bg-gradient-to-br from-romantic-400 to-passion-400 rounded-2xl flex items-center justify-center mb-6 mx-auto text-white text-2xl">
+            ♥
+          </div>
+          <p class="text-passion-700 leading-relaxed font-medium">Rituales de atracción amorosa</p>
+        </div>
+        
+        <div class="group bg-white p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-romantic-500/20 text-center">
+          <div class="w-16 h-16 bg-gradient-to-br from-romantic-400 to-passion-400 rounded-2xl flex items-center justify-center mb-6 mx-auto text-white text-2xl">
+            ♥
+          </div>
+          <p class="text-passion-700 leading-relaxed font-medium">Guía para el corazón solitario</p>
+        </div>
+        
+      </div>
+    </div>
+  </section>
+
+  <!-- Love Testimonials -->
+  <section class="py-24 bg-gradient-to-r from-romantic-50 to-passion-50">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-20">
+        <h2 class="text-4xl md:text-5xl font-romantic font-bold text-passion-800 mb-6">
+          Historias de Amor Verdadero
+        </h2>
+        <div class="flex justify-center gap-2 text-romantic-400 mb-4">
+          
+          <span class="animate-sparkle-love" style="animation-delay: 0.0s">♥</span>
+          
+          <span class="animate-sparkle-love" style="animation-delay: 0.2s">♥</span>
+          
+          <span class="animate-sparkle-love" style="animation-delay: 0.4s">♥</span>
+          
+          <span class="animate-sparkle-love" style="animation-delay: 0.6000000000000001s">♥</span>
+          
+          <span class="animate-sparkle-love" style="animation-delay: 0.8s">♥</span>
+          
+        </div>
+        <p class="text-passion-700 font-medium text-lg">Valoración romántica de 5.0/5 basada en corazones unidos</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"M"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"á"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"d"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"e"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"3"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"0"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"0"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"0"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"p"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"r"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"e"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"j"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"r"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"e"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"u"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"n"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"i"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"d"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"g"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"r"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"c"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"i"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"n"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"u"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"e"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"t"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"r"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"l"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"e"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"c"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"t"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"u"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"r"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white p-8 rounded-2xl hover:shadow-2xl hover:shadow-romantic-500/10 transition-all duration-500 group">
+          <p class="text-passion-700 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-romantic-400 to-passion-400 flex items-center justify-center text-white font-romantic text-lg">
+              ♥
+            </div>
+            <div>
+              <p class="text-romantic-600 font-romantic font-medium">Alma Enamorada</p>
+              <p class="text-passion-500 text-sm">Unida por el destino</p>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </section>
+
+  <!-- Final Romantic Call to Action -->
+  <section class="py-24 bg-gradient-to-br from-passion-900 via-romantic-900 to-passion-900 text-white relative overflow-hidden">
+    <div class="relative max-w-5xl mx-auto px-6 text-center">
+      <div class="mb-12">
+        <h2 class="text-4xl md:text-6xl font-romantic font-bold mb-6 leading-tight">
+          ¿Listo para Encontrar tu Alma Gemela?
+        </h2>
+        <p class="text-xl text-romantic-200 mb-8 max-w-3xl mx-auto leading-relaxed">
+          El amor te espera con los brazos abiertos. Las estrellas ya han escrito tu historia...
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-6 justify-center mb-16">
+        <a href="https://wa.me/52551234567"
+          class="group inline-flex items-center justify-center gap-4 px-12 py-6 bg-gradient-to-r from-romantic-500 to-passion-500 text-white text-2xl font-romantic font-bold rounded-3xl hover:from-romantic-400 hover:to-passion-400 transition-all duration-500 shadow-2xl hover:shadow-romantic-500/50 hover:scale-105 heart-glow">
+          <span class="animate-heartbeat">♥</span>
+          Iniciar Historia de Amor
+        </a>
+      </div>
+
+      <!-- Romantic prophecy -->
+      <div class="bg-white/10 backdrop-blur-sm p-8 rounded-3xl max-w-4xl mx-auto animate-float-gentle">
+        <p class="text-romantic-200 italic text-xl font-serif leading-relaxed">
+          "En el vasto universo del amor, cada corazón tiene su perfecto complemento.
+          Permíteme revelarte el camino hacia ese amor eterno que tu alma anhela."
+        </p>
+        <div class="mt-6 flex justify-center">
+          <div class="flex gap-2">
+            <span class="animate-sparkle-love">♥</span>
+            <span class="animate-sparkle-love" style="animation-delay: 0.5s">♥</span>
+            <span class="animate-sparkle-love" style="animation-delay: 1s">♥</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Romantic Footer -->
+  <footer class="bg-gradient-to-t from-passion-950 to-romantic-950 border-t border-romantic-900/30 py-16 text-center text-romantic-400 text-sm relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute top-10 left-10 animate-float-gentle">♥</div>
+      <div class="absolute bottom-20 right-20 animate-float-gentle" style="animation-delay: 1s">♥</div>
+    </div>
+
+    <div class="relative">
+      <p class="mb-4">&copy; 2024 Amor Eterno. Todos los derechos reservados en el reino del corazón.</p>
+      <p class="text-romantic-500 italic">"El amor es la fuerza más poderosa del universo"</p>
+    </div>
+  </footer>
+
+  <!-- Romantic WhatsApp Button -->
+  <a href="https://wa.me/52551234567"
+    class="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-romantic-500 to-passion-500 text-white p-4 rounded-full shadow-2xl hover:shadow-romantic-500/50 hover:scale-110 transition-all duration-300 animate-heartbeat lg:hidden heart-glow">
+    <span class="text-xl">♥</span>
+  </a>
+</body>
+
+</html>

@@ -1,0 +1,1150 @@
+<!doctype html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vista Previa - Template Mística</title>
+  <meta name="description" content="Vista previa del template místico para tarot y videncia" />
+
+  <!-- Mystical Fonts: Cinzel for ancient feel + Outfit for readability -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            serif: ['Cinzel', 'serif'],
+            mystical: ['Cinzel', 'serif'],
+          },
+          colors: {
+            mystical: {
+              50: '#faf5ff',
+              100: '#f3e8ff',
+              200: '#e9d5ff',
+              300: '#d8b4fe',
+              400: '#c084fc',
+              500: '#a855f7',
+              600: '#9333ea',
+              700: '#7c3aed',
+              800: '#6b21a8',
+              900: '#581c87',
+              950: '#3b0764',
+            },
+            ancient: {
+              50: '#fefce8',
+              100: '#fef9c3',
+              200: '#fef08a',
+              300: '#fde047',
+              400: '#facc15',
+              500: '#eab308',
+              600: '#ca8a04',
+              700: '#a16207',
+              800: '#854d0e',
+              900: '#713f12',
+              950: '#422006',
+            },
+            shadow: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#020617',
+            }
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'float-slow': 'float 8s ease-in-out infinite',
+            'float-fast': 'float 4s ease-in-out infinite',
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'pulse-mystical': 'pulse-mystical 3s ease-in-out infinite',
+            'shimmer': 'shimmer 2s linear infinite',
+            'glow': 'glow 2s ease-in-out infinite alternate',
+            'drift': 'drift 20s linear infinite',
+            'sparkle': 'sparkle 3s ease-in-out infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-10px)' },
+            },
+            'pulse-mystical': {
+              '0%, 100%': { opacity: '0.8', transform: 'scale(1)' },
+              '50%': { opacity: '1', transform: 'scale(1.05)' },
+            },
+            glow: {
+              '0%': { boxShadow: '0 0 20px rgba(168, 85, 247, 0.4)' },
+              '100%': { boxShadow: '0 0 30px rgba(168, 85, 247, 0.8)' },
+            },
+            drift: {
+              '0%': { transform: 'translateX(-100%)' },
+              '100%': { transform: 'translateX(100%)' },
+            },
+            sparkle: {
+              '0%, 100%': { opacity: '0', transform: 'scale(0.8)' },
+              '50%': { opacity: '1', transform: 'scale(1.2)' },
+            }
+          },
+          backgroundImage: {
+            'mystical-gradient': 'linear-gradient(135deg, #581c87 0%, #1e293b 50%, #581c87 100%)',
+            'ancient-texture': 'radial-gradient(circle at 25% 25%, rgba(168, 85, 247, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(234, 179, 8, 0.1) 0%, transparent 50%)',
+            'rune-pattern': 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23a855f7" fill-opacity="0.05"%3E%3Cpath d="M30 30c0-11.046-8.954-20-20-20s-20 8.954-20 20 8.954 20 20 20 20-8.954 20-20zm15 0c0-11.046-8.954-20-20-20s-20 8.954-20 20 8.954 20 20 20 20-8.954 20-20z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Mystical background patterns */
+    .mystical-bg {
+      background:
+        radial-gradient(circle at 20% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(234, 179, 8, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+    }
+
+    .rune-border {
+      position: relative;
+    }
+
+    .rune-border::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, #a855f7, #eab308, #a855f7);
+      border-radius: inherit;
+      z-index: -1;
+      opacity: 0.3;
+    }
+
+    /* Floating particles effect */
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(168, 85, 247, 0.6);
+      border-radius: 50%;
+      animation: sparkle 3s ease-in-out infinite;
+    }
+
+    .particle:nth-child(2) { animation-delay: 0.5s; }
+    .particle:nth-child(3) { animation-delay: 1s; }
+    .particle:nth-child(4) { animation-delay: 1.5s; }
+    .particle:nth-child(5) { animation-delay: 2s; }
+
+    /* Crystal glow effect */
+    .crystal-glow {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .crystal-glow::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent, rgba(168, 85, 247, 0.3), transparent);
+      animation: drift 8s linear infinite;
+      pointer-events: none;
+    }
+
+    /* Ancient scroll effect */
+    .ancient-scroll {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(88, 28, 135, 0.95) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      box-shadow:
+        inset 0 0 50px rgba(168, 85, 247, 0.1),
+        0 0 50px rgba(168, 85, 247, 0.2);
+    }
+  </style>
+</head>
+
+<body class="mystical-bg text-shadow-900 font-sans antialiased selection:bg-mystical-200 selection:text-mystical-900 min-h-screen relative overflow-x-hidden">
+  <!-- Floating mystical particles -->
+  <div class="fixed inset-0 pointer-events-none z-0">
+    <div class="particle absolute top-1/4 left-1/4"></div>
+    <div class="particle absolute top-1/3 right-1/3"></div>
+    <div class="particle absolute bottom-1/4 left-1/2"></div>
+    <div class="particle absolute top-2/3 right-1/4"></div>
+    <div class="particle absolute bottom-1/3 left-1/4"></div>
+  </div>
+
+  <!-- Ancient Mystical Navbar -->
+  <nav class="fixed w-full z-50 transition-all duration-500"
+    :class="{ 'ancient-scroll py-3': scrolled, 'bg-transparent py-5': !scrolled }"
+    x-data="{ scrolled: false }" @scroll.window="scrolled = (window.pageYOffset > 20)">
+    <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+      <div class="font-mystical text-2xl tracking-wider text-ancient-400 drop-shadow-lg">
+        <span class="text-mystical-400">🔮</span><span class="text-ancient-300">Místicos</span><span class="text-mystical-400">Antiguos</span>
+      </div>
+      <a href="tel:+52551234567"
+        class="flex items-center gap-2 text-ancient-200 hover:text-mystical-300 transition-all duration-300 font-medium rune-border px-4 py-2 rounded-lg">
+        <svg xmlns="http://www.w3.org" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+        </svg>
+        <span class="hidden md:inline">+52551234567</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero Section - Mystical Portal -->
+  <header class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden min-h-screen flex items-center">
+    <!-- Animated mystical background -->
+    <div class="absolute inset-0 mystical-bg opacity-80"></div>
+    <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-mystical-600 rounded-full blur-3xl opacity-20 animate-pulse-mystical"></div>
+    <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-ancient-400 rounded-full blur-3xl opacity-20 animate-pulse-mystical" style="animation-delay: 1s;"></div>
+
+    <!-- Floating runes/crystals -->
+    <div class="absolute top-20 left-20 w-16 h-16 text-mystical-400 opacity-30 animate-float-slow">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2L13.09 8.26L19 9L13.09 9.74L12 16L10.91 9.74L5 9L10.91 8.26L12 2Z"/>
+      </svg>
+    </div>
+    <div class="absolute bottom-32 right-32 w-12 h-12 text-ancient-400 opacity-40 animate-float-fast">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="12" cy="12" r="4"/>
+        <circle cx="12" cy="12" r="1"/>
+      </svg>
+    </div>
+
+    <div class="relative max-w-6xl mx-auto px-6 text-center z-10">
+      <!-- Ancient status indicator -->
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full ancient-scroll text-ancient-200 text-sm font-medium mb-8 animate-glow">
+        <div class="w-2 h-2 bg-mystical-400 rounded-full animate-pulse"></div>
+        Portal Místico Abierto
+        <div class="w-2 h-2 bg-ancient-400 rounded-full animate-pulse"></div>
+      </div>
+
+      <h1 class="text-5xl md:text-7xl lg:text-8xl font-mystical font-bold text-white tracking-wider leading-tight mb-6 drop-shadow-2xl">
+        El Tarot Te Espera
+      </h1>
+
+      <p class="text-xl md:text-2xl text-ancient-100 mb-12 max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
+        Descubre los secretos del universo a través de las cartas antiguas
+      </p>
+
+      <!-- Mystical CTA buttons -->
+      <div class="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
+        <a href="https://wa.me/52551234567"
+          class="group relative inline-flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-mystical-600 to-mystical-800 text-white text-xl font-mystical font-bold rounded-2xl shadow-2xl shadow-mystical-900/50 hover:shadow-mystical-900/70 hover:-translate-y-2 transition-all duration-500 overflow-hidden crystal-glow">
+          <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+          <svg class="w-8 h-8 animate-float" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+          </svg>
+          ¡Pedir Lectura Ahora!
+        </a>
+        <a href="tel:+52551234567"
+          class="inline-flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-ancient-600 to-ancient-800 text-white border-2 border-ancient-500 text-xl font-mystical font-bold rounded-2xl hover:bg-ancient-700 hover:border-ancient-400 transition-all duration-300 shadow-lg shadow-ancient-900/50 hover:shadow-ancient-900/70 hover:scale-105">
+          <svg xmlns="http://www.w3.org" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
+          Llamar Ahora
+        </a>
+      </div>
+
+      <!-- Mystical prophecy scroll -->
+      <div class="ancient-scroll p-6 rounded-2xl max-w-2xl mx-auto animate-float-slow">
+        <p class="text-ancient-200 italic text-lg font-serif">
+          "Las cartas del tarot susurran secretos del universo. Déjame guiarte hacia tu destino..."
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Ancient Powers Section -->
+  <section class="py-24 bg-gradient-to-b from-shadow-900 via-shadow-800 to-shadow-900 relative overflow-hidden">
+    <!-- Floating runes background -->
+    <div class="absolute inset-0 rune-pattern opacity-10"></div>
+
+    <div class="relative max-w-7xl mx-auto px-6">
+      <div class="text-center mb-20">
+        <h2 class="text-4xl md:text-5xl font-mystical font-bold text-mystical-300 mb-6 tracking-wider">
+          Poderes Ancestrales
+        </h2>
+        <p class="text-xl text-ancient-200 max-w-3xl mx-auto leading-relaxed">
+          Descubre los dones místicos que te esperan en este viaje espiritual
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        
+        <div class="group ancient-scroll p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-mystical-500/20">
+          <div class="w-16 h-16 bg-gradient-to-br from-mystical-500 to-ancient-500 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:animate-glow">
+            <svg xmlns="http://www.w3.org" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <p class="text-ancient-100 leading-relaxed font-medium text-center">Tarot tradicional con baraja completa</p>
+        </div>
+        
+        <div class="group ancient-scroll p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-mystical-500/20">
+          <div class="w-16 h-16 bg-gradient-to-br from-mystical-500 to-ancient-500 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:animate-glow">
+            <svg xmlns="http://www.w3.org" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <p class="text-ancient-100 leading-relaxed font-medium text-center">Interpretación experta y detallada</p>
+        </div>
+        
+        <div class="group ancient-scroll p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-mystical-500/20">
+          <div class="w-16 h-16 bg-gradient-to-br from-mystical-500 to-ancient-500 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:animate-glow">
+            <svg xmlns="http://www.w3.org" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <p class="text-ancient-100 leading-relaxed font-medium text-center">Consejos prácticos para tu vida</p>
+        </div>
+        
+        <div class="group ancient-scroll p-8 rounded-2xl hover:scale-105 transition-all duration-500 hover:shadow-2xl hover:shadow-mystical-500/20">
+          <div class="w-16 h-16 bg-gradient-to-br from-mystical-500 to-ancient-500 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:animate-glow">
+            <svg xmlns="http://www.w3.org" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <p class="text-ancient-100 leading-relaxed font-medium text-center">Energía positiva garantizada</p>
+        </div>
+        
+      </div>
+    </div>
+  </section>
+
+  <!-- Mystical Testimonials -->
+  <section class="py-24 bg-gradient-to-r from-mystical-950 via-shadow-900 to-mystical-950 relative overflow-hidden">
+    <!-- Crystal formations background -->
+    <div class="absolute inset-0">
+      <div class="absolute top-10 left-10 w-32 h-32 text-mystical-400 opacity-10 animate-float-slow">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+        </svg>
+      </div>
+      <div class="absolute bottom-20 right-20 w-24 h-24 text-ancient-400 opacity-10 animate-float-fast">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="12" cy="12" r="1"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="relative max-w-7xl mx-auto px-6">
+      <div class="text-center mb-20">
+        <h2 class="text-4xl md:text-5xl font-mystical font-bold text-mystical-300 mb-6 tracking-wider">
+          Voces del Más Allá
+        </h2>
+        <div class="flex justify-center gap-2 text-ancient-400 mb-4">
+          
+          <svg class="w-8 h-8 fill-current animate-pulse" style="animation-delay: 0.0s" viewBox="0 0 24 24">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+          </svg>
+          
+          <svg class="w-8 h-8 fill-current animate-pulse" style="animation-delay: 0.2s" viewBox="0 0 24 24">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+          </svg>
+          
+          <svg class="w-8 h-8 fill-current animate-pulse" style="animation-delay: 0.4s" viewBox="0 0 24 24">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+          </svg>
+          
+          <svg class="w-8 h-8 fill-current animate-pulse" style="animation-delay: 0.6000000000000001s" viewBox="0 0 24 24">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+          </svg>
+          
+          <svg class="w-8 h-8 fill-current animate-pulse" style="animation-delay: 0.8s" viewBox="0 0 24 24">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+          </svg>
+          
+        </div>
+        <p class="text-ancient-200 font-medium text-lg">Valoración ancestral de 5.0/5 basada en profecías cumplidas</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"M"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"á"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"d"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"e"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"1"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"0"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"0"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"0"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"0"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"c"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"o"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"n"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"u"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"l"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"t"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"r"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"e"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"l"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"i"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"z"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"d"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"a"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"s"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"c"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"o"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"n"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">" "</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"é"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"x"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"i"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"t"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ancient-scroll p-8 rounded-2xl hover:shadow-2xl hover:shadow-mystical-500/10 transition-all duration-500 group">
+          <svg class="absolute top-6 right-6 w-10 h-10 text-mystical-400 opacity-20 group-hover:opacity-40 transition-opacity" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"/>
+          </svg>
+          <p class="text-ancient-100 italic mb-6 relative z-10 leading-relaxed">"o"</p>
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystical-500 to-ancient-500 flex items-center justify-center text-white font-mystical text-lg">
+              👁
+            </div>
+            <div>
+              <p class="text-mystical-300 font-mystical font-medium">Visión Ancestral</p>
+              <p class="text-ancient-400 text-sm">Revelada por el tarot</p>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </section>
+
+  <!-- Final Mystical Call to Action -->
+  <section class="py-24 bg-gradient-to-br from-shadow-950 via-mystical-950 to-shadow-950 text-white relative overflow-hidden">
+    <!-- Final mystical energy waves -->
+    <div class="absolute inset-0">
+      <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-mystical-600/20 to-transparent"></div>
+      <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-ancient-600/20 to-transparent"></div>
+    </div>
+
+    <div class="relative max-w-5xl mx-auto px-6 text-center">
+      <div class="mb-12">
+        <h2 class="text-4xl md:text-6xl font-mystical font-bold mb-6 tracking-wider">
+          ¿Listo para Cruzar el Velo?
+        </h2>
+        <p class="text-xl text-ancient-200 mb-8 max-w-3xl mx-auto leading-relaxed">
+          El universo conspira a tu favor. Las cartas esperan tu consulta. Tu destino te llama...
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-6 justify-center mb-16">
+        <a href="https://wa.me/52551234567"
+          class="group inline-flex items-center justify-center gap-4 px-12 py-6 bg-gradient-to-r from-mystical-600 to-mystical-800 text-white text-2xl font-mystical font-bold rounded-3xl hover:from-mystical-500 hover:to-mystical-700 transition-all duration-500 shadow-2xl shadow-mystical-900/50 hover:shadow-mystical-900/70 hover:scale-105 crystal-glow">
+          <svg class="w-10 h-10 animate-float" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+          </svg>
+          Iniciar Viaje Místico
+        </a>
+        <a href="tel:+52551234567"
+          class="inline-flex items-center justify-center gap-4 px-12 py-6 bg-gradient-to-r from-ancient-600 to-ancient-800 text-white border-2 border-ancient-500 text-2xl font-mystical font-bold rounded-3xl hover:bg-ancient-700 hover:border-ancient-400 transition-all duration-300 shadow-lg shadow-ancient-900/50 hover:shadow-ancient-900/70 hover:scale-105">
+          <svg xmlns="http://www.w3.org" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          </svg>
+          Voz Ancestral
+        </a>
+      </div>
+
+      <!-- Mystical prophecy -->
+      <div class="ancient-scroll p-8 rounded-3xl max-w-4xl mx-auto animate-float-slow">
+        <p class="text-mystical-200 italic text-xl font-serif leading-relaxed">
+          "En las sombras del tiempo, las cartas del tarot guardan los secretos del alma.
+          Cada lectura es un puente entre lo visible y lo invisible, entre lo conocido y lo eterno.
+          ¿Te atreves a cruzar?"
+        </p>
+        <div class="mt-6 flex justify-center">
+          <div class="flex gap-2">
+            <div class="w-3 h-3 bg-mystical-400 rounded-full animate-sparkle"></div>
+            <div class="w-3 h-3 bg-ancient-400 rounded-full animate-sparkle" style="animation-delay: 0.5s"></div>
+            <div class="w-3 h-3 bg-mystical-400 rounded-full animate-sparkle" style="animation-delay: 1s"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ancient Footer -->
+  <footer class="bg-gradient-to-t from-shadow-950 to-shadow-900 border-t border-mystical-900/30 py-16 text-center text-ancient-400 text-sm relative overflow-hidden">
+    <!-- Subtle mystical pattern -->
+    <div class="absolute inset-0 rune-pattern opacity-5"></div>
+
+    <div class="relative">
+      <p class="mb-4">&copy; 2024 . Todos los derechos reservados en las esferas místicas.</p>
+      <p class="text-ancient-500 italic">"Que las estrellas guíen tu camino"</p>
+    </div>
+  </footer>
+
+  <!-- Mystical WhatsApp Button (Mobile) -->
+  <a href="https://wa.me/52551234567"
+    class="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-mystical-600 to-mystical-800 text-white p-4 rounded-full shadow-2xl shadow-mystical-900/50 hover:shadow-mystical-900/70 hover:scale-110 transition-all duration-300 animate-float lg:hidden crystal-glow">
+    <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+    </svg>
+  </a>
+</body>
+
+</html>

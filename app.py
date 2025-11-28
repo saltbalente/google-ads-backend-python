@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from google.ads.googleads.client import GoogleAdsClient
 from datetime import date, timedelta
 from google.ads.googleads.errors import GoogleAdsException
@@ -98,13 +98,14 @@ def build_landing():
         gtm_id = data.get('gtmId') or data.get('gtm_id')
         phone_number = data.get('phoneNumber') or data.get('phone_number')
         webhook_url = data.get('webhookUrl') or data.get('webhook_url')
+        selected_template = data.get('selectedTemplate') or data.get('selected_template')
         
         if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
             result = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'}), 400
             result[0].headers.add('Access-Control-Allow-Origin', '*')
             return result
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
-        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url)
+        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template)
         result = jsonify({'success': True, 'url': out['url'], 'alias': out['alias']}), 200
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
@@ -144,6 +145,56 @@ def ai_health():
             "deepseek": {"configured": deepseek_ok, "model": os.environ.get('DEEPSEEK_MODEL', 'deepseek-chat')}
         }
     })
+
+@app.route('/api/templates', methods=['GET'])
+def get_templates():
+    """Obtiene la lista de templates disponibles para landing pages"""
+    try:
+        # Usar método estático para no requerir inicialización completa
+        templates_info = LandingPageGenerator.get_templates_static()
+        result = jsonify({
+            'success': True,
+            'templates': templates_info
+        }), 200
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+    except Exception as e:
+        result = jsonify({'success': False, 'error': str(e)}), 500
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/templates/preview/<template_name>', methods=['GET'])
+def get_template_preview(template_name):
+    """Sirve la vista previa HTML de un template específico"""
+    try:
+        # Validate template name
+        valid_templates = ['base', 'mystical', 'romantic', 'prosperity']
+        if template_name not in valid_templates:
+            result = jsonify({'success': False, 'error': 'Template not found'}), 404
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+
+        # Path to preview file
+        preview_file = os.path.join('templates', 'previews', f'{template_name}_preview.html')
+
+        if not os.path.exists(preview_file):
+            result = jsonify({'success': False, 'error': 'Preview not available'}), 404
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+
+        # Read and return the HTML content
+        with open(preview_file, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+
+        # Return HTML with proper content type
+        response = Response(html_content, mimetype='text/html')
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+
+    except Exception as e:
+        result = jsonify({'success': False, 'error': str(e)}), 500
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
 
 @app.route('/api/create-ad', methods=['POST', 'OPTIONS'])
 def create_ad():

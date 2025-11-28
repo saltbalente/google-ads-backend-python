@@ -59,7 +59,22 @@ class VercelClient:
         r.raise_for_status()
         return r.json()
 
-    def assign_alias_after_ready(self, deployment_id: str, alias_domain: str, timeout_sec: int = 600):
-        d = self.poll_ready(deployment_id, timeout_sec=timeout_sec)
-        return self.create_alias(deployment_id, alias_domain)
+    def create_deployment(self, github_repo: str, github_owner: str, branch: str = "main", project_name: Optional[str] = None) -> Dict[str, Any]:
+        """Create a new Vercel deployment from a GitHub repository."""
+        params = self._params()
+        if self.project_id:
+            params["projectId"] = self.project_id
+
+        payload = {
+            "name": project_name or f"{github_owner}-{github_repo}",
+            "gitSource": {
+                "type": "github",
+                "repo": f"{github_owner}/{github_repo}",
+                "ref": branch
+            }
+        }
+
+        r = requests.post(f"{self.base}/v13/deployments", headers=self._headers(), params=params, json=payload, timeout=60)
+        r.raise_for_status()
+        return r.json()
 

@@ -3,6 +3,7 @@ import base64
 import json
 import time
 import re
+import random
 import unicodedata
 import logging
 from dataclasses import dataclass
@@ -10,8 +11,12 @@ from typing import Any, Dict, List, Optional, Callable, Tuple
 
 import requests
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from dotenv import load_dotenv
 
 from vercel_client import VercelClient
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -51,6 +56,7 @@ class LandingPageGenerator:
         vercel_team_id: Optional[str] = os.getenv("VERCEL_TEAM_ID"),
         vercel_token: Optional[str] = os.getenv("VERCEL_TOKEN"),
         base_domain: str = os.getenv("LANDINGS_BASE_DOMAIN", "tudominio.com"),
+        custom_domain: Optional[str] = os.getenv("GITHUB_PAGES_CUSTOM_DOMAIN"),
         max_retries: int = 5,
         request_timeout: int = 60,
         health_check_timeout: int = 30,
@@ -60,8 +66,11 @@ class LandingPageGenerator:
             "OPENAI_API_KEY": "OpenAI API key is required for content generation",
             "GITHUB_REPO_OWNER": "GitHub repository owner is required",
             "GITHUB_TOKEN": "GitHub token is required for repository access",
-            "VERCEL_TOKEN": "Vercel token is required for deployment",
-            "VERCEL_PROJECT_ID": "Vercel project ID is required",
+        }
+
+        optional_env_vars = {
+            "VERCEL_TOKEN": "Vercel token for deployment (optional)",
+            "VERCEL_PROJECT_ID": "Vercel project ID (optional)",
         }
 
         missing_vars = []
@@ -72,21 +81,28 @@ class LandingPageGenerator:
         if missing_vars:
             raise ValueError(f"Missing required environment variables:\n" + "\n".join(missing_vars))
 
+        # Log optional vars
+        for var, message in optional_env_vars.items():
+            if not os.getenv(var):
+                logger.warning(f"Optional environment variable not set: {var} - {message}")
+
         # Additional validations
         if not github_owner.strip():
             raise ValueError("GITHUB_REPO_OWNER cannot be empty")
         if not github_token.strip():
             raise ValueError("GITHUB_TOKEN cannot be empty")
-        if not vercel_token or not vercel_token.strip():
-            raise ValueError("VERCEL_TOKEN cannot be empty")
-        if not vercel_project_id or not vercel_project_id.strip():
-            raise ValueError("VERCEL_PROJECT_ID cannot be empty")
+        if vercel_token and not vercel_token.strip():
+            raise ValueError("VERCEL_TOKEN cannot be empty if provided")
+        if vercel_project_id and not vercel_project_id.strip():
+            raise ValueError("VERCEL_PROJECT_ID cannot be empty if provided")
 
         self.google_ads_client_provider = google_ads_client_provider
         self.openai_model = openai_model
         self.github_owner = github_owner.strip()
         self.github_repo = github_repo.strip()
         self.github_token = github_token.strip()
+        self.vercel_token = vercel_token.strip() if vercel_token else None
+        self.vercel_project_id = vercel_project_id.strip() if vercel_project_id else None
 
         # Templates directory validation
         td = templates_dir
@@ -100,16 +116,23 @@ class LandingPageGenerator:
         self.templates_dir = td
         self.env = Environment(loader=FileSystemLoader(td), autoescape=select_autoescape(["html"]))
 
-        # Vercel client with validation
-        try:
-            self.vercel = VercelClient(token=vercel_token.strip(), team_id=vercel_team_id, project_id=vercel_project_id.strip())
-        except Exception as e:
-            raise RuntimeError(f"Failed to initialize Vercel client: {str(e)}")
+        # Vercel client (optional)
+        if vercel_token and vercel_project_id:
+            try:
+                self.vercel = VercelClient(token=vercel_token.strip(), team_id=vercel_team_id, project_id=vercel_project_id.strip())
+                logger.info("✅ Vercel client initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Vercel client: {str(e)}")
+                self.vercel = None
+        else:
+            self.vercel = None
+            logger.info("ℹ️ Vercel client not initialized (optional)")
 
         # Domain validation
         if not base_domain or not base_domain.strip():
             raise ValueError("LANDINGS_BASE_DOMAIN cannot be empty")
         self.base_domain = base_domain.strip()
+        self.custom_domain = custom_domain.strip() if custom_domain else None
 
         # Configuration parameters
         self.max_retries = max(1, max_retries)
@@ -548,10 +571,43 @@ class LandingPageGenerator:
 
     def render(self, gen: GeneratedContent, config: Dict[str, Any]) -> str:
         try:
-            tpl = self.env.get_template("base.html")
+            # Check if template is explicitly selected from iOS app
+            selected_template = config.get("selected_template")
+
+            if selected_template:
+                # Validate selected template exists
+                available_templates = self.get_available_templates()
+                if selected_template in available_templates:
+                    template_name = selected_template
+                    logger.info(f"🎨 Using user-selected template: {template_name}")
+                else:
+                    logger.warning(f"⚠️ Selected template '{selected_template}' not available, falling back to auto-selection")
+                    selected_template = None
+
+            if not selected_template:
+                # Seleccionar template basado en la palabra clave principal (auto-selection)
+                primary_keyword = config.get("primary_keyword", "").lower()
+
+                # Lógica de selección de template
+                if "tarot" in primary_keyword or "cartas" in primary_keyword:
+                    template_name = "mystical.html"  # Template místico para tarot
+                elif "amor" in primary_keyword or "pareja" in primary_keyword:
+                    template_name = "romantic.html"  # Template romántico para temas de amor
+                elif "dinero" in primary_keyword or "riqueza" in primary_keyword:
+                    template_name = "prosperity.html"  # Template de prosperidad
+                else:
+                    template_name = "base.html"  # Template por defecto
+
+                logger.info(f"🎨 Auto-selected template: {template_name}")
+
+            tpl = self.env.get_template(template_name)
         except Exception as e:
-            raise RuntimeError(f"Template 'base.html' not found or invalid: {str(e)}")
-        
+            # Fallback a base.html si el template específico no existe
+            try:
+                tpl = self.env.get_template("base.html")
+            except Exception as fallback_error:
+                raise RuntimeError(f"Template 'base.html' not found or invalid: {str(fallback_error)}")
+
         try:
             return tpl.render(
                 headline_h1=gen.headline_h1,
@@ -569,6 +625,106 @@ class LandingPageGenerator:
             )
         except Exception as e:
             raise RuntimeError(f"Template rendering failed: {str(e)}")
+
+    def get_available_templates(self) -> List[str]:
+        """Get list of available landing page templates."""
+        try:
+            templates_dir = self.env.loader.searchpath[0] if self.env.loader.searchpath else "templates/landing"
+            import os
+            if os.path.exists(templates_dir):
+                templates = [f for f in os.listdir(templates_dir) if f.endswith('.html')]
+                return sorted(templates)
+            else:
+                # Fallback to hardcoded list if directory not found
+                return ["base.html", "mystical.html", "prosperity.html", "romantic.html"]
+        except Exception as e:
+            logger.warning(f"Could not list templates: {str(e)}, using fallback list")
+            return ["base.html", "mystical.html", "prosperity.html", "romantic.html"]
+
+    def get_template_info(self) -> Dict[str, Dict[str, str]]:
+        """Get information about available templates for iOS app selection."""
+        templates = self.get_available_templates()
+        template_info = {}
+
+        for template in templates:
+            template_name = template.replace('.html', '')
+
+            # Provide user-friendly names and descriptions
+            if template_name == "base":
+                template_info[template] = {
+                    "name": "Clásica",
+                    "description": "Diseño clásico y profesional",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "mystical":
+                template_info[template] = {
+                    "name": "Mística",
+                    "description": "Perfecta para tarot, videncia y temas espirituales",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "romantic":
+                template_info[template] = {
+                    "name": "Romántica",
+                    "description": "Ideal para temas de amor y relaciones",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "prosperity":
+                template_info[template] = {
+                    "name": "Prosperidad",
+                    "description": "Diseñada para dinero, riqueza y abundancia",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            else:
+                template_info[template] = {
+                    "name": template_name.title(),
+                    "description": f"Template {template_name}",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+
+        return template_info
+
+    @staticmethod
+    def get_templates_static() -> Dict[str, Dict[str, str]]:
+        """Static method to get template information without requiring full initialization."""
+        templates = ["base.html", "mystical.html", "romantic.html", "prosperity.html"]
+        template_info = {}
+
+        for template in templates:
+            template_name = template.replace('.html', '')
+
+            # Provide user-friendly names and descriptions
+            if template_name == "base":
+                template_info[template] = {
+                    "name": "Clásica",
+                    "description": "Diseño clásico y profesional",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "mystical":
+                template_info[template] = {
+                    "name": "Mística",
+                    "description": "Perfecta para tarot, videncia y temas espirituales",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "romantic":
+                template_info[template] = {
+                    "name": "Romántica",
+                    "description": "Ideal para temas de amor y relaciones",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "prosperity":
+                template_info[template] = {
+                    "name": "Prosperidad",
+                    "description": "Diseñada para dinero, riqueza y abundancia",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            else:
+                template_info[template] = {
+                    "name": template_name.title(),
+                    "description": f"Template {template_name}",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+
+        return template_info
 
     def _github_headers(self) -> Dict[str, str]:
         """Get GitHub API headers with authentication."""
@@ -809,6 +965,173 @@ class LandingPageGenerator:
             logger.error(f"GitHub publishing failed: {str(e)}")
             raise
 
+    def setup_custom_domain(self) -> bool:
+        """Configure custom domain for GitHub Pages."""
+        if not self.custom_domain:
+            logger.info("ℹ️ No custom domain configured, using default GitHub Pages URL")
+            return True
+
+        try:
+            logger.info(f"🔧 Setting up custom domain: {self.custom_domain}")
+
+            # Create CNAME file in the root of the repository
+            cname_content = self.custom_domain
+
+            # Check if CNAME file exists
+            get_response = self._github_get("/contents/CNAME")
+            sha = None
+
+            if get_response.status_code == 200:
+                try:
+                    file_data = get_response.json()
+                    sha = file_data.get("sha")
+                    logger.info("📄 CNAME file exists, updating...")
+                except (json.JSONDecodeError, KeyError) as e:
+                    logger.warning(f"Could not parse CNAME file data: {str(e)}")
+            elif get_response.status_code == 404:
+                logger.info("📄 CNAME file does not exist, creating...")
+            else:
+                logger.warning(f"Unexpected response checking CNAME: {get_response.status_code}")
+                return False
+
+            # Encode and upload CNAME file
+            try:
+                content_b64 = base64.b64encode(cname_content.encode("utf-8")).decode("ascii")
+            except (UnicodeEncodeError, UnicodeDecodeError) as e:
+                raise RuntimeError(f"Failed to encode CNAME content: {str(e)}")
+
+            payload = {
+                "message": f"🚀 Configure custom domain: {self.custom_domain}",
+                "content": content_b64,
+                "branch": "main"
+            }
+
+            if sha:
+                payload["sha"] = sha
+
+            put_response = self._github_put("/contents/CNAME", payload)
+
+            if put_response.status_code not in [200, 201]:
+                logger.warning(f"Failed to upload CNAME file: {put_response.status_code} - {put_response.text}")
+                return False
+
+            logger.info("✅ Custom domain CNAME file created/updated")
+            return True
+
+        except Exception as e:
+            logger.warning(f"Could not setup custom domain: {str(e)}")
+            return False
+
+    def publish_as_github_pages(self, folder_name: str, html_content: str) -> Dict[str, Any]:
+        """Publish landing page optimized for GitHub Pages."""
+        if not folder_name or not isinstance(folder_name, str):
+            raise ValueError("folder_name must be a non-empty string")
+        if not html_content or not isinstance(html_content, str):
+            raise ValueError("html_content must be a non-empty string")
+
+        # Validate HTML content size
+        content_size = len(html_content.encode('utf-8'))
+        if content_size > 50 * 1024 * 1024:  # 50MB limit
+            raise ValueError(f"HTML content too large: {content_size} bytes. Maximum allowed: 50MB")
+
+        # Setup GitHub Pages first
+        self.setup_github_pages()
+
+        # Setup custom domain if configured
+        if self.custom_domain:
+            self.setup_custom_domain()
+
+        # Use provided folder name for subdomain-friendly alias
+        alias = self.build_alias_domain(folder_name)
+        folder = alias
+        path = f"{folder}/index.html"
+
+        logger.info(f"🚀 Publishing to GitHub Pages: {folder}/index.html")
+
+        try:
+            # Check if file exists
+            get_response = self._github_get(f"/contents/{path}")
+            sha = None
+
+            if get_response.status_code == 200:
+                try:
+                    file_data = get_response.json()
+                    sha = file_data.get("sha")
+                    logger.info(f"📄 File exists, updating...")
+                except (json.JSONDecodeError, KeyError) as e:
+                    logger.warning(f"Could not parse existing file data: {str(e)}")
+            elif get_response.status_code == 404:
+                logger.info("📄 File does not exist, creating new...")
+            else:
+                error_msg = f"Unexpected GitHub response: {get_response.status_code}"
+                try:
+                    error_data = get_response.json()
+                    if "message" in error_data:
+                        error_msg += f" - {error_data['message']}"
+                except:
+                    error_msg += f" - {get_response.text[:200]}"
+                raise RuntimeError(error_msg)
+
+            # Encode content
+            try:
+                content_b64 = base64.b64encode(html_content.encode("utf-8")).decode("ascii")
+            except (UnicodeEncodeError, UnicodeDecodeError) as e:
+                raise RuntimeError(f"Failed to encode HTML content: {str(e)}")
+
+            # Prepare payload
+            payload = {
+                "message": f"🚀 Deploy landing page: {alias}",
+                "content": content_b64,
+                "branch": "main"
+            }
+
+            if sha:
+                payload["sha"] = sha
+
+            # Upload file
+            put_response = self._github_put(f"/contents/{path}", payload)
+
+            if put_response.status_code not in [200, 201]:
+                error_msg = f"GitHub upload failed: {put_response.status_code}"
+                try:
+                    error_data = put_response.json()
+                    if "message" in error_data:
+                        error_msg += f" - {error_data['message']}"
+                except:
+                    error_msg += f" - {put_response.text[:200]}"
+                raise RuntimeError(error_msg)
+
+            try:
+                result = put_response.json()
+                commit_sha = result.get("commit", {}).get("sha")
+                logger.info(f"✅ Published to GitHub Pages (commit: {commit_sha})")
+
+                # Generate URL based on domain configuration
+                if self.custom_domain:
+                    # Use subdomain: https://alias.customdomain.com/
+                    github_pages_url = f"https://{alias}.{self.custom_domain}/"
+                    logger.info(f"🌐 Custom domain URL: {github_pages_url}")
+                else:
+                    # Use default GitHub Pages: https://owner.github.io/repo/folder/
+                    github_pages_url = f"https://{self.github_owner}.github.io/{self.github_repo}/{folder}/"
+                    logger.info(f"🌐 GitHub Pages URL: {github_pages_url}")
+
+                return {
+                    "commit_sha": commit_sha,
+                    "url": github_pages_url,
+                    "alias": alias,
+                    "path": path,
+                    "size": content_size,
+                    "custom_domain": self.custom_domain
+                }
+
+            except json.JSONDecodeError as e:
+                raise RuntimeError(f"Failed to parse GitHub response: {str(e)}")
+
+        except Exception as e:
+            logger.error(f"GitHub Pages publishing failed: {str(e)}")
+            raise
+
     def build_alias_domain(self, keyword: str) -> str:
         k = keyword.lower().strip()
         # Normalize to remove accents
@@ -867,6 +1190,73 @@ class LandingPageGenerator:
                 time.sleep(3)
 
         raise RuntimeError(f"No deployment found for commit {commit_sha} after waiting 2 minutes")
+
+    def deploy_to_vercel(self, folder_name: str, commit_sha: str, custom_domain: Optional[str] = None) -> Dict[str, Any]:
+        """Deploy the landing page to Vercel after successful GitHub publishing."""
+        if not self.vercel_token:
+            logger.warning("Vercel token not configured, skipping Vercel deployment")
+            return {"skipped": True, "reason": "Vercel token not configured"}
+
+        if not self.vercel:
+            logger.warning("Vercel client not initialized, skipping Vercel deployment")
+            return {"skipped": True, "reason": "Vercel client not initialized"}
+
+        try:
+            logger.info(f"🚀 Starting Vercel deployment for folder: {folder_name}")
+
+            # Create deployment from GitHub repository
+            deployment = self.vercel.create_deployment(
+                github_repo=self.github_repo,
+                github_owner=self.github_owner,
+                branch="main",
+                project_name=f"landing-{folder_name}"
+            )
+
+            deployment_id = deployment.get("id") or deployment.get("uid")
+            if not deployment_id:
+                raise RuntimeError("Deployment created but no ID returned")
+
+            logger.info(f"✅ Vercel deployment created: {deployment_id}")
+
+            # Wait for deployment to be ready
+            logger.info("⏳ Waiting for Vercel deployment to be ready...")
+            ready_deployment = self.vercel.poll_ready(deployment_id, timeout_sec=600)  # 10 minutes timeout
+
+            vercel_url = ready_deployment.get("url")
+            if not vercel_url:
+                raise RuntimeError("Deployment ready but no URL provided")
+
+            logger.info(f"✅ Vercel deployment ready: {vercel_url}")
+
+            # Assign custom domain if provided
+            final_url = vercel_url
+            if custom_domain:
+                try:
+                    logger.info(f"🔗 Assigning custom domain: {custom_domain}")
+                    self.vercel.create_alias(deployment_id, custom_domain)
+                    final_url = f"https://{custom_domain}"
+                    logger.info(f"✅ Custom domain assigned: {final_url}")
+                except Exception as e:
+                    logger.warning(f"Failed to assign custom domain {custom_domain}: {str(e)}")
+                    logger.info(f"Using Vercel URL instead: {vercel_url}")
+
+            return {
+                "success": True,
+                "deployment_id": deployment_id,
+                "vercel_url": vercel_url,
+                "final_url": final_url,
+                "custom_domain_assigned": custom_domain is not None and final_url.startswith("https://"),
+                "commit_sha": commit_sha
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Vercel deployment failed: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "folder_name": folder_name,
+                "commit_sha": commit_sha
+            }
 
     def health_check(self, url: str, whatsapp_number: str, phone_number: str, gtm_id: str) -> bool:
         """Perform comprehensive health check on deployed landing page."""
@@ -1009,7 +1399,37 @@ class LandingPageGenerator:
             logger.error(f"Failed to update Final URLs: {str(e)}")
             raise RuntimeError(f"Google Ads URL update failed: {str(e)}")
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None) -> Dict[str, Any]:
+    def _generate_folder_name(self, keywords: List[str]) -> str:
+        """Generate a unique folder name based on a random keyword from the list."""
+        if not keywords:
+            # Fallback if no keywords available
+            return f"landing-{random.randint(1000, 9999)}"
+
+        # Select a random keyword
+        selected_keyword = random.choice(keywords)
+        logger.info(f"🎯 Selected keyword for folder: '{selected_keyword}'")
+
+        # Create slug: normalize, remove accents, replace spaces with hyphens, remove special chars
+        slug = unicodedata.normalize('NFD', selected_keyword)
+        slug = ''.join(c for c in slug if unicodedata.category(c) != 'Mn')  # Remove accents
+        slug = re.sub(r'[^a-zA-Z0-9\s-]', '', slug)  # Remove special characters except spaces and hyphens
+        slug = re.sub(r'\s+', '-', slug.lower())  # Replace spaces with hyphens and lowercase
+        slug = re.sub(r'-+', '-', slug)  # Replace multiple hyphens with single
+        slug = slug.strip('-')  # Remove leading/trailing hyphens
+
+        # Ensure slug is not empty
+        if not slug:
+            slug = f"keyword-{random.randint(1000, 9999)}"
+
+        # Generate unique number (1-999) to avoid duplicates
+        unique_number = random.randint(1, 999)
+
+        folder_name = f"{slug}-{unique_number}"
+        logger.info(f"📁 Generated folder name: '{folder_name}'")
+
+        return folder_name
+
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None) -> Dict[str, Any]:
         """Execute the complete landing page generation pipeline."""
         start_time = time.time()
 
@@ -1047,6 +1467,10 @@ class LandingPageGenerator:
             ctx = self.extract_ad_group_context(customer_id, ad_group_id)
             logger.info(f"✅ Context extracted: {len(ctx.keywords)} keywords, {len(ctx.headlines)} headlines")
 
+            # Generate unique folder name based on random keyword
+            folder_name = self._generate_folder_name(ctx.keywords)
+            logger.info(f"📁 Using folder name: '{folder_name}'")
+
             # Validate we have minimum required data
             if not ctx.primary_keyword:
                 logger.warning("No primary keyword found, using fallback")
@@ -1063,7 +1487,9 @@ class LandingPageGenerator:
                 "phone_number": phone_number,
                 "gtm_id": gtm_id,
                 "webhook_url": webhook_url,
-                "primary_keyword": ctx.primary_keyword
+                "primary_keyword": ctx.primary_keyword,
+                "folder_name": folder_name,
+                "selected_template": selected_template
             }
 
             # Step 4: Render HTML
@@ -1072,40 +1498,40 @@ class LandingPageGenerator:
             html_size = len(html.encode('utf-8'))
             logger.info(f"✅ HTML rendered successfully ({html_size} bytes)")
 
-            # Step 5: Publish to GitHub
-            logger.info("🐙 Step 4: Publishing to GitHub...")
-            gh_result = self.publish_to_github(ad_group_id, html)
-            commit_sha = gh_result.get("commit", {}).get("sha")
-            logger.info(f"✅ Published to GitHub (commit: {commit_sha})")
+            # Step 5: Publish to GitHub Pages
+            logger.info("📄 Step 4: Publishing to GitHub Pages...")
+            gh_result = self.publish_as_github_pages(folder_name, html)
+            commit_sha = gh_result.get("commit_sha")
+            final_url = gh_result.get("url")
+            alias = gh_result.get("alias")
+            logger.info(f"✅ Published to GitHub Pages (commit: {commit_sha})")
+            logger.info(f"🌐 GitHub Pages URL: {final_url}")
 
-            # Step 6: Wait for Vercel deployment
-            logger.info("⏳ Step 5: Waiting for Vercel deployment...")
-            dep = self.wait_vercel_ready_for_commit(commit_sha=commit_sha)
-            logger.info(f"✅ Vercel deployment ready (ID: {dep.get('uid')})")
+            # Step 6: Deploy to Vercel (if configured)
+            vercel_result = None
+            vercel_url = None
+            if self.vercel_token and self.vercel:
+                logger.info("⚡ Step 5: Deploying to Vercel...")
+                vercel_result = self.deploy_to_vercel(folder_name, commit_sha, self.custom_domain)
+                if vercel_result.get("success"):
+                    vercel_url = vercel_result.get("final_url")
+                    final_url = vercel_url  # Use Vercel URL as the primary URL
+                    logger.info(f"✅ Deployed to Vercel: {vercel_url}")
+                else:
+                    logger.warning(f"Vercel deployment failed: {vercel_result.get('error', 'Unknown error')}")
+            else:
+                logger.info("ℹ️ Vercel not configured, using GitHub Pages URL")
 
-            # Step 7: Create domain alias
-            alias = self.build_alias_domain(ctx.primary_keyword or f"landing-{ad_group_id}")
-            logger.info(f"🔗 Step 6: Creating domain alias: {alias}")
-
-            try:
-                self.vercel.create_alias(dep.get("uid") or dep.get("id"), alias)
-                logger.info("✅ Domain alias created successfully")
-            except Exception as e:
-                logger.error(f"Failed to create Vercel alias: {str(e)}")
-                raise RuntimeError(f"Vercel alias creation failed: {str(e)}")
-
-            final_url = f"https://{alias}"
-            logger.info(f"✅ Final URL: {final_url}")
-
-            # Step 8: Health check
-            logger.info("🏥 Step 7: Performing health check...")
+            # Step 7: Health check
+            logger.info("🏥 Step 6: Performing health check...")
             ok = self.health_check(final_url, whatsapp_number, phone_number, gtm_id)
             if not ok:
-                raise RuntimeError(f"Health check failed for {final_url}")
-            logger.info("✅ Health check passed")
+                logger.warning(f"Health check failed for {final_url}, but continuing (GitHub Pages may take time to deploy)")
+            else:
+                logger.info("✅ Health check passed")
 
-            # Step 9: Update Google Ads Final URLs
-            logger.info("🔄 Step 8: Updating Google Ads Final URLs...")
+            # Step 7: Update Google Ads Final URLs
+            logger.info("🔄 Step 6: Updating Google Ads Final URLs...")
             self.update_final_urls(customer_id, ad_group_id, final_url)
             logger.info("✅ Google Ads URLs updated")
 
@@ -1114,8 +1540,8 @@ class LandingPageGenerator:
             result = {
                 "url": final_url,
                 "alias": alias,
+                "folder_name": folder_name,
                 "commit_sha": commit_sha,
-                "deployment_id": dep.get("uid"),
                 "execution_time_seconds": round(execution_time, 2),
                 "primary_keyword": ctx.primary_keyword,
                 "keywords_found": len(ctx.keywords),
