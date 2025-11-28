@@ -50,6 +50,8 @@ class LandingPageGenerator:
         # Validate critical environment variables
         if not os.getenv("OPENAI_API_KEY"):
             raise ValueError("OPENAI_API_KEY environment variable is required")
+        if not github_owner:
+            raise ValueError("GITHUB_REPO_OWNER environment variable is required")
         if not github_token:
             raise ValueError("GITHUB_TOKEN environment variable is required")
         if not vercel_token:
@@ -356,6 +358,8 @@ class LandingPageGenerator:
                     raise RuntimeError("GitHub authentication failed. Check GITHUB_TOKEN.")
                 if r.status_code == 403:
                     raise RuntimeError("GitHub API rate limit exceeded or insufficient permissions.")
+                if r.status_code == 404:
+                    raise RuntimeError(f"GitHub repository or path not found: {self._github_api(path)}")
                 return r
             except requests.RequestException as e:
                 if attempt == retries - 1:
@@ -370,6 +374,8 @@ class LandingPageGenerator:
                     raise RuntimeError("GitHub authentication failed. Check GITHUB_TOKEN.")
                 if r.status_code == 403:
                     raise RuntimeError("GitHub API rate limit exceeded or insufficient permissions.")
+                if r.status_code == 404:
+                    raise RuntimeError(f"GitHub repository or path not found: {self._github_api(path)}")
                 return r
             except requests.RequestException as e:
                 if attempt == retries - 1:
