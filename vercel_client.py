@@ -1,10 +1,11 @@
 import os
 import time
 import requests
+from typing import Optional, Dict, Any, List
 
 
 class VercelClient:
-    def __init__(self, token: str | None = None, team_id: str | None = None, project_id: str | None = None):
+    def __init__(self, token: Optional[str] = None, team_id: Optional[str] = None, project_id: Optional[str] = None):
         self.token = token or os.getenv("VERCEL_TOKEN", "")
         self.team_id = team_id or os.getenv("VERCEL_TEAM_ID", "")
         self.project_id = project_id or os.getenv("VERCEL_PROJECT_ID", "")
@@ -19,7 +20,7 @@ class VercelClient:
             p["teamId"] = self.team_id
         return p
 
-    def list_deployments(self, limit: int = 20, search: dict | None = None):
+    def list_deployments(self, limit: int = 20, search: Optional[Dict[str, Any]] = None):
         params = self._params()
         if self.project_id:
             params["projectId"] = self.project_id
