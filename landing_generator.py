@@ -76,9 +76,8 @@ class LandingPageGenerator:
             SELECT ad_group_criterion.criterion_id,
                    ad_group_criterion.keyword.text,
                    metrics.impressions
-            FROM ad_group_criterion
-            WHERE ad_group_criterion.type = KEYWORD
-              AND ad_group_criterion.status != REMOVED
+            FROM keyword_view
+            WHERE ad_group_criterion.status != REMOVED
               AND ad_group.id = {ad_group_id}
             ORDER BY metrics.impressions DESC
             LIMIT 50
@@ -92,8 +91,8 @@ class LandingPageGenerator:
         if not keywords:
             kw_fallback = svc.search(customer_id=customer_id, query=f"""
                 SELECT ad_group_criterion.keyword.text, metrics.impressions
-                FROM ad_group_criterion
-                WHERE ad_group_criterion.type = KEYWORD AND ad_group.id = {ad_group_id}
+                FROM keyword_view
+                WHERE ad_group.id = {ad_group_id}
                 ORDER BY metrics.impressions DESC
                 LIMIT 20
             """)
