@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es" class="scroll-smooth">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NOCHE ETERNA - Preview</title>
+
+  <!-- Mystical Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap"
+    rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Crimson Text', 'serif'],
+            gothic: ['Cinzel', 'serif'],
+            mystical: ['Cinzel', 'serif'],
+          },
+          colors: {
+            nocturnal: {
+              50: '#fef7ff',
+              100: '#fdf2ff',
+              200: '#fae8ff',
+              300: '#f5d0fe',
+              400: '#e879f9',
+              500: '#d946ef',
+              600: '#c026d3',
+              700: '#a21caf',
+              800: '#86198f',
+              900: '#701a75',
+              950: '#4a044e',
+            },
+            blood: {
+              400: '#dc2626',
+              500: '#b91c1c',
+              600: '#991b1b',
+              700: '#7f1d1d',
+              800: '#991b1b',
+              900: '#450a0a',
+            },
+            obsidian: '#0a0a0a',
+            gold: '#d4af37',
+            silver: '#c0c0c0',
+            emerald: '#065f46',
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    /* Starfield background */
+    .starfield {
+      background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0a 70%);
+      position: relative;
+    }
+
+    .starfield::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image:
+        radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+        radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+        radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.6), transparent),
+        radial-gradient(2px 2px at 160px 30px, #d4af37, transparent);
+      background-repeat: repeat;
+      background-size: 200px 100px;
+    }
+
+    /* Purple mist overlay */
+    .mist-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg,
+        rgba(139, 92, 246, 0.1) 0%,
+        rgba(168, 85, 247, 0.05) 25%,
+        rgba(196, 181, 253, 0.1) 50%,
+        rgba(139, 92, 246, 0.05) 75%,
+        rgba(139, 92, 246, 0.1) 100%);
+    }
+
+    /* Glowing text effect */
+    .glowing-text {
+      text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+    }
+  </style>
+</head>
+
+<body class="starfield text-white relative min-h-screen overflow-x-hidden">
+  <!-- Purple mist overlay -->
+  <div class="mist-overlay"></div>
+
+  <!-- Preview Header -->
+  <div class="relative z-10 p-8 text-center border-b border-nocturnal-800/50">
+    <h1 class="text-3xl font-gothic font-bold text-gold mb-2">NOCHE ETERNA</h1>
+    <p class="text-nocturnal-300">Template Preview - Landing Page de Brujería y Hechizos de Amor</p>
+  </div>
+
+  <!-- Hero Preview -->
+  <section class="relative py-16 px-4">
+    <div class="max-w-4xl mx-auto text-center">
+      <div class="mb-8">
+        <div class="mx-auto w-32 h-32 bg-nocturnal-800 rounded-full flex items-center justify-center border-4 border-blood-500">
+          <span class="text-6xl">🔮</span>
+        </div>
+      </div>
+
+      <h2 class="text-4xl md:text-5xl font-gothic font-bold mb-6 glowing-text">
+        Recupera a tu persona amada<br>
+        <span class="text-blood-400">en 7 días</span>
+      </h2>
+
+      <p class="text-xl mb-8 text-nocturnal-200">
+        o haz que se arrodille de amor por ti
+      </p>
+
+      <div class="mb-8">
+        <p class="text-lg text-gold font-semibold">
+          ✨ Amarres de amor eternos · Endulzamientos · Dominación · Alejamientos · Hechizos de lujo ✨
+        </p>
+      </div>
+
+      <button class="bg-blood-600 text-white font-gothic font-bold text-xl px-8 py-4 rounded-full shadow-2xl border-2 border-blood-500">
+        QUIERO MI AMARRE YA
+      </button>
+    </div>
+  </section>
+
+  <!-- Features Preview -->
+  <section class="py-16 px-4 bg-nocturnal-950/30">
+    <div class="max-w-6xl mx-auto">
+      <h3 class="text-3xl font-gothic text-center mb-12 glowing-text">Características Principales</h3>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="text-center p-6 bg-nocturnal-900/50 rounded-xl border border-nocturnal-700/50">
+          <div class="text-4xl mb-4">🌙</div>
+          <h4 class="font-gothic font-bold text-lg mb-2 text-gold">Atmósfera Mística</h4>
+          <p class="text-nocturnal-300 text-sm">Fondo de estrellas vivas con niebla púrpura flotante</p>
+        </div>
+
+        <div class="text-center p-6 bg-nocturnal-900/50 rounded-xl border border-nocturnal-700/50">
+          <div class="text-4xl mb-4">🩸</div>
+          <h4 class="font-gothic font-bold text-lg mb-2 text-blood-400">Hechizos Poderosos</h4>
+          <p class="text-nocturnal-300 text-sm">Amarres, endulzamientos, dominación y separaciones</p>
+        </div>
+
+        <div class="text-center p-6 bg-nocturnal-900/50 rounded-xl border border-nocturnal-700/50">
+          <div class="text-4xl mb-4">🔮</div>
+          <h4 class="font-gothic font-bold text-lg mb-2 text-nocturnal-400">Animaciones Hipnóticas</h4>
+          <p class="text-nocturnal-300 text-sm">Partículas flotantes, efectos de brillo y transiciones suaves</p>
+        </div>
+
+        <div class="text-center p-6 bg-nocturnal-900/50 rounded-xl border border-nocturnal-700/50">
+          <div class="text-4xl mb-4">📱</div>
+          <h4 class="font-gothic font-bold text-lg mb-2 text-gold">Responsive Design</h4>
+          <p class="text-nocturnal-300 text-sm">Optimizado para móviles y desktop</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Spells Preview -->
+  <section class="py-16 px-4">
+    <div class="max-w-6xl mx-auto">
+      <h3 class="text-3xl font-gothic text-center mb-12 glowing-text">Hechizos Disponibles</h3>
+
+      <div class="grid md:grid-cols-5 gap-4">
+        <div class="bg-blood-900/30 p-4 rounded-xl border border-blood-700/50 text-center">
+          <div class="text-3xl mb-2">🩸</div>
+          <h4 class="font-gothic font-bold text-sm text-blood-400">Amarre Eterno</h4>
+        </div>
+
+        <div class="bg-nocturnal-900/50 p-4 rounded-xl border border-nocturnal-700/50 text-center">
+          <div class="text-3xl mb-2">🍯</div>
+          <h4 class="font-gothic font-bold text-sm text-gold">Endulzamiento</h4>
+        </div>
+
+        <div class="bg-blood-900/30 p-4 rounded-xl border border-blood-700/50 text-center">
+          <div class="text-3xl mb-2">⚔️</div>
+          <h4 class="font-gothic font-bold text-sm text-blood-400">Separación</h4>
+        </div>
+
+        <div class="bg-nocturnal-900/50 p-4 rounded-xl border border-nocturnal-700/50 text-center">
+          <div class="text-3xl mb-2">🔄</div>
+          <h4 class="font-gothic font-bold text-sm text-emerald-400">Vuelta Rápida</h4>
+        </div>
+
+        <div class="bg-blood-900/30 p-4 rounded-xl border border-blood-700/50 text-center">
+          <div class="text-3xl mb-2">👑</div>
+          <h4 class="font-gothic font-bold text-sm text-blood-400">Dominio Total</h4>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Color Palette -->
+  <section class="py-16 px-4 bg-nocturnal-950/30">
+    <div class="max-w-4xl mx-auto">
+      <h3 class="text-3xl font-gothic text-center mb-12 glowing-text">Paleta de Colores Místicos</h3>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="text-center">
+          <div class="w-20 h-20 mx-auto rounded-full border-4 border-white" style="background-color: #0a0a0a;"></div>
+          <p class="mt-2 font-semibold">Obsidian</p>
+          <p class="text-sm text-nocturnal-400">#0a0a0a</p>
+        </div>
+
+        <div class="text-center">
+          <div class="w-20 h-20 mx-auto rounded-full border-4 border-white" style="background-color: #7c3aed;"></div>
+          <p class="mt-2 font-semibold">Púrpura</p>
+          <p class="text-sm text-nocturnal-400">#7c3aed</p>
+        </div>
+
+        <div class="text-center">
+          <div class="w-20 h-20 mx-auto rounded-full border-4 border-white" style="background-color: #b91c1c;"></div>
+          <p class="mt-2 font-semibold">Rojo Sangre</p>
+          <p class="text-sm text-nocturnal-400">#b91c1c</p>
+        </div>
+
+        <div class="text-center">
+          <div class="w-20 h-20 mx-auto rounded-full border-4 border-white" style="background-color: #d4af37;"></div>
+          <p class="mt-2 font-semibold">Oro Antiguo</p>
+          <p class="text-sm text-nocturnal-400">#d4af37</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Template Info -->
+  <section class="py-16 px-4">
+    <div class="max-w-4xl mx-auto text-center">
+      <h3 class="text-3xl font-gothic mb-8 glowing-text">¿Por qué funciona esta template?</h3>
+
+      <div class="grid md:grid-cols-3 gap-8 text-left">
+        <div class="bg-nocturnal-900/50 p-6 rounded-xl border border-nocturnal-700/50">
+          <h4 class="font-gothic font-bold text-lg mb-4 text-gold">🎭 Hipnótica</h4>
+          <p class="text-nocturnal-300">El diseño crea una experiencia inmersiva que hace sentir al visitante que realmente está entrando a un ritual mágico.</p>
+        </div>
+
+        <div class="bg-nocturnal-900/50 p-6 rounded-xl border border-nocturnal-700/50">
+          <h4 class="font-gothic font-bold text-lg mb-4 text-gold">🔥 Urgente</h4>
+          <p class="text-nocturnal-300">La escasez de "solo 7 casos por luna llena" crea presión psicológica para actuar inmediatamente.</p>
+        </div>
+
+        <div class="bg-nocturnal-900/50 p-6 rounded-xl border border-nocturnal-700/50">
+          <h4 class="font-gothic font-bold text-lg mb-4 text-gold">💯 Confiable</h4>
+          <p class="text-nocturnal-300">Testimonios detallados y la garantía de devolución crean confianza absoluta en el servicio.</p>
+        </div>
+      </div>
+
+      <div class="mt-12 p-8 bg-blood-900/30 rounded-2xl border border-blood-700/50">
+        <p class="text-xl font-gothic font-bold text-blood-300 mb-4">
+          "Si el visitante se queda mirando las estrellas 10 segundos sin poder dejar de mirar... ya ganamos."
+        </p>
+        <p class="text-nocturnal-400">- Principio de diseño de NOCHE ETERNA</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-8 px-4 border-t border-nocturnal-800/50 text-center">
+    <p class="text-nocturnal-400">
+      Template: <strong class="text-gold">nocturnal.html</strong> |
+      Preview: <strong class="text-gold">nocturnal_preview.html</strong>
+    </p>
+    <p class="text-nocturnal-500 text-sm mt-2">
+      Sistema de Landing Pages Automáticas - Brujería y Hechizos de Amor
+    </p>
+  </footer>
+</body>
+</html>

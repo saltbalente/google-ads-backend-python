@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EL LIBRO PROHIBIDO - Curandero de lo Oscuro</title>
+    <meta name="description" content="Daños antiguos · entierros · salaciones · trabajos de cementerio · mal de ojo · limpia con sangre">
+    <link href="https://fonts.googleapis.com/css2?family=Nosifer&family=Homemade+Apple&family=Cinzel:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --parchment: #d4c596;
+            --parchment-dark: #8a7b52;
+            --blood: #8a0303;
+            --ink: #1a1a1a;
+            --mold: #2f3a2f;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0a0a0a;
+            color: var(--ink);
+            font-family: 'Homemade Apple', cursive;
+            overflow-x: hidden;
+            cursor: none; /* Custom cursor handled by JS */
+        }
+
+        /* Custom Cursor */
+        .cursor {
+            width: 20px;
+            height: 20px;
+            border: 1px solid rgba(138, 3, 3, 0.5);
+            border-radius: 50%;
+            position: absolute;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s;
+        }
+
+        .blood-trail {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--blood);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9998;
+            animation: fadeOut 1s forwards;
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: scale(0.5); }
+        }
+
+        /* Candle Flicker Overlay */
+        .candle-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 60%, #000 100%);
+            pointer-events: none;
+            z-index: 100;
+            animation: flicker 4s infinite alternate;
+            mix-blend-mode: multiply;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.3; }
+            5% { opacity: 0.4; }
+            10% { opacity: 0.3; }
+            15% { opacity: 0.5; }
+            20% { opacity: 0.3; }
+            50% { opacity: 0.3; }
+            55% { opacity: 0.6; }
+            60% { opacity: 0.3; }
+            100% { opacity: 0.4; }
+        }
+
+        /* Book Container */
+        .book-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            background: var(--parchment);
+            box-shadow: 0 0 100px rgba(0,0,0,0.9) inset, 0 0 30px #000;
+            min-height: 90vh;
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            /* Texture */
+            background-image: 
+                linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,0.05) 45%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.05) 55%, rgba(0,0,0,0.1)),
+                url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
+            border-radius: 5px;
+            perspective: 1000px;
+        }
+
+        /* Spine */
+        .book-spine {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 40px;
+            background: linear-gradient(to right, #3e2723, #5d4037, #3e2723);
+            transform: translateX(-50%);
+            z-index: 10;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            display: none; /* Hidden on mobile, shown on desktop */
+        }
+
+        @media (min-width: 768px) {
+            .book-spine { display: block; }
+            .page { width: 50%; padding: 40px 60px; }
+            .page-left { border-right: 2px solid rgba(0,0,0,0.1); }
+            .page-right { border-left: 2px solid rgba(0,0,0,0.1); }
+        }
+
+        .page {
+            width: 100%;
+            padding: 30px;
+            position: relative;
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Typography & Elements */
+        h1, h2, h3 {
+            font-family: 'Nosifer', cursive;
+            color: var(--blood);
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+        }
+
+        h1 { font-size: 2.5rem; transform: rotate(-2deg); }
+        h2 { font-size: 1.8rem; }
+
+        p {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #2c1e1e;
+            text-shadow: 0 0 1px rgba(0,0,0,0.1);
+        }
+
+        .handwritten {
+            font-family: 'Homemade Apple', cursive;
+            font-size: 1.1rem;
+        }
+
+        .crossed-out {
+            text-decoration: line-through;
+            text-decoration-color: var(--ink);
+            text-decoration-thickness: 2px;
+            opacity: 0.7;
+        }
+
+        .ink-stain {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(0,0,0,0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(5px);
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Photo Frame */
+        .photo-frame {
+            width: 200px;
+            height: 250px;
+            margin: 0 auto 30px;
+            border: 10px solid #2c1e1e;
+            background: #b0a995;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+            filter: sepia(0.8) contrast(1.2);
+        }
+
+        .photo-placeholder {
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 125"><rect width="100" height="125" fill="%23333"/><circle cx="50" cy="50" r="30" fill="%23666"/><rect x="20" y="80" width="60" height="45" fill="%23666"/></svg>');
+            background-size: cover;
+            position: relative;
+        }
+
+        .eyes {
+            position: absolute;
+            top: 45px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 10px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 2;
+        }
+
+        .eye {
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pupil {
+            width: 4px;
+            height: 4px;
+            background: black;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Buttons */
+        .wax-seal-btn {
+            background: radial-gradient(circle at 30% 30%, #ff4d4d, #8a0303);
+            color: #fff;
+            border: none;
+            padding: 20px 30px;
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border-radius: 50% 40% 60% 40%;
+            cursor: pointer;
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.6);
+            transition: transform 0.2s;
+            display: block;
+            margin: 30px auto;
+            text-shadow: 1px 1px 2px #000;
+            position: relative;
+        }
+
+        .wax-seal-btn:hover {
+            transform: scale(1.05) rotate(2deg);
+        }
+
+        .wax-seal-btn::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: inherit;
+        }
+
+        /* Sections */
+        .section-divider {
+            width: 100%;
+            height: 2px;
+            background: var(--ink);
+            margin: 40px 0;
+            opacity: 0.3;
+            transform: rotate(1deg);
+        }
+
+        .forbidden-item {
+            border: 1px solid var(--ink);
+            padding: 15px;
+            margin: 15px 0;
+            background: rgba(0,0,0,0.05);
+            transform: rotate(-1deg);
+        }
+
+        .forbidden-item:nth-child(even) { transform: rotate(1deg); }
+
+        .testimonial-letter {
+            background: #f0e6d2;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            transform: rotate(2deg);
+            font-family: 'Special Elite', cursive;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+        }
+
+        /* Final Page */
+        .final-page {
+            background: #000;
+            color: #ccc;
+            text-align: center;
+            border: 10px solid var(--parchment-dark);
+        }
+
+        .final-page h2 { color: #fff; font-family: 'Cinzel', serif; }
+        .final-page p { color: #aaa; }
+
+        .input-torn {
+            background: #f0e6d2;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            font-family: 'Homemade Apple', cursive;
+            font-size: 1.2rem;
+            margin: 20px 0;
+            clip-path: polygon(0 0, 100% 2%, 98% 100%, 2% 98%);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        /* Animations */
+        .shake { animation: shake 5s infinite; }
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            2% { transform: rotate(1deg); }
+            4% { transform: rotate(-1deg); }
+            6% { transform: rotate(0deg); }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 10000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--parchment);
+            padding: 40px;
+            max-width: 500px;
+            text-align: center;
+            border: 5px solid var(--blood);
+            box-shadow: 0 0 50px var(--blood);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .book-container { margin: 0; border-radius: 0; }
+            h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="cursor" id="cursor"></div>
+    <div class="candle-overlay"></div>
+
+    <div class="book-container">
+        <div class="book-spine"></div>
+
+        <!-- Page 1: Left -->
+        <div class="page page-left">
+            <div class="ink-stain" style="top: 10%; left: 10%;"></div>
+            <div class="photo-frame">
+                <div class="photo-placeholder">
+                    <div class="eyes" id="eyes">
+                        <div class="eye"><div class="pupil"></div></div>
+                        <div class="eye"><div class="pupil"></div></div>
+                    </div>
+                </div>
+            </div>
+            <p class="handwritten" style="text-align: center; font-weight: bold;">
+                «Si llegaste hasta aquí es porque los espíritus te trajeron.<br>
+                <span class="crossed-out">No debiste venir.</span><br>
+                Cierra esta página ahora… o sigue leyendo y ya no habrá vuelta atrás.»
+            </p>
+        </div>
+
+        <!-- Page 2: Right -->
+        <div class="page page-right">
+            <div class="ink-stain" style="bottom: 20%; right: 10%;"></div>
+            <h1>YO QUEMO EL MAL QUE TE COMERÁ VIVO</h1>
+            <p style="text-align: center;">
+                Daños antiguos · entierros · salaciones · trabajos de cementerio · mal de ojo que no te deja dormir · almas que te persiguen · limpia con sangre y tabaco negro
+            </p>
+            <button class="wax-seal-btn" onclick="scrollToSection('works')">ABRIR MI CASO<br><span style="font-size: 0.8rem; font-weight: normal;">(una sola vez)</span></button>
+        </div>
+
+        <!-- Page 3: Works (Left) -->
+        <div class="page page-left" id="works">
+            <h2>Los trabajos prohibidos</h2>
+            <div class="forbidden-item">
+                <h3>Levantamiento de entierro</h3>
+                <p>Con tierra de 7 tumbas – 9 días. <br><em>Para cuando sientes que te ahogas en vida.</em></p>
+            </div>
+            <div class="forbidden-item">
+                <h3>Quita muerto</h3>
+                <p>Se hace solo en martes 13. <br><em>Para cuando escuchas pasos y nadie camina.</em></p>
+            </div>
+        </div>
+
+        <!-- Page 4: Works (Right) -->
+        <div class="page page-right">
+            <div class="forbidden-item">
+                <h3>Rompimiento de trabajo negro</h3>
+                <p>Hecho por enemigo vivo o muerto. <br><em>Devuelvo el daño multiplicado por tres.</em></p>
+            </div>
+            <div class="ink-stain" style="top: 50%; left: 40%;"></div>
+            <p class="handwritten shake" style="margin-top: 40px; text-align: center; color: var(--blood);">
+                «No preguntes cómo lo hago.<br>Solo disfruta el silencio cuando ellos se callen.»
+            </p>
+        </div>
+
+        <!-- Page 5: Testimonials (Left) -->
+        <div class="page page-left">
+            <h2>Cartas desesperadas</h2>
+            <div class="testimonial-letter">
+                <p>«Me estaban comiendo vivo, en 3 días dejó de doler el cuerpo y encontré al que me hizo el daño muerto en su casa. Gracias don Severo.»</p>
+                <p style="text-align: right;">- Anónimo, 1892</p>
+            </div>
+        </div>
+
+        <!-- Page 6: Testimonials (Right) -->
+        <div class="page page-right">
+            <div class="testimonial-letter" style="transform: rotate(-1deg);">
+                <p>«Mi hija hablaba sola, después de la limpia encontró esta foto debajo de la cama… era mi suegra muerta. Ahora la casa está en paz.»</p>
+                <p style="text-align: right;">- M.G.</p>
+            </div>
+            <div class="ink-stain" style="bottom: 10%; left: 10%;"></div>
+        </div>
+
+        <!-- Page 7: Warning (Full Width) -->
+        <div class="page" style="width: 100%; text-align: center; border: none;">
+            <h2 style="font-size: 3rem; color: var(--blood);">ADVERTENCIA FINAL</h2>
+            <p class="handwritten" style="font-size: 1.5rem;">
+                Solo 3 personas por luna negra.<br>
+                Si tu caso no es grave, <span class="crossed-out">vete</span> no me busques.<br>
+                El que entra por curiosidad… se queda marcado.
+            </p>
+            <div style="font-size: 2rem; color: var(--blood); margin: 30px 0;">
+                Queda <span id="spots">1</span> lugar esta luna
+            </div>
+        </div>
+
+        <!-- Last Page: Form -->
+        <div class="page final-page" style="width: 100%;" id="contact">
+            <h2>Ya te vi.</h2>
+            <p>Escribe tu nombre completo y fecha de nacimiento abajo…<br>o cierra esta página y corre.</p>
+            
+            <div style="max-width: 400px; margin: 0 auto;">
+                <input type="text" class="input-torn" placeholder="Tu nombre completo..." />
+                <input type="text" class="input-torn" placeholder="Fecha de nacimiento..." />
+                
+                <div style="margin: 20px 0; text-align: left; color: #aaa;">
+                    <p>Contactar por:</p>
+                    <p>WhatsApp: <span id="whatsapp" style="color: #fff;">TEMPLATE_WHATSAPP</span></p>
+                    <p>Teléfono: <span id="phone" style="color: #fff;">TEMPLATE_PHONE</span></p>
+                </div>
+
+                <button class="wax-seal-btn" style="background: radial-gradient(circle at 30% 30%, #8a0303, #000);">ENTREGAR MI ALMA<br>AL REMEDIO</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exit Intent Modal -->
+    <div class="modal-overlay" id="exitModal">
+        <div class="modal-content">
+            <h2>¿A DÓNDE VAS?</h2>
+            <p>El daño sigue ahí fuera esperándote.</p>
+            <p>No puedes huir de lo que ya te encontró.</p>
+            <button class="wax-seal-btn" onclick="closeModal()">ME QUEDO</button>
+        </div>
+    </div>
+
+    <script>
+        // Cursor & Blood Trail
+        const cursor = document.getElementById('cursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+
+            if (Math.random() > 0.8) { // Create blood drop occasionally
+                const drop = document.createElement('div');
+                drop.className = 'blood-trail';
+                drop.style.left = e.pageX + 'px';
+                drop.style.top = e.pageY + 'px';
+                document.body.appendChild(drop);
+                setTimeout(() => drop.remove(), 1000);
+            }
+        });
+
+        // Eye Tracking
+        const eyesContainer = document.getElementById('eyes');
+        const pupils = document.querySelectorAll('.pupil');
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!eyesContainer) return;
+            const rect = eyesContainer.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+            const distance = Math.min(3, Math.hypot(e.clientX - centerX, e.clientY - centerY) / 20);
+            
+            pupils.forEach(pupil => {
+                const x = Math.cos(angle) * distance;
+                const y = Math.sin(angle) * distance;
+                pupil.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+            });
+        });
+
+        // Scroll to section
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Exit Intent
+        const modal = document.getElementById('exitModal');
+        document.addEventListener('mouseleave', (e) => {
+            if (e.clientY < 0) {
+                modal.style.display = 'flex';
+            }
+        });
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        // Replace Placeholders
+        function replacePlaceholders() {
+            const urlParams = new URLSearchParams(window.location.search);
+            document.getElementById('whatsapp').textContent = urlParams.get('whatsapp') || '573012887371';
+            document.getElementById('phone').textContent = urlParams.get('phone') || '+57 301 288 7371';
+        }
+
+        document.addEventListener('DOMContentLoaded', replacePlaceholders);
+
+        // Random Whispers (Visual text appearing briefly)
+        setInterval(() => {
+            if(Math.random() > 0.7) {
+                const whisper = document.createElement('div');
+                whisper.textContent = Math.random() > 0.5 ? "Te veo..." : "No te vayas...";
+                whisper.style.position = 'fixed';
+                whisper.style.left = Math.random() * window.innerWidth + 'px';
+                whisper.style.top = Math.random() * window.innerHeight + 'px';
+                whisper.style.color = 'rgba(0,0,0,0.1)';
+                whisper.style.pointerEvents = 'none';
+                whisper.style.fontFamily = 'Nosifer';
+                document.body.appendChild(whisper);
+                setTimeout(() => whisper.remove(), 2000);
+            }
+        }, 5000);
+    </script>
+
+    <!-- Google Tag Manager -->
+    <script>
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','TEMPLATE_GTM');
+    </script>
+</body>
+</html>

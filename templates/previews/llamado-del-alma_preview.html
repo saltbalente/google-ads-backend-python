@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EL LLAMADO DEL ALMA - Curandero Ancestral y Sanación Espiritual</title>
+    <meta name="description" content="Limpias energéticas · Levantamiento de daños · Sanación del alma · Protección poderosa · Lectura de coca o tabaco · Prosperidad y salud">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Crimson Text', serif;
+            background: linear-gradient(135deg,
+                #1a1a1a 0%,
+                #0d4a2a 25%,
+                #2d4a2a 50%,
+                #4a3a2a 75%,
+                #5a4a3a 100%);
+            color: #f5f5dc;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Luciérnagas flotantes */
+        .fireflies {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .firefly {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, #ffd700 0%, #32cd32 50%, transparent 70%);
+            border-radius: 50%;
+            animation: fireflyFloat 15s linear infinite, fireflyGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes fireflyFloat {
+            0% { transform: translateY(100vh) translateX(0px); }
+            100% { transform: translateY(-100px) translateX(100px); }
+        }
+
+        @keyframes fireflyGlow {
+            0% { opacity: 0.3; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.5); }
+        }
+
+        /* Hojas flotantes */
+        .leaves {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .leaf {
+            position: absolute;
+            color: #228b22;
+            font-size: 20px;
+            animation: leafFloat 25s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes leafFloat {
+            0% { transform: translateY(100vh) rotate(0deg); }
+            100% { transform: translateY(-100px) rotate(360deg); }
+        }
+
+        /* Humo de copal */
+        .smoke {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .smoke-particle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, rgba(139, 69, 19, 0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: smokeRise 20s linear infinite;
+        }
+
+        @keyframes smokeRise {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
+        }
+
+        /* Estrellas y Vía Láctea */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: radial-gradient(circle, #ffd700 0%, #f5f5dc 50%, transparent 70%);
+            border-radius: 50%;
+            animation: starTwinkle 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes starTwinkle {
+            0% { opacity: 0.5; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Contenedor principal */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 100px 20px 80px;
+            position: relative;
+        }
+
+        .hero-image {
+            width: 100%;
+            max-width: 500px;
+            height: 400px;
+            background: linear-gradient(45deg, rgba(50, 205, 50, 0.2), rgba(255, 215, 0, 0.2)),
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text fill="%23ffd700" font-size="60" y="70">🧘</text></svg>');
+            background-size: cover;
+            border-radius: 20px;
+            margin: 0 auto 40px;
+            box-shadow: 0 20px 60px rgba(50, 205, 50, 0.3);
+            border: 3px solid rgba(255, 215, 0, 0.4);
+        }
+
+        .hero-title {
+            font-family: 'Dancing Script', cursive;
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            margin-bottom: 20px;
+            animation: titleWrite 4s ease-out;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes titleWrite {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-subtitle {
+            font-style: italic;
+            font-size: 1.2rem;
+            color: #90ee90;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px rgba(144, 238, 144, 0.5);
+        }
+
+        .cta-button {
+            background: linear-gradient(45deg, #228b22, #32cd32);
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 10px 30px rgba(34, 139, 34, 0.5);
+            animation: gentleGlow 3s ease-in-out infinite alternate;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(34, 139, 34, 0.7);
+        }
+
+        @keyframes gentleGlow {
+            0% { box-shadow: 0 10px 30px rgba(34, 139, 34, 0.5); }
+            100% { box-shadow: 0 10px 40px rgba(34, 139, 34, 0.8); }
+        }
+
+        /* Secciones */
+        .section {
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .section-title {
+            font-family: 'Dancing Script', cursive;
+            font-size: 3rem;
+            color: #ffd700;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+
+        .section-content {
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.8;
+            font-size: 1.2rem;
+            color: #f0ead6;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .section-content:hover {
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Testimonios */
+        .testimonials {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .testimonial {
+            background: linear-gradient(135deg, rgba(50, 205, 50, 0.1), rgba(255, 215, 0, 0.1));
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .testimonial:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+        }
+
+        .testimonial::before {
+            content: '🌿';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 2rem;
+            opacity: 0.5;
+        }
+
+        /* Trabajos espirituales */
+        .works {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .work-card {
+            background: linear-gradient(135deg, rgba(160, 82, 45, 0.2), rgba(255, 215, 0, 0.1));
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .work-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 30px rgba(255, 215, 0, 0.4);
+        }
+
+        .work-card:hover::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(139, 69, 19, 0.4) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: smokeEffect 2s ease-out;
+        }
+
+        @keyframes smokeEffect {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+        }
+
+        .work-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .work-title {
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.8rem;
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        /* Garantía */
+        .guarantee {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(34, 139, 34, 0.2));
+            border: 3px solid #ffd700;
+            border-radius: 30px;
+            padding: 50px;
+            margin: 50px 0;
+            position: relative;
+        }
+
+        .guarantee::before {
+            content: '🙏';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            background: linear-gradient(45deg, #ffd700, #228b22);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Urgencia */
+        .urgency {
+            background: linear-gradient(135deg, rgba(160, 82, 45, 0.3), rgba(255, 215, 0, 0.3));
+            border: 2px solid #daa520;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 50px 0;
+            position: relative;
+        }
+
+        .urgency::before {
+            content: '🌙';
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 4rem;
+            opacity: 0.3;
+        }
+
+        .spots-left {
+            font-size: 3rem;
+            color: #90ee90;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(144, 238, 144, 0.8);
+        }
+
+        /* Contacto */
+        .contact-section {
+            background: rgba(26, 42, 26, 0.8);
+            padding: 60px 20px;
+            border-radius: 20px;
+            margin-top: 50px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(50, 205, 50, 0.1));
+            border-radius: 15px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .contact-icon {
+            font-size: 2rem;
+            margin-right: 20px;
+        }
+
+        .contact-text {
+            font-size: 1.2rem;
+            color: #f0ead6;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .testimonials, .works {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-button {
+                padding: 15px 30px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Luciérnagas -->
+    <div class="fireflies" id="fireflies"></div>
+
+    <!-- Hojas -->
+    <div class="leaves" id="leaves"></div>
+
+    <!-- Humo -->
+    <div class="smoke" id="smoke"></div>
+
+    <!-- Estrellas -->
+    <div class="stars" id="stars"></div>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-image"></div>
+            <h1 class="hero-title" id="heroTitle">Ya no tienes que cargar solo/a con ese dolor…<br>Yo te ayudo a soltarlo para siempre</h1>
+            <p class="hero-subtitle">Limpias energéticas · Levantamiento de daños · Sanación del alma · Protección poderosa · Lectura de coca o tabaco · Prosperidad y salud</p>
+            <button class="cta-button" onclick="scrollToContact()">Hablar con el maestro ahora</button>
+        </section>
+
+        <!-- Dolor Section -->
+        <section class="section">
+            <h2 class="section-title">Sé lo que traes en el corazón…</h2>
+            <div class="section-content">
+                <p>El daño que te hicieron, el trabajo que no llega, la salud que se va, la envidia que te rodea, las noches que no duermes.</p>
+                <p>Todo eso se acaba hoy.</p>
+                <div style="width: 150px; height: 150px; background: radial-gradient(circle, rgba(139, 69, 19, 0.4) 0%, transparent 70%); border-radius: 50%; margin: 30px auto; display: flex; align-items: center; justify-content: center; font-size: 3rem;">🌿</div>
+            </div>
+        </section>
+
+        <!-- Testimonios -->
+        <section class="section">
+            <h2 class="section-title">Milagros que suceden todos los días</h2>
+            <div class="testimonials">
+                <div class="testimonial">
+                    <p>"Llegué llorando y salí caminando en paz, se me quitó un peso que llevaba 12 años cargando."</p>
+                    <cite>- María R., 45 años</cite>
+                </div>
+                <div class="testimonial">
+                    <p>"En 3 días me llamaron para el trabajo que tanto necesitaba. Fue como si se abrieran las puertas."</p>
+                    <cite>- Carlos M., 38 años</cite>
+                </div>
+                <div class="testimonial">
+                    <p>"Mi hijo dejó las drogas después de la limpia. No lo puedo creer, pero aquí está la paz que tanto buscábamos."</p>
+                    <cite>- Ana G., 52 años</cite>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trabajos espirituales -->
+        <section class="section">
+            <h2 class="section-title">Los trabajos de la medicina viva</h2>
+            <div class="works">
+                <div class="work-card">
+                    <div class="work-icon">🥚</div>
+                    <h3 class="work-title">Limpia de 21 días con huevo y hierbas</h3>
+                    <p>Limpieza profunda de energías negativas y entidades</p>
+                </div>
+                <div class="work-card">
+                    <div class="work-icon">🛡️</div>
+                    <h3 class="work-title">Levantamiento de daño y envidia</h3>
+                    <p>Romper maldiciones y proteger tu energía vital</p>
+                </div>
+                <div class="work-card">
+                    <div class="work-icon">🌸</div>
+                    <h3 class="work-title">Baño de florecimiento y prosperidad</h3>
+                    <p>Atraer abundancia y florecer en todos los aspectos</p>
+                </div>
+                <div class="work-card">
+                    <div class="work-icon">👨‍👩‍👧‍👦</div>
+                    <h3 class="work-title">Protección familiar con resguardo</h3>
+                    <p>Blindaje espiritual para toda tu familia</p>
+                </div>
+                <div class="work-card">
+                    <div class="work-icon">🌙</div>
+                    <h3 class="work-title">Sanación de susto y espanto</h3>
+                    <p>Recuperar el alma perdida y volver a la paz</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Garantía -->
+        <section class="guarantee">
+            <h2 class="section-title">Mi palabra es mi poder</h2>
+            <div class="section-content">
+                <p style="font-size: 1.5rem; color: #ffd700; margin-bottom: 20px;">Si no ves resultados en el tiempo que te digo, te devuelvo tu dinero y te hago otra limpia gratis.</p>
+                <p>Mi compromiso es con tu sanación, no con tu bolsillo.</p>
+            </div>
+        </section>
+
+        <!-- Urgencia -->
+        <section class="urgency">
+            <h2 class="section-title">Solo tomo 10 casos por semana</h2>
+            <div class="spots-left" id="spotsLeft">3</div>
+            <p>Para poder atenderte como mereces, con dedicación completa y corazón abierto.</p>
+            <p>Esta semana ya solo quedan <span id="spots">3</span> lugares.</p>
+        </section>
+
+        <!-- Contacto -->
+        <section class="contact-section" id="contact">
+            <h2 class="section-title">Ven, hijo/a… ya no cargues más solo</h2>
+            <p style="font-style: italic; font-size: 1.3rem; margin-bottom: 40px; color: #f0ead6;">Aquí te recibo con los brazos abiertos y el corazón limpio.</p>
+
+            <div class="contact-item">
+                <span class="contact-icon">📱</span>
+                <div>
+                    <strong class="contact-text">WhatsApp: <span id="whatsapp">TEMPLATE_WHATSAPP</span></strong>
+                </div>
+            </div>
+
+            <div class="contact-item">
+                <span class="contact-icon">📞</span>
+                <div>
+                    <strong class="contact-text">Teléfono: <span id="phone">TEMPLATE_PHONE</span></strong>
+                </div>
+            </div>
+
+            <div class="contact-item">
+                <span class="contact-icon">🎯</span>
+                <div>
+                    <strong class="contact-text">GTM ID: <span id="gtm">TEMPLATE_GTM</span></strong>
+                </div>
+            </div>
+
+            <button class="cta-button" style="margin-top: 40px;">Quiero mi consulta y mi limpia ahora</button>
+        </section>
+    </div>
+
+    <script>
+        // Crear luciérnagas
+        function createFireflies() {
+            const firefliesContainer = document.getElementById('fireflies');
+            const fireflyCount = 30;
+
+            for (let i = 0; i < fireflyCount; i++) {
+                const firefly = document.createElement('div');
+                firefly.className = 'firefly';
+
+                firefly.style.left = Math.random() * 100 + '%';
+                firefly.style.animationDelay = Math.random() * 15 + 's';
+                firefly.style.width = firefly.style.height = (Math.random() * 6 + 2) + 'px';
+
+                firefliesContainer.appendChild(firefly);
+            }
+        }
+
+        // Crear hojas
+        function createLeaves() {
+            const leavesContainer = document.getElementById('leaves');
+            const leafCount = 15;
+
+            for (let i = 0; i < leafCount; i++) {
+                const leaf = document.createElement('div');
+                leaf.className = 'leaf';
+                leaf.innerHTML = Math.random() > 0.5 ? '🍃' : '🌿';
+
+                leaf.style.left = Math.random() * 100 + '%';
+                leaf.style.animationDelay = Math.random() * 25 + 's';
+                leaf.style.fontSize = (Math.random() * 15 + 15) + 'px';
+
+                leavesContainer.appendChild(leaf);
+            }
+        }
+
+        // Crear humo
+        function createSmoke() {
+            const smokeContainer = document.getElementById('smoke');
+            const smokeCount = 20;
+
+            setInterval(() => {
+                if (smokeContainer.children.length < smokeCount) {
+                    const smoke = document.createElement('div');
+                    smoke.className = 'smoke-particle';
+
+                    smoke.style.left = Math.random() * 100 + '%';
+                    smoke.style.animationDelay = Math.random() * 5 + 's';
+
+                    smokeContainer.appendChild(smoke);
+
+                    setTimeout(() => smoke.remove(), 20000);
+                }
+            }, 2000);
+        }
+
+        // Crear estrellas
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 50;
+
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 30 + '%';
+                star.style.width = star.style.height = Math.random() * 2 + 1 + 'px';
+                star.style.animationDelay = Math.random() * 4 + 's';
+
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Efecto de título
+        function animateTitle() {
+            const title = document.getElementById('heroTitle');
+            const text = title.textContent;
+            title.textContent = '';
+
+            let i = 0;
+            const timer = setInterval(() => {
+                if (i < text.length) {
+                    title.textContent += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(timer);
+                }
+            }, 150);
+        }
+
+        // Contador de urgencia
+        function updateSpots() {
+            let spots = parseInt(document.getElementById('spots').textContent);
+            if (spots > 0) {
+                spots--;
+                document.getElementById('spots').textContent = spots;
+                document.getElementById('spotsLeft').textContent = spots;
+            }
+        }
+
+        // Scroll suave
+        function scrollToContact() {
+            document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Reemplazar placeholders
+        function replacePlaceholders() {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            document.getElementById('whatsapp').textContent = urlParams.get('whatsapp') || '573012887371';
+            document.getElementById('phone').textContent = urlParams.get('phone') || '+57 301 288 7371';
+            document.getElementById('gtm').textContent = urlParams.get('gtm') || 'GTM-XXXXXXX';
+        }
+
+        // Seguimiento del cursor con luciérnagas
+        document.addEventListener('mousemove', (e) => {
+            const fireflies = document.querySelectorAll('.firefly');
+            fireflies.forEach((firefly, index) => {
+                const speed = (index + 1) * 0.01;
+                const x = (e.clientX * speed);
+                const y = (e.clientY * speed);
+                firefly.style.transform += `translate(${x}px, ${y}px)`;
+            });
+        });
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            createFireflies();
+            createLeaves();
+            createSmoke();
+            createStars();
+            animateTitle();
+            replacePlaceholders();
+
+            // Actualizar contador cada 45 segundos
+            setInterval(updateSpots, 45000);
+        });
+
+        // Efectos hover en testimonios
+        document.querySelectorAll('.testimonial').forEach(testimonial => {
+            testimonial.addEventListener('mouseenter', () => {
+                const light = document.createElement('div');
+                light.innerHTML = '✨';
+                light.style.position = 'absolute';
+                light.style.fontSize = '2rem';
+                light.style.pointerEvents = 'none';
+                light.style.animation = 'gentleGlow 2s ease-out forwards';
+                testimonial.appendChild(light);
+
+                setTimeout(() => light.remove(), 2000);
+            });
+        });
+    </script>
+
+    <!-- Google Tag Manager -->
+    <script>
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','TEMPLATE_GTM');
+    </script>
+</body>
+</html>
