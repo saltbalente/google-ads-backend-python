@@ -688,7 +688,7 @@ class LandingPageGenerator:
     @staticmethod
     def get_templates_static() -> Dict[str, Dict[str, str]]:
         """Static method to get template information without requiring full initialization."""
-        templates = ["base.html", "mystical.html", "romantic.html", "prosperity.html", "llama-gemela.html", "llamado-del-alma.html", "el-libro-prohibido.html", "la-luz.html"]
+        templates = ["base.html", "mystical.html", "romantic.html", "prosperity.html", "llama-gemela.html", "llamado-del-alma.html", "el-libro-prohibido.html", "la-luz.html", "amarre-eterno.html"]
         template_info = {}
 
         for template in templates:
@@ -741,6 +741,12 @@ class LandingPageGenerator:
                 template_info[template] = {
                     "name": "La Luz",
                     "description": "Magia blanca y sanación angelical",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "amarre-eterno":
+                template_info[template] = {
+                    "name": "Amarre Eterno",
+                    "description": "Amarres de amor eternos y magia blanca",
                     "preview_url": f"/api/templates/preview/{template_name}"
                 }
             else:

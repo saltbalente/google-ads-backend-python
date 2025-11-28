@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amarre Eterno - El Amarre Que No Se Rompe Nunca</title>
+    <meta name="description" content="Landing page de magia blanca exclusiva para amarres de amor eternos.">
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold-light: #fff8e1;
+            --gold-liquid: #ffd700;
+            --rose-quartz: #f7cac9;
+            --passion-red: #ff4d4d;
+            --sky-blue: #87ceeb;
+            --lavender: #e6e6fa;
+            --white-pearl: #fdfdfd;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Lato', sans-serif;
+            background: radial-gradient(circle at center, #fff 0%, #fff8e1 100%);
+            color: #5d4037;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+            animation: backgroundPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes backgroundPulse {
+            0% { background-color: #fff; }
+            50% { background-color: #fff0f5; } /* Very light pink pulse */
+            100% { background-color: #fff; }
+        }
+
+        /* Petals */
+        .petals-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .petal {
+            position: absolute;
+            background: radial-gradient(circle, #fff 20%, var(--gold-liquid) 100%);
+            border-radius: 50% 0 50% 50%;
+            opacity: 0.6;
+            animation: floatUp 15s linear infinite;
+        }
+
+        .petal.rose {
+            background: radial-gradient(circle, #fff 20%, var(--rose-quartz) 100%);
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) rotate(0deg) scale(0.5); opacity: 0; }
+            20% { opacity: 0.8; }
+            80% { opacity: 0.8; }
+            100% { transform: translateY(-20vh) rotate(360deg) scale(1); opacity: 0; }
+        }
+
+        /* Red Thread */
+        .red-thread-svg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+            opacity: 0.6;
+        }
+
+        /* Typography */
+        h1, h2, h3 {
+            font-family: 'Great Vibes', cursive;
+            color: #d4af37;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        h1 { font-size: 3.5rem; line-height: 1.2; margin-bottom: 20px; }
+        h2 { font-size: 2.8rem; margin-bottom: 30px; color: var(--passion-red); }
+        
+        p {
+            font-size: 1.3rem;
+            line-height: 1.8;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #4a4a4a;
+        }
+
+        /* Buttons */
+        .btn-heartbeat {
+            background: linear-gradient(45deg, var(--gold-liquid), var(--rose-quartz));
+            color: #fff;
+            border: none;
+            padding: 25px 60px;
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(255, 77, 77, 0.4);
+            transition: all 0.5s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: block;
+            margin: 40px auto;
+            width: fit-content;
+            animation: heartbeat 1.5s infinite;
+            position: relative;
+            z-index: 10;
+        }
+
+        .btn-heartbeat:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(255, 77, 77, 0.6);
+        }
+
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            15% { transform: scale(1.05); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.05); }
+            60% { transform: scale(1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Container */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Sections */
+        section {
+            padding: 80px 20px;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s ease-out;
+        }
+
+        section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-top: 100px;
+        }
+
+        .hero-visual {
+            width: 300px;
+            height: 300px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path d="M40,80 Q100,150 160,80 T40,80" fill="none" stroke="%23ff4d4d" stroke-width="2" /><circle cx="40" cy="80" r="5" fill="%23ffd700" /><circle cx="160" cy="80" r="5" fill="%23ffd700" /><text x="100" y="180" font-size="80" text-anchor="middle">👐</text></svg>') center/contain no-repeat;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 0 20px rgba(255,215,0,0.5));
+        }
+
+        /* Testimonials */
+        .testimonial-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--rose-quartz);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(247, 202, 201, 0.3);
+            position: relative;
+        }
+
+        .testimonial-card::before {
+            content: '❤';
+            position: absolute;
+            top: -15px;
+            left: 20px;
+            font-size: 2rem;
+            color: var(--passion-red);
+            background: #fff;
+            padding: 0 5px;
+        }
+
+        /* Services */
+        .service-card {
+            background: linear-gradient(135deg, #fff, #fff8e1);
+            border-radius: 50%;
+            width: 280px;
+            height: 280px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            margin: 20px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            border: 2px solid var(--gold-liquid);
+            transition: transform 0.3s;
+        }
+
+        .service-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.6);
+        }
+
+        /* Guarantee */
+        .guarantee-seal {
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, var(--gold-liquid), #fdb931);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+            font-size: 1rem;
+            padding: 15px;
+            border: 5px double #fff;
+            transform: rotate(-5deg);
+        }
+
+        /* Urgency */
+        .heart-counter {
+            font-size: 4rem;
+            color: var(--passion-red);
+            animation: heartbeat 1s infinite;
+            margin: 20px 0;
+        }
+
+        /* Final Close */
+        .final-screen {
+            background: linear-gradient(to top, #fff0f5 0%, #fff 100%);
+            padding-bottom: 100px;
+        }
+
+        .names-thread {
+            font-family: 'Great Vibes', cursive;
+            font-size: 2.5rem;
+            color: var(--passion-red);
+            margin: 30px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .thread-line {
+            height: 2px;
+            background: var(--passion-red);
+            width: 100px;
+            position: relative;
+        }
+
+        .thread-line::after {
+            content: '∞';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff0f5;
+            padding: 0 5px;
+            font-size: 1.5rem;
+        }
+
+        /* Contact Info */
+        .contact-info {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            margin-top: 40px;
+            border: 2px solid var(--gold-liquid);
+            text-align: center;
+        }
+
+        /* Cursor Thread */
+        .cursor-thread {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            h2 { font-size: 2rem; }
+            .btn-heartbeat { padding: 20px 40px; font-size: 1.1rem; }
+            .service-card { width: 100%; height: auto; border-radius: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="petals-container" id="petals"></div>
+    <svg class="red-thread-svg" id="threadSvg">
+        <path id="threadPath" d="" fill="none" stroke="#ff4d4d" stroke-width="2" stroke-dasharray="10,5" />
+    </svg>
+    <canvas class="cursor-thread" id="cursorCanvas"></canvas>
+
+    <div class="container">
+        <!-- Hero -->
+        <section class="hero visible">
+            <div class="hero-visual"></div>
+            <h1 id="heroTitle">Tu persona amada volverá a ti en 7, 14 o 21 días... rogando tu amor como nunca antes</h1>
+            <p style="font-size: 1.5rem; color: var(--passion-red); font-style: italic;">Amarres de amor blanco eternos · Endulzamiento angelical · Unión de almas gemelas · Fidelidad absoluta · Rituales con fotos y nombres</p>
+            <button class="btn-heartbeat" onclick="scrollToContact()">Hacer que vuelva conmigo AHORA</button>
+        </section>
+
+        <!-- Promise -->
+        <section>
+            <h2>La promesa que nadie más se atreve a hacer</h2>
+            <p style="font-size: 1.8rem;">Este no es un amarre cualquiera.</p>
+            <p>Este es el amarre que usan los ángeles cuando quieren unir dos almas para siempre.</p>
+        </section>
+
+        <!-- Testimonials -->
+        <section>
+            <h2>Testimonios que rompen el alma</h2>
+            <div class="testimonial-card">
+                <p>“Llevábamos 3 años separados y 4 hijos diferentes… volvió en 9 días con anillo y pidiéndome matrimonio otra vez.”</p>
+            </div>
+            <div class="testimonial-card">
+                <p>“Estaba con otra mujer, embarazada de él… después del amarre la dejó y vino a buscarme de rodillas.”</p>
+            </div>
+            <div class="testimonial-card">
+                <p>“Volvió de Europa después de 8 años sin hablarme. Ahora vivimos juntos y planeamos boda.”</p>
+            </div>
+        </section>
+
+        <!-- Services -->
+        <section>
+            <h2>Los amarres de luz</h2>
+            <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+                <div class="service-card">
+                    <h3>Amarre Egipcio de 21 días con vela eterna</h3>
+                </div>
+                <div class="service-card">
+                    <h3>Unión de almas gemelas con hilo rojo bendito</h3>
+                </div>
+                <div class="service-card">
+                    <h3>Endulzamiento angelical con miel de abeja virgen</h3>
+                </div>
+                <div class="service-card">
+                    <h3>Amarre de pensamiento obsesivo (piensa en ti 24/7)</h3>
+                </div>
+                <div class="service-card">
+                    <h3>Amarre de lujo blanco con oración a los 7 arcángeles del amor</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- Guarantee -->
+        <section>
+            <div class="guarantee-seal">
+                GARANTÍA<br>DE AMOR<br>ETERNO
+            </div>
+            <h2>Garantía que quita TODO el miedo</h2>
+            <p>Resultados visibles desde el día 3 o te devuelvo el dinero + te regalo otro amarre completamente gratis.</p>
+        </section>
+
+        <!-- Urgency -->
+        <section>
+            <div class="heart-counter">❤❤</div>
+            <h2>Urgencia Celestial</h2>
+            <p>Solo realizo 7 amarres por luna llena.</p>
+            <p style="font-size: 1.5rem; color: var(--passion-red);">Esta luna solo quedan <span id="spots">2</span> lugares disponibles.</p>
+        </section>
+
+        <!-- Close -->
+        <section class="final-screen" id="contact">
+            <div class="names-thread">
+                <span>Tú</span>
+                <div class="thread-line"></div>
+                <span>Él/Ella</span>
+            </div>
+            
+            <h2 style="font-size: 3rem;">Ya lo estoy atrayendo hacia ti...</h2>
+            <p style="font-size: 1.8rem;">Solo falta que des tu sí.</p>
+            
+            <div class="contact-info">
+                <p>WhatsApp: <span id="whatsapp" style="font-weight: bold; color: var(--passion-red);">+1234567890</span></p>
+                <p>Teléfono: <span id="phone" style="font-weight: bold; color: var(--passion-red);">+1234567890</span></p>
+            </div>
+
+            <button class="btn-heartbeat" style="font-size: 1.8rem; padding: 30px 80px;">Activar mi amarre eterno ahora</button>
+            
+            <div id="waitingMsg" style="margin-top: 30px; opacity: 0; transition: opacity 2s; font-family: 'Great Vibes'; font-size: 2rem; color: var(--gold-liquid);">
+                Ya está en camino...
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Petals
+        function createPetals() {
+            const container = document.getElementById('petals');
+            const count = 30;
+            for(let i=0; i<count; i++) {
+                const p = document.createElement('div');
+                p.className = Math.random() > 0.5 ? 'petal' : 'petal rose';
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.width = (Math.random() * 10 + 10) + 'px';
+                p.style.height = p.style.width;
+                p.style.animationDelay = Math.random() * 10 + 's';
+                p.style.animationDuration = (Math.random() * 10 + 10) + 's';
+                container.appendChild(p);
+            }
+        }
+        createPetals();
+
+        // Scroll Animation
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('section').forEach(sec => observer.observe(sec));
+
+        // Typewriter Effect for Title
+        const title = document.getElementById('heroTitle');
+        const text = title.innerText;
+        title.innerText = '';
+        let i = 0;
+        function typeWriter() {
+            if (i < text.length) {
+                title.innerHTML += text.charAt(i);
+                i++;
+                setTimeout(typeWriter, 50);
+            }
+        }
+        // Start typewriter when page loads
+        window.onload = typeWriter;
+
+        // Idle Message
+        let idleTimer;
+        const waitingMsg = document.getElementById('waitingMsg');
+        document.addEventListener('mousemove', () => {
+            waitingMsg.style.opacity = '0';
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => {
+                waitingMsg.style.opacity = '1';
+            }, 5000);
+        });
+
+        // Red Thread Cursor Logic (Canvas)
+        const canvas = document.getElementById('cursorCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let mouseX = 0, mouseY = 0;
+        let trail = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            trail.push({x: mouseX, y: mouseY});
+            if(trail.length > 20) trail.shift();
+        });
+
+        function animateThread() {
+            ctx.clearRect(0, 0, width, height);
+            
+            if(trail.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(trail[0].x, trail[0].y);
+                for(let i = 1; i < trail.length; i++) {
+                    ctx.lineTo(trail[i].x, trail[i].y);
+                }
+                ctx.strokeStyle = 'rgba(255, 77, 77, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            requestAnimationFrame(animateThread);
+        }
+        animateThread();
+
+        function scrollToContact() {
+            document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
