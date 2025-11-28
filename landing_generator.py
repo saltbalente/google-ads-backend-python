@@ -123,23 +123,22 @@ class LandingPageGenerator:
             if ad.responsive_search_ad and ad.responsive_search_ad.descriptions:
                 descriptions.extend([d.text for d in ad.responsive_search_ad.descriptions if d.text])
 
-        # Obtener ID de campaña primero para evitar subconsulta compleja
+        # Obtener Resource Name de campaña
         camp_query = f"SELECT ad_group.campaign FROM ad_group WHERE ad_group.id = {ad_group_id}"
         camp_rows = svc.search(customer_id=customer_id, query=camp_query)
-        campaign_id = None
+        campaign_resource_name = None
         for row in camp_rows:
-            # ad_group.campaign es un resource name: customers/123/campaigns/456
-            campaign_id = row.ad_group.campaign.split('/')[-1]
+            campaign_resource_name = row.ad_group.campaign
             break
             
         locations = []
-        if campaign_id:
+        if campaign_resource_name:
             loc_query = f"""
                 SELECT campaign_criterion.criterion_id,
                        campaign_criterion.location.geo_target_constant
                 FROM campaign_criterion
                 WHERE campaign_criterion.type = LOCATION
-                  AND campaign.id = {campaign_id}
+                  AND campaign.resource_name = '{campaign_resource_name}'
                 LIMIT 20
             """
             loc_rows = svc.search(customer_id=customer_id, query=loc_query)
