@@ -1268,8 +1268,19 @@ class LandingPageGenerator:
             logger.error(f"Health check failed: Unexpected error: {str(e)}")
             return False
 
-    def update_final_urls(self, customer_id: str, ad_group_id: str, final_url: str, ctx: AdGroupContext = None) -> None:
-        """Update Final URLs for all ads in the Ad Group."""
+    def update_final_urls(self, customer_id: str, ad_group_id: str, final_url: str, ctx: AdGroupContext = None) -> bool:
+        """
+        Update Final URLs for existing ads in an ad group.
+
+        Args:
+            customer_id: Google Ads customer ID
+            ad_group_id: Ad group ID
+            final_url: New final URL to set
+            ctx: Ad group context
+
+        Returns:
+            True if URLs were updated successfully, False if update failed (ads should be created instead)
+        """
         if not customer_id or not isinstance(customer_id, str):
             raise ValueError("customer_id must be a non-empty string")
         if not ad_group_id or not isinstance(ad_group_id, str):
@@ -1343,6 +1354,7 @@ class LandingPageGenerator:
 
                     if success_count != len(operations):
                         logger.warning(f"Expected {len(operations)} updates but got {success_count} results")
+                        return True  # Partial success still counts as success
                 except Exception as api_error:
                     # Check if this is still an immutable field error (shouldn't happen with tracking_url_template)
                     error_str = str(api_error).lower()
@@ -1350,17 +1362,20 @@ class LandingPageGenerator:
                         logger.warning(f"Cannot update tracking URL template on existing ads: {str(api_error)}")
                         logger.info("Landing page published successfully, but existing ads will keep their current tracking settings")
                         logger.info("Consider creating new ads with the new landing page URL")
-                        # Don't raise an exception - this is expected behavior
-                        return
+                        # Return False to indicate update failed - caller should create new ads
+                        return False
                     else:
                         # Re-raise other API errors
                         raise api_error
             else:
                 logger.info("No operations to perform")
+                return True
 
         except Exception as e:
             logger.error(f"Failed to update Final URLs: {str(e)}")
             raise RuntimeError(f"Google Ads URL update failed: {str(e)}")
+
+        return True
 
     def create_ads_for_ad_group(self, customer_id: str, ad_group_id: str, final_url: str, ctx: AdGroupContext) -> None:
         """Create new ads for an ad group using landing page context."""
@@ -1448,7 +1463,7 @@ class LandingPageGenerator:
             logger.error(f"Failed to create ads for Ad Group {ad_group_id}: {str(e)}")
             raise RuntimeError(f"Google Ads ad creation failed: {str(e)}")
 
-    def automate_ad_group_complete_setup(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None) -> Dict[str, Any]:
+    def automate_ad_group_complete_setup(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "auto") -> Dict[str, Any]:
         """
         Complete automation: Extract context, generate landing page, publish, and setup ads.
 
@@ -1469,6 +1484,11 @@ class LandingPageGenerator:
             phone_number: Optional phone number
             webhook_url: Optional webhook URL for notifications
             selected_template: Optional template name (defaults to 'base.html')
+            google_ads_mode: Control Google Ads integration
+                - "none": Only create landing page, no Google Ads changes
+                - "update_only": Update existing ads tracking URLs only
+                - "create_only": Create new ads if group is empty, don't update existing
+                - "auto": Full automation (default) - update existing or create new as needed
 
         Returns:
             Dict with complete automation results
@@ -1483,7 +1503,8 @@ class LandingPageGenerator:
             gtm_id=gtm_id,
             phone_number=phone_number,
             webhook_url=webhook_url,
-            selected_template=selected_template
+            selected_template=selected_template,
+            google_ads_mode=google_ads_mode
         )
 
     def _generate_folder_name(self, keywords: List[str]) -> str:
@@ -1516,8 +1537,56 @@ class LandingPageGenerator:
 
         return folder_name
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None) -> Dict[str, Any]:
-        """Execute the complete landing page generation pipeline."""
+    def _get_existing_ads_count(self, customer_id: str, ad_group_id: str) -> int:
+        """
+        Get the count of existing ads in an ad group.
+
+        Args:
+            customer_id: Google Ads customer ID
+            ad_group_id: Ad group ID to check
+
+        Returns:
+            Number of existing ads in the ad group
+        """
+        try:
+            client = self.google_ads_client_provider()
+            google_ads_service = client.get_service("GoogleAdsService")
+
+            query = f"""
+                SELECT ad_group_ad.ad.id
+                FROM ad_group_ad
+                WHERE ad_group_ad.ad_group = 'customers/{customer_id}/adGroups/{ad_group_id}'
+                  AND ad_group_ad.status != 'REMOVED'
+                  AND ad_group_ad.ad.type = 'RESPONSIVE_SEARCH_AD'
+            """
+
+            response = google_ads_service.search(customer_id=customer_id, query=query)
+            count = sum(1 for _ in response)
+            logger.debug(f"Found {count} existing ads in ad group {ad_group_id}")
+            return count
+
+        except Exception as e:
+            logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
+            return 0
+
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "auto") -> Dict[str, Any]:
+        """
+        Execute the complete landing page generation pipeline.
+
+        Args:
+            customer_id: Google Ads customer ID
+            ad_group_id: Ad group ID to work with
+            whatsapp_number: WhatsApp number for the landing page
+            gtm_id: Google Tag Manager ID
+            phone_number: Optional phone number
+            webhook_url: Optional webhook URL for notifications
+            selected_template: Optional template name (defaults to 'base.html')
+            google_ads_mode: Control Google Ads integration
+                - "none": Only create landing page, no Google Ads changes
+                - "update_only": Update existing ads tracking URLs only
+                - "create_only": Create new ads if group is empty, don't update existing
+                - "auto": Full automation (default) - update existing or create new as needed
+        """
         start_time = time.time()
 
         # Comprehensive input validation
@@ -1540,7 +1609,12 @@ class LandingPageGenerator:
         if not gtm_id.startswith("GTM-") or len(gtm_id) < 8:
             raise ValueError("gtm_id must be in format GTM-XXXXXXX")
 
-        logger.info(f"🚀 Starting landing page generation for Ad Group: {ad_group_id}")
+        # Validate google_ads_mode
+        valid_modes = ["none", "update_only", "create_only", "auto"]
+        if google_ads_mode not in valid_modes:
+            raise ValueError(f"google_ads_mode must be one of: {', '.join(valid_modes)}")
+
+        logger.info(f"🚀 Starting landing page generation for Ad Group: {ad_group_id} (Google Ads mode: {google_ads_mode})")
 
         try:
             # Set default phone number
@@ -1602,14 +1676,65 @@ class LandingPageGenerator:
             else:
                 logger.info("✅ Health check passed")
 
-            # Step 7: Update Google Ads Final URLs
-            logger.info("🔄 Step 7: Setting up Google Ads (updating existing ads or creating new ones)...")
-            try:
-                self.update_final_urls(customer_id, ad_group_id, final_url, ctx)
-                logger.info("✅ Google Ads setup completed")
-            except Exception as url_error:
-                logger.warning(f"Could not setup Google Ads: {str(url_error)}")
-                logger.info("Landing page published successfully, but Google Ads setup failed")
+            # Step 7: Handle Google Ads based on selected mode
+            google_ads_result = None
+            if google_ads_mode == "none":
+                logger.info("🚫 Step 7: Skipping Google Ads integration (mode: none)")
+            elif google_ads_mode == "update_only":
+                logger.info("🔄 Step 7: Updating existing ads final URLs only (mode: update_only)")
+                try:
+                    update_success = self.update_final_urls(customer_id, ad_group_id, final_url, ctx)
+                    if update_success:
+                        google_ads_result = {"action": "updated_existing", "message": "Updated final URLs for existing ads"}
+                        logger.info("✅ Google Ads URLs updated successfully")
+                    else:
+                        google_ads_result = {"action": "update_failed", "message": "Cannot update existing ads - Google Ads limitation", "suggestion": "Use 'auto' mode to create new ads"}
+                        logger.warning("⚠️ Could not update existing ads due to Google Ads API limitations")
+                except Exception as url_error:
+                    logger.warning(f"Could not update Google Ads URLs: {str(url_error)}")
+                    google_ads_result = {"action": "failed", "error": str(url_error)}
+            elif google_ads_mode == "create_only":
+                logger.info("🆕 Step 7: Creating new ads if group is empty (mode: create_only)")
+                try:
+                    # Check if ad group has existing ads
+                    existing_ads = self._get_existing_ads_count(customer_id, ad_group_id)
+                    if existing_ads == 0:
+                        # Create new ads directly
+                        self.create_ads_for_ad_group(customer_id, ad_group_id, final_url, ctx)
+                        google_ads_result = {"action": "created_new", "ads_created": "multiple", "message": "Created new ads in empty ad group"}
+                        logger.info("✅ Created new ads in empty ad group")
+                    else:
+                        logger.info(f"ℹ️ Ad group already has {existing_ads} ads, skipping creation (create_only mode)")
+                        google_ads_result = {"action": "skipped", "reason": "ads_already_exist", "existing_count": existing_ads}
+                except Exception as create_error:
+                    logger.warning(f"Could not create new ads: {str(create_error)}")
+                    google_ads_result = {"action": "failed", "error": str(create_error)}
+            elif google_ads_mode == "auto":
+                logger.info("🤖 Step 7: Full Google Ads automation (mode: auto)")
+                try:
+                    # First try to update existing ads
+                    update_success = self.update_final_urls(customer_id, ad_group_id, final_url, ctx)
+
+                    if update_success:
+                        google_ads_result = {
+                            "action": "updated_existing",
+                            "message": "Updated final URLs for existing ads"
+                        }
+                        logger.info("✅ Google Ads URLs updated successfully")
+                    else:
+                        # Update failed, create new ads instead
+                        logger.info("🔄 Update failed, creating new ads with landing page content...")
+                        self.create_ads_for_ad_group(customer_id, ad_group_id, final_url, ctx)
+                        google_ads_result = {
+                            "action": "created_new",
+                            "message": "Created new ads (existing ads could not be updated)"
+                        }
+                        logger.info("✅ Created new ads with landing page URL")
+                except Exception as auto_error:
+                    logger.warning(f"Could not complete Google Ads automation: {str(auto_error)}")
+                    google_ads_result = {"action": "failed", "error": str(auto_error)}
+            else:
+                logger.warning(f"Unknown google_ads_mode: {google_ads_mode}, skipping Google Ads operations")
 
             # Success!
             execution_time = time.time() - start_time
@@ -1621,7 +1746,9 @@ class LandingPageGenerator:
                 "execution_time_seconds": round(execution_time, 2),
                 "primary_keyword": ctx.primary_keyword,
                 "keywords_found": len(ctx.keywords),
-                "headlines_found": len(ctx.headlines)
+                "headlines_found": len(ctx.headlines),
+                "google_ads_mode": google_ads_mode,
+                "google_ads_result": google_ads_result
             }
 
             logger.info(f"🎉 Landing page generation completed successfully in {execution_time:.2f}s")
