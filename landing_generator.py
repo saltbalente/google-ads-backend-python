@@ -704,7 +704,14 @@ class LandingPageGenerator:
     @staticmethod
     def get_templates_static() -> Dict[str, Dict[str, str]]:
         """Static method to get template information without requiring full initialization."""
-        templates = ["base.html", "mystical.html", "romantic.html", "prosperity.html", "llama-gemela.html", "llamado-del-alma.html", "el-libro-prohibido.html", "la-luz.html", "amarre-eterno.html"]
+        templates = [
+            "base.html", "mystical.html", "romantic.html", "prosperity.html", "llama-gemela.html", 
+            "llamado-del-alma.html", "el-libro-prohibido.html", "la-luz.html", "amarre-eterno.html",
+            "tarot-akashico.html", "brujeria-blanca.html", "santeria-prosperidad.html", 
+            "curanderismo-ancestral.html", "brujeria-negra-venganza.html", "ritual-amor-eterno.html",
+            "lectura-aura-sanacion.html", "hechizos-abundancia.html", "conexion-guias-espirituales.html",
+            "nocturnal.html"
+        ]
         template_info = {}
 
         for template in templates:
@@ -763,6 +770,66 @@ class LandingPageGenerator:
                 template_info[template] = {
                     "name": "Amarre Eterno",
                     "description": "Amarres de amor eternos y magia blanca",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "tarot-akashico":
+                template_info[template] = {
+                    "name": "Tarot Akáshico",
+                    "description": "Lecturas de tarot y registros akáshicos",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "brujeria-blanca":
+                template_info[template] = {
+                    "name": "Brujería Blanca",
+                    "description": "Rituales de magia blanca y protección espiritual",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "santeria-prosperidad":
+                template_info[template] = {
+                    "name": "Santería Prosperidad",
+                    "description": "Rituales de santería para abundancia y prosperidad",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "curanderismo-ancestral":
+                template_info[template] = {
+                    "name": "Curanderismo Ancestral",
+                    "description": "Sabiduría ancestral y curación tradicional",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "brujeria-negra-venganza":
+                template_info[template] = {
+                    "name": "Brujería Negra Venganza",
+                    "description": "Trabajos de magia negra y venganza espiritual",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "ritual-amor-eterno":
+                template_info[template] = {
+                    "name": "Ritual Amor Eterno",
+                    "description": "Rituales poderosos para amor eterno",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "lectura-aura-sanacion":
+                template_info[template] = {
+                    "name": "Lectura Aura Sanación",
+                    "description": "Lectura de aura y sanación energética",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "hechizos-abundancia":
+                template_info[template] = {
+                    "name": "Hechizos Abundancia",
+                    "description": "Hechizos para riqueza y prosperidad infinita",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "conexion-guias-espirituales":
+                template_info[template] = {
+                    "name": "Conexión Guías Espirituales",
+                    "description": "Conectar con ángeles y maestros espirituales",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "nocturnal":
+                template_info[template] = {
+                    "name": "Nocturnal",
+                    "description": "Diseño oscuro y misterioso para la noche",
                     "preview_url": f"/api/templates/preview/{template_name}"
                 }
             else:

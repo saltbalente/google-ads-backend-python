@@ -412,7 +412,13 @@ def get_template_preview(template_name):
     """Sirve la vista previa HTML de un template específico"""
     try:
         # Validate template name
-        valid_templates = ['base', 'mystical', 'romantic', 'prosperity', 'llama-gemela', 'llamado-del-alma', 'el-libro-prohibido', 'la-luz', 'amarre-eterno']
+        valid_templates = [
+            'base', 'mystical', 'romantic', 'prosperity', 'llama-gemela', 'llamado-del-alma', 
+            'el-libro-prohibido', 'la-luz', 'amarre-eterno', 'tarot-akashico', 'brujeria-blanca',
+            'santeria-prosperidad', 'curanderismo-ancestral', 'brujeria-negra-venganza',
+            'ritual-amor-eterno', 'lectura-aura-sanacion', 'hechizos-abundancia',
+            'conexion-guias-espirituales', 'nocturnal'
+        ]
         if template_name not in valid_templates:
             result = jsonify({'success': False, 'error': 'Template not found'}), 404
             result[0].headers.add('Access-Control-Allow-Origin', '*')
