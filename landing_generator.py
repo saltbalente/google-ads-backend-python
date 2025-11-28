@@ -1146,6 +1146,38 @@ class LandingPageGenerator:
             logger.warning(f"Could not setup GitHub Pages: {str(e)}")
             return False
 
+    def upload_asset_to_github(self, content_bytes: bytes, filename: str) -> str:
+        """Upload an asset to GitHub and return the jsdelivr URL."""
+        path = f"assets/images/{filename}"
+        
+        # Check if file exists (to get SHA for update)
+        get_response = self._github_get(f"/contents/{path}")
+        sha = None
+        if get_response.status_code == 200:
+            try:
+                sha = get_response.json().get("sha")
+            except:
+                pass
+            
+        # Encode content
+        content_b64 = base64.b64encode(content_bytes).decode("ascii")
+        
+        payload = {
+            "message": f"Upload asset: {filename}",
+            "content": content_b64,
+            "branch": "main"
+        }
+        if sha:
+            payload["sha"] = sha
+            
+        put_response = self._github_put(f"/contents/{path}", payload)
+        
+        if put_response.status_code not in [200, 201]:
+             raise RuntimeError(f"Failed to upload asset {filename}: {put_response.text}")
+             
+        # Return jsdelivr URL
+        return f"https://cdn.jsdelivr.net/gh/{self.github_owner}/{self.github_repo}@main/{path}"
+
     def publish_as_github_pages(self, folder_name: str, html_content: str) -> Dict[str, Any]:
         """Publish landing page optimized for GitHub Pages."""
         if not folder_name or not isinstance(folder_name, str):
@@ -1707,6 +1739,42 @@ class LandingPageGenerator:
             logger.info("🤖 Step 2: Generating content with AI...")
             gen = self.generate_content(ctx)
             logger.info("✅ Content generated successfully")
+
+            # Process user images if provided
+            if user_images:
+                processed_images = []
+                for img in user_images:
+                    if img.get("content"): # Base64 content
+                        try:
+                            # Decode base64
+                            b64_data = img["content"]
+                            if "," in b64_data:
+                                b64_data = b64_data.split(",")[1]
+                            
+                            image_bytes = base64.b64decode(b64_data)
+                            
+                            # Generate filename
+                            ext = "jpg" # Default
+                            if "image/png" in img.get("content", ""):
+                                ext = "png"
+                            
+                            filename = f"{uuid.uuid4()}.{ext}"
+                            
+                            # Upload
+                            url = self.upload_asset_to_github(image_bytes, filename)
+                            
+                            processed_images.append({
+                                "url": url,
+                                "position": img.get("position", "middle")
+                            })
+                            logger.info(f"✅ Uploaded user image to {url}")
+                        except Exception as e:
+                            logger.error(f"Failed to process user image: {e}")
+                    elif img.get("url"):
+                        processed_images.append(img)
+                
+                # Update user_images with processed ones
+                user_images = processed_images
 
             # Step 3: Prepare configuration
             config = {
