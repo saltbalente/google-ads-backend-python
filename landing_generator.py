@@ -5,7 +5,7 @@ import time
 import re
 import unicodedata
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Callable
 
 import requests
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -36,7 +36,7 @@ class GeneratedContent:
 class LandingPageGenerator:
     def __init__(
         self,
-        google_ads_client_provider: Optional[callable] = None,
+        google_ads_client_provider: Optional[Callable[[], Any]] = None,
         openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o"),
         github_owner: str = os.getenv("GITHUB_REPO_OWNER", ""),
         github_repo: str = os.getenv("GITHUB_REPO_NAME", "monorepo-landings"),
@@ -125,6 +125,7 @@ class LandingPageGenerator:
         ads_rows = svc.search(customer_id=customer_id, query=ads_query)
         headlines = []
         descriptions = []
+        locations = []
         for row in ads_rows:
             ad = row.ad_group_ad.ad
             if ad.responsive_search_ad and ad.responsive_search_ad.headlines:
@@ -426,7 +427,7 @@ class LandingPageGenerator:
             print("🎨 Renderizando HTML...")
             html = self.render(gen, config)
             
-            print("octocat Publicando a GitHub...")
+            print("🐙 Publicando a GitHub...")
             gh = self.publish_to_github(ad_group_id, html)
             print(f"✅ Publicado en GitHub. SHA: {gh.get('commit', {}).get('sha')}")
             
