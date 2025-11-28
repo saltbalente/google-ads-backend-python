@@ -8,8 +8,11 @@ import unicodedata
 import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Callable, Tuple
+import io
+import uuid
 
 import requests
+from PIL import Image
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from dotenv import load_dotenv
 from google.protobuf.field_mask_pb2 import FieldMask
@@ -1744,34 +1747,66 @@ class LandingPageGenerator:
             if user_images:
                 processed_images = []
                 for img in user_images:
-                    if img.get("content"): # Base64 content
+                    image_bytes = None
+                    
+                    # Case 1: Base64 Content
+                    if img.get("content"):
                         try:
-                            # Decode base64
                             b64_data = img["content"]
                             if "," in b64_data:
                                 b64_data = b64_data.split(",")[1]
-                            
                             image_bytes = base64.b64decode(b64_data)
+                        except Exception as e:
+                            logger.error(f"Failed to decode base64 for user image: {e}")
+                            continue
+
+                    # Case 2: URL Content
+                    elif img.get("url"):
+                        url = img["url"]
+                        # If it's already our CDN URL, keep it as is
+                        if "cdn.jsdelivr.net" in url and self.github_repo in url:
+                             processed_images.append(img)
+                             continue
+                        
+                        try:
+                            logger.info(f"Downloading image from URL: {url}")
+                            resp = requests.get(url, timeout=15)
+                            if resp.status_code == 200:
+                                image_bytes = resp.content
+                            else:
+                                logger.warning(f"Failed to download image from {url}: {resp.status_code}")
+                        except Exception as e:
+                            logger.error(f"Error downloading image from {url}: {e}")
+
+                    # Process and Upload if we have bytes
+                    if image_bytes:
+                        try:
+                            # Convert to WebP and compress
+                            with io.BytesIO(image_bytes) as input_buf:
+                                image = Image.open(input_buf)
+                                
+                                # Convert to RGB if mode is not compatible
+                                if image.mode in ('P', 'CMYK'):
+                                    image = image.convert('RGB')
+                                
+                                with io.BytesIO() as output_buf:
+                                    # Save as WebP with compression
+                                    image.save(output_buf, format="WEBP", quality=80, optimize=True)
+                                    webp_data = output_buf.getvalue()
                             
                             # Generate filename
-                            ext = "jpg" # Default
-                            if "image/png" in img.get("content", ""):
-                                ext = "png"
-                            
-                            filename = f"{uuid.uuid4()}.{ext}"
+                            filename = f"{uuid.uuid4()}.webp"
                             
                             # Upload
-                            url = self.upload_asset_to_github(image_bytes, filename)
+                            url = self.upload_asset_to_github(webp_data, filename)
                             
                             processed_images.append({
                                 "url": url,
                                 "position": img.get("position", "middle")
                             })
-                            logger.info(f"✅ Uploaded user image to {url}")
+                            logger.info(f"✅ Processed and uploaded user image to {url}")
                         except Exception as e:
-                            logger.error(f"Failed to process user image: {e}")
-                    elif img.get("url"):
-                        processed_images.append(img)
+                            logger.error(f"Failed to process/upload user image: {e}")
                 
                 # Update user_images with processed ones
                 user_images = processed_images
