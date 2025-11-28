@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLAMA GEMELA - Rituales de Amor y Reconciliación</title>
+    <meta name="description" content="Rituales de amor blanco · Reconciliaciones imposibles · Amarres de alma gemela · Endulzamientos eternos">
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Playfair Display', serif;
+            background: linear-gradient(135deg,
+                #000000 0%,
+                #1a0a14 25%,
+                #2a1817 50%,
+                #3a1a1a 75%,
+                #4a1a1a 100%);
+            color: #f8f8f8;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Partículas flotantes */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            opacity: 0.6;
+            animation: float 20s linear infinite;
+        }
+
+        .heart {
+            color: #e91e63;
+            font-size: 12px;
+        }
+
+        .petal {
+            color: #ff69b4;
+            font-size: 10px;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); }
+            100% { transform: translateY(-100px) rotate(360deg); }
+        }
+
+        /* Estrellas */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: radial-gradient(circle, #ffd700 0%, #ff69b4 50%, transparent 70%);
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Luna */
+        .moon {
+            position: fixed;
+            top: 10%;
+            right: 10%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle at 30% 30%, #ffd700, #ff69b4, #8b0000);
+            border-radius: 50%;
+            opacity: 0.8;
+            z-index: 2;
+            animation: moonGlow 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes moonGlow {
+            0% { box-shadow: 0 0 50px rgba(255, 215, 0, 0.5); }
+            100% { box-shadow: 0 0 100px rgba(255, 215, 0, 0.8); }
+        }
+
+        /* Contenedor principal */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 100px 20px 80px;
+            position: relative;
+        }
+
+        .hero-image {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            background: linear-gradient(45deg, rgba(255, 215, 0, 0.2), rgba(255, 105, 180, 0.2)),
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text fill="%23ffd700" font-size="50" y="70">💑</text></svg>');
+            background-size: cover;
+            border-radius: 20px;
+            margin: 0 auto 40px;
+            box-shadow: 0 20px 60px rgba(255, 215, 0, 0.3);
+            border: 2px solid rgba(255, 215, 0, 0.5);
+        }
+
+        .hero-title {
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            margin-bottom: 20px;
+            animation: titleReveal 3s ease-out;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes titleReveal {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-subtitle {
+            font-style: italic;
+            font-size: 1.2rem;
+            color: #ff69b4;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px rgba(255, 105, 180, 0.5);
+        }
+
+        .cta-button {
+            background: linear-gradient(45deg, #8b0000, #dc143c);
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 10px 30px rgba(139, 0, 0, 0.5);
+            animation: heartbeat 2s ease-in-out infinite;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(139, 0, 0, 0.7);
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Secciones */
+        .section {
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .section-title {
+            font-family: 'Great Vibes', cursive;
+            font-size: 3rem;
+            color: #ffd700;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+
+        .section-content {
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.8;
+            font-size: 1.2rem;
+            color: #f0e6d2;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        /* Testimonios */
+        .testimonials {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .testimonial {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 105, 180, 0.1));
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .testimonial:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(255, 215, 0, 0.3);
+        }
+
+        .testimonial::before {
+            content: '🌹';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 2rem;
+            opacity: 0.5;
+        }
+
+        /* Rituales */
+        .rituals {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .ritual-card {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 105, 180, 0.15));
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .ritual-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 30px rgba(255, 215, 0, 0.4);
+        }
+
+        .ritual-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .ritual-title {
+            font-family: 'Great Vibes', cursive;
+            font-size: 1.8rem;
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        /* Garantía */
+        .guarantee {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(139, 0, 0, 0.2));
+            border: 3px solid #ffd700;
+            border-radius: 30px;
+            padding: 50px;
+            margin: 50px 0;
+            position: relative;
+        }
+
+        .guarantee::before {
+            content: '👑';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            background: linear-gradient(45deg, #ffd700, #ff69b4);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Urgencia */
+        .urgency {
+            background: linear-gradient(135deg, rgba(139, 0, 0, 0.3), rgba(255, 105, 180, 0.3));
+            border: 2px solid #8b0000;
+            border-radius: 20px;
+            padding: 40px;
+            margin: 50px 0;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(139, 0, 0, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(139, 0, 0, 0.6); }
+        }
+
+        .countdown {
+            font-size: 3rem;
+            color: #ff69b4;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 105, 180, 0.8);
+        }
+
+        /* Contacto */
+        .contact-section {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 60px 20px;
+            border-radius: 20px;
+            margin-top: 50px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 105, 180, 0.1));
+            border-radius: 15px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .contact-icon {
+            font-size: 2rem;
+            margin-right: 20px;
+        }
+
+        .contact-text {
+            font-size: 1.2rem;
+            color: #f0e6d2;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .testimonials, .rituals {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-button {
+                padding: 15px 30px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Partículas flotantes -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Estrellas -->
+    <div class="stars" id="stars"></div>
+
+    <!-- Luna -->
+    <div class="moon"></div>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-image"></div>
+            <h1 class="hero-title" id="heroTitle">Tu persona amada ya está sintiendo tu falta…<br>En 7 días volverá a tus brazos rogando tu perdón</h1>
+            <p class="hero-subtitle">Rituales de amor blanco · Reconciliaciones imposibles · Amarres de alma gemela · Endulzamientos eternos</p>
+            <button class="cta-button" onclick="scrollToContact()">Quiero que vuelva conmigo HOY</button>
+        </section>
+
+        <!-- Dolor Section -->
+        <section class="section">
+            <h2 class="section-title">Sé exactamente cómo te sientes…</h2>
+            <div class="section-content">
+                <p>Las noches sin dormir, los mensajes que nunca contesta, el vacío que te come por dentro.</p>
+                <p>Yo también lo viví… y lo solucioné para siempre.</p>
+                <div style="width: 200px; height: 200px; background: linear-gradient(45deg, rgba(139, 0, 0, 0.3), rgba(255, 215, 0, 0.3)); border-radius: 50%; margin: 30px auto; display: flex; align-items: center; justify-content: center; font-size: 4rem;">🕯️</div>
+            </div>
+        </section>
+
+        <!-- Testimonios -->
+        <section class="section">
+            <h2 class="section-title">Historias que hacen llorar de felicidad</h2>
+            <div class="testimonials">
+                <div class="testimonial">
+                    <p>"Lloré cuando me llamó a las 3 a.m. diciendo que no podía vivir sin mí… Volvimos a ser la pareja perfecta."</p>
+                    <cite>- María G., 28 años</cite>
+                </div>
+                <div class="testimonial">
+                    <p>"Después de 2 años separados, regresó en 5 días con anillo en mano pidiéndome matrimonio otra vez."</p>
+                    <cite>- Carlos R., 32 años</cite>
+                </div>
+                <div class="testimonial">
+                    <p>"Pensé que lo había perdido para siempre… Hoy dormimos abrazados como la primera vez."</p>
+                    <cite>- Ana L., 25 años</cite>
+                </div>
+            </div>
+        </section>
+
+        <!-- Rituales -->
+        <section class="section">
+            <h2 class="section-title">Rituales del corazón roto</h2>
+            <div class="rituals">
+                <div class="ritual-card">
+                    <div class="ritual-icon">💑</div>
+                    <h3 class="ritual-title">Ritual de la Llama Gemela</h3>
+                    <p>Dos velas unidas por el destino eterno</p>
+                </div>
+                <div class="ritual-card">
+                    <div class="ritual-icon">🍯</div>
+                    <h3 class="ritual-title">Endulzamiento con miel y rosas</h3>
+                    <p>Endulza su corazón para que solo piense en ti</p>
+                </div>
+                <div class="ritual-card">
+                    <div class="ritual-icon">💍</div>
+                    <h3 class="ritual-title">Amarre eterno de alma gemela</h3>
+                    <p>Conexión espiritual que trasciende el tiempo</p>
+                </div>
+                <div class="ritual-card">
+                    <div class="ritual-icon">🌙</div>
+                    <h3 class="ritual-title">Vuelta en 7 días garantizada</h3>
+                    <p>Ritual lunar para reconciliaciones imposibles</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Garantía -->
+        <section class="guarantee">
+            <h2 class="section-title">Mi promesa sagrada</h2>
+            <div class="section-content">
+                <p style="font-size: 1.5rem; color: #ffd700; margin-bottom: 20px;">Resultados en 7-21 días o te devuelvo hasta el último centavo + te regalo otro ritual gratis</p>
+                <p>Más de 8.700 parejas reconciliadas en los últimos 3 años</p>
+            </div>
+        </section>
+
+        <!-- Urgencia -->
+        <section class="urgency">
+            <h2 class="section-title">Esta luna de miel está a punto de terminar…</h2>
+            <div class="countdown" id="countdown">4</div>
+            <p>Quedan solo <span id="spots">4</span> lugares esta semana</p>
+        </section>
+
+        <!-- Contacto -->
+        <section class="contact-section" id="contact">
+            <h2 class="section-title">El amor de tu vida ya está soñando contigo otra vez…</h2>
+            <p style="font-style: italic; font-size: 1.3rem; margin-bottom: 40px; color: #f0e6d2;">Solo falta que des el paso.</p>
+
+            <div class="contact-item">
+                <span class="contact-icon">📱</span>
+                <div>
+                    <strong class="contact-text">WhatsApp: <span id="whatsapp">TEMPLATE_WHATSAPP</span></strong>
+                </div>
+            </div>
+
+            <div class="contact-item">
+                <span class="contact-icon">📞</span>
+                <div>
+                    <strong class="contact-text">Teléfono: <span id="phone">TEMPLATE_PHONE</span></strong>
+                </div>
+            </div>
+
+            <div class="contact-item">
+                <span class="contact-icon">🎯</span>
+                <div>
+                    <strong class="contact-text">GTM ID: <span id="gtm">TEMPLATE_GTM</span></strong>
+                </div>
+            </div>
+
+            <button class="cta-button" style="margin-top: 40px;">Traerlo/a de vuelta a mis brazos ahora</button>
+        </section>
+    </div>
+
+    <script>
+        // Crear partículas flotantes
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+
+                // Alternar entre corazones y pétalos
+                particle.innerHTML = Math.random() > 0.5 ? '💖' : '🌸';
+                particle.classList.add(Math.random() > 0.5 ? 'heart' : 'petal');
+
+                // Posición aleatoria
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.fontSize = (Math.random() * 10 + 10) + 'px';
+
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Crear estrellas
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starCount = 100;
+
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = star.style.height = Math.random() * 3 + 1 + 'px';
+                star.style.animationDelay = Math.random() * 3 + 's';
+
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Efecto de título
+        function animateTitle() {
+            const title = document.getElementById('heroTitle');
+            const text = title.textContent;
+            title.textContent = '';
+
+            let i = 0;
+            const timer = setInterval(() => {
+                if (i < text.length) {
+                    title.textContent += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(timer);
+                }
+            }, 100);
+        }
+
+        // Contador de urgencia
+        function updateCountdown() {
+            let spots = parseInt(document.getElementById('spots').textContent);
+            if (spots > 0) {
+                spots--;
+                document.getElementById('spots').textContent = spots;
+                document.getElementById('countdown').textContent = spots;
+            }
+        }
+
+        // Scroll suave
+        function scrollToContact() {
+            document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Reemplazar placeholders
+        function replacePlaceholders() {
+            const urlParams = new URLSearchParams(window.location.search);
+
+            document.getElementById('whatsapp').textContent = urlParams.get('whatsapp') || '573012887371';
+            document.getElementById('phone').textContent = urlParams.get('phone') || '+57 301 288 7371';
+            document.getElementById('gtm').textContent = urlParams.get('gtm') || 'GTM-XXXXXXX';
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            createStars();
+            animateTitle();
+            replacePlaceholders();
+
+            // Actualizar contador cada 30 segundos
+            setInterval(updateCountdown, 30000);
+        });
+
+        // Efectos hover en testimonios
+        document.querySelectorAll('.testimonial').forEach(testimonial => {
+            testimonial.addEventListener('mouseenter', () => {
+                const heart = document.createElement('div');
+                heart.innerHTML = '💖';
+                heart.style.position = 'absolute';
+                heart.style.fontSize = '2rem';
+                heart.style.pointerEvents = 'none';
+                heart.style.animation = 'float 3s ease-out forwards';
+                testimonial.appendChild(heart);
+
+                setTimeout(() => heart.remove(), 3000);
+            });
+        });
+    </script>
+
+    <!-- Google Tag Manager -->
+    <script>
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','TEMPLATE_GTM');
+    </script>
+</body>
+</html></content>
+<parameter name="filePath">/Users/edwarbechara/Documents/app-reportes-pagos-BACKUP-20250702-123421/google-ads-backend-python/templates/landing/llama-gemela.html
