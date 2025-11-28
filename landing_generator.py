@@ -1272,5 +1272,78 @@ class LandingPageGenerator:
 
         return results
 
+    def diagnose_github_issues(self) -> Dict[str, Any]:
+        """Diagnose GitHub-related issues for debugging."""
+        logger.info("Running GitHub diagnostics...")
+
+        results = {
+            "timestamp": time.time(),
+            "checks": {},
+            "recommendations": []
+        }
+
+        # Check environment variables
+        env_vars = {
+            "GITHUB_REPO_OWNER": self.github_owner,
+            "GITHUB_REPO_NAME": self.github_repo,
+            "GITHUB_TOKEN": "***" + self.github_token[-4:] if self.github_token else None
+        }
+
+        results["environment"] = env_vars
+
+        # Check repository access
+        repo_check = self._verify_github_repository_access()
+        results["repository_check"] = repo_check
+
+        if not repo_check.get("exists"):
+            results["checks"]["repository_exists"] = "❌"
+            results["recommendations"].append(f"Repository '{self.github_owner}/{self.github_repo}' not found. Check repository name and owner.")
+        else:
+            results["checks"]["repository_exists"] = "✅"
+            results["recommendations"].append(f"Repository found: {repo_check.get('name')}")
+
+        if not repo_check.get("can_push", False):
+            results["checks"]["push_permissions"] = "❌"
+            results["recommendations"].append("No push permissions to repository. Check token permissions.")
+        else:
+            results["checks"]["push_permissions"] = "✅"
+
+        # Test token validity
+        try:
+            user_response = requests.get("https://api.github.com/user", headers=self._github_headers(), timeout=10)
+            if user_response.status_code == 200:
+                user_data = user_response.json()
+                results["checks"]["token_valid"] = "✅"
+                results["token_user"] = user_data.get("login")
+                results["recommendations"].append(f"Token belongs to user: {user_data.get('login')}")
+            else:
+                results["checks"]["token_valid"] = "❌"
+                results["recommendations"].append(f"Token validation failed: HTTP {user_response.status_code}")
+        except Exception as e:
+            results["checks"]["token_valid"] = "❌"
+            results["recommendations"].append(f"Token validation error: {str(e)}")
+
+        # Test file creation simulation
+        try:
+            # Try to get a non-existent file to test API access
+            test_path = f"/contents/test-diagnostic-{int(time.time())}.txt"
+            test_response = self._github_get(test_path)
+            if test_response.status_code == 404:
+                results["checks"]["api_file_access"] = "✅"
+                results["recommendations"].append("File API access working (404 for non-existent file is expected)")
+            else:
+                results["checks"]["api_file_access"] = "❌"
+                results["recommendations"].append(f"Unexpected file API response: {test_response.status_code}")
+        except Exception as e:
+            results["checks"]["api_file_access"] = "❌"
+            results["recommendations"].append(f"File API access error: {str(e)}")
+
+        # Overall assessment
+        all_checks_pass = all("✅" in str(status) for status in results["checks"].values())
+        results["overall_status"] = "✅ PASS" if all_checks_pass else "❌ ISSUES FOUND"
+
+        logger.info(f"GitHub diagnostics completed: {results['overall_status']}")
+        return results
+
     def system_prompt_text(self) -> str:
         return self._system_prompt()
