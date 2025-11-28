@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ headline_h1 }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0B0B12;
+            --bg-secondary: #1A0B2E;
+            --bg-accent: #2E0B3F;
+            --color-dominant: #4A90E2; /* Azul espiritual para aura */
+            --gold-old: #D4AF37;
+            --silver-moon: #C5C6D0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cormorant Garamond', serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-accent) 100%);
+            color: #E5E7EB;
+            line-height: 1.6;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(74, 144, 226, 0.05) 0%, transparent 50%),
+                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs><pattern id="parchment" patternUnits="userSpaceOnUse" width="100" height="100"><rect width="100" height="100" fill="%230B0B12"/><rect width="100" height="100" fill="url(%23noise)" opacity="0.08"/></pattern><filter id="noise"><feTurbulence baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter></defs><rect width="100" height="100" fill="url(%23parchment)"/></svg>');
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--gold-old);
+            border-radius: 50%;
+            animation: float 20s linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            text-align: center;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, transparent 30%, rgba(74, 144, 226, 0.1) 100%);
+        }
+
+        .hero-image {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            border-radius: 20px;
+            margin-bottom: 40px;
+            filter: brightness(0.7) contrast(1.2);
+            box-shadow: 0 0 50px rgba(74, 144, 226, 0.3);
+        }
+
+        .hero h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 5rem;
+            font-weight: 700;
+            color: var(--color-dominant);
+            text-shadow: 0 0 20px rgba(74, 144, 226, 0.5), 2px 2px 4px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+        }
+
+        .hero p {
+            font-size: 2rem;
+            color: var(--silver-moon);
+            margin-bottom: 40px;
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, var(--color-dominant), #2E5C8A);
+            color: var(--bg-primary);
+            padding: 20px 50px;
+            border: none;
+            border-radius: 50px;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(74, 144, 226, 0.4);
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        .cta-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 50px rgba(74, 144, 226, 0.6);
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 30px rgba(74, 144, 226, 0.4); }
+            50% { box-shadow: 0 0 50px rgba(74, 144, 226, 0.8); }
+        }
+
+        .guarantee {
+            font-size: 1.2rem;
+            color: var(--gold-old);
+            margin-top: 20px;
+        }
+
+        .section {
+            padding: 100px 0;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 1s ease;
+        }
+
+        .section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .section h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 3rem;
+            color: var(--color-dominant);
+            text-align: center;
+            margin-bottom: 50px;
+            text-shadow: 0 0 15px rgba(74, 144, 226, 0.3);
+        }
+
+        .pain-section {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-accent));
+            padding: 80px 0;
+        }
+
+        .pain-text {
+            font-size: 2rem;
+            color: var(--gold-old);
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .testimonials {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .testimonial {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--gold-old);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .testimonial img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+            border: 3px solid var(--color-dominant);
+        }
+
+        .testimonial p {
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+
+        .stars {
+            color: var(--gold-old);
+            font-size: 1.5rem;
+        }
+
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .service {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--color-dominant);
+            transition: all 0.3s ease;
+        }
+
+        .service:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 0 30px rgba(74, 144, 226, 0.3);
+        }
+
+        .service img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+        }
+
+        .service h3 {
+            color: var(--color-dominant);
+            margin-bottom: 15px;
+        }
+
+        .service .price {
+            color: var(--gold-old);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .guarantee-seal {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, var(--gold-old), var(--color-dominant));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 40px;
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+            color: var(--bg-primary);
+            text-align: center;
+            font-size: 1.2rem;
+            box-shadow: 0 0 50px rgba(212, 175, 55, 0.5);
+        }
+
+        .urgency {
+            background: linear-gradient(135deg, var(--bg-accent), var(--bg-primary));
+            padding: 80px 0;
+            text-align: center;
+        }
+
+        .counter {
+            font-size: 4rem;
+            color: var(--color-dominant);
+            margin: 30px 0;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px var(--color-dominant); }
+            to { text-shadow: 0 0 20px var(--color-dominant), 0 0 30px var(--color-dominant); }
+        }
+
+        .spots-left {
+            font-size: 2rem;
+            color: var(--color-dominant);
+        }
+
+        .final-cta {
+            background: var(--bg-primary);
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .final-cta h2 {
+            font-size: 4rem;
+            color: var(--color-dominant);
+            margin-bottom: 30px;
+        }
+
+        .final-cta p {
+            font-size: 2rem;
+            color: var(--silver-moon);
+            margin-bottom: 50px;
+        }
+
+        .contact-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 40px auto;
+            max-width: 500px;
+            border: 1px solid var(--gold-old);
+        }
+
+        .contact-info p {
+            margin: 10px 0;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 3rem; }
+            .hero p { font-size: 1.5rem; }
+            .section h2 { font-size: 2rem; }
+            .final-cta h2 { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+
+    <section class="hero">
+        <div class="container">
+            {% if user_image_top %}
+            <img src="{{ user_image_top }}" alt="Lectura Aura Sanación" class="hero-image">
+            {% endif %}
+            <h1>{{ headline_h1 }}</h1>
+            <p>{{ subheadline }}</p>
+            <button class="cta-button" onclick="scrollToContact()">{{ cta_text }}</button>
+            <p class="guarantee">Resultados o te devuelvo tu dinero + trabajo gratis</p>
+        </div>
+    </section>
+
+    <section class="section pain-section">
+        <div class="container">
+            <p class="pain-text">
+                Sé exactamente cómo te sientes...<br>
+                La energía bloqueada · El dolor emocional · La falta de claridad...
+            </p>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <h2>Testimonios que cambian vidas</h2>
+            <div class="testimonials">
+                {% for proof in social_proof %}
+                <div class="testimonial">
+                    <img src="https://via.placeholder.com/80x80/4A90E2/FFFFFF?text=Cliente" alt="Cliente">
+                    <p>"{{ proof }}"</p>
+                    <div class="stars">★★★★★</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if user_image_middle %}
+            <img src="{{ user_image_middle }}" alt="Imagen central" style="width: 100%; max-width: 800px; border-radius: 20px; margin: 40px auto; display: block; box-shadow: 0 0 30px rgba(74, 144, 226, 0.3);">
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <h2>Las Lecturas de Aura que Sanan</h2>
+            <div class="services">
+                {% for benefit in benefits %}
+                <div class="service">
+                    <img src="https://via.placeholder.com/100x100/4A90E2/FFFFFF?text=Lectura" alt="Lectura">
+                    <h3>{{ benefit }}</h3>
+                    <p class="price">Desde $45</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="section urgency">
+        <div class="container">
+            <div class="guarantee-seal">
+                GARANTÍA<br>DE SANACIÓN<br>ESPIRITUAL
+            </div>
+            <h2>Garantía que quita TODO el miedo</h2>
+            <p>Resultados visibles desde el día 3 o te devuelvo el dinero + te regalo otra lectura completamente gratis.</p>
+            <div class="counter">✨✨</div>
+            <p class="spots-left">Solo realizo 7 lecturas por luna llena.<br>Esta luna solo quedan <span id="spots">3</span> lugares disponibles.</p>
+            {% if user_image_bottom %}
+            <img src="{{ user_image_bottom }}" alt="Imagen final" style="width: 100%; max-width: 800px; border-radius: 20px; margin: 40px auto; display: block; box-shadow: 0 0 30px rgba(74, 144, 226, 0.3);">
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="final-cta" id="contact">
+        <div class="container">
+            <h2>Tu aura ya se está sanando...</h2>
+            <p>Solo falta que des tu sí.</p>
+            
+            <div class="contact-info">
+                <p>WhatsApp: <span style="font-weight: bold; color: var(--color-dominant);">{{ whatsapp_number }}</span></p>
+                <p>Teléfono: <span style="font-weight: bold; color: var(--color-dominant);">{{ phone_number }}</span></p>
+            </div>
+
+            <button class="cta-button" style="font-size: 2rem; padding: 30px 80px;">{{ cta_text }}</button>
+        </div>
+    </section>
+
+    <script>
+        // Particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for(let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + 'vw';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // Scroll animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.section').forEach(sec => observer.observe(sec));
+
+        function scrollToContact() {
+            document.getElementById('contact').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+
+    <!-- Google Tag Manager -->
+    <script>
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','{{ gtm_id }}');
+    </script>
+</body>
+</html>
