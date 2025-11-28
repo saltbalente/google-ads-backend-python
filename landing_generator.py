@@ -829,6 +829,47 @@ class LandingPageGenerator:
 
         raise RuntimeError("GitHub API request failed after all retries")
 
+    def _github_post(self, path: str, payload: dict, retries: int = None) -> requests.Response:
+        """Make POST request to GitHub API with retry logic."""
+        if retries is None:
+            retries = self.max_retries
+
+        url = self._github_api(path)
+        headers = self._github_headers()
+
+        for attempt in range(retries):
+            try:
+                logger.debug(f"GitHub POST attempt {attempt + 1}/{retries}: {url}")
+                response = requests.post(url, headers=headers, json=payload, timeout=self.request_timeout)
+
+                if response.status_code == 401:
+                    raise RuntimeError("GitHub authentication failed. Check GITHUB_TOKEN.")
+                if response.status_code == 403:
+                    if "rate limit" in response.text.lower():
+                        raise RuntimeError("GitHub API rate limit exceeded. Please wait before retrying.")
+                    raise RuntimeError("GitHub API access forbidden. Check repository permissions.")
+                if response.status_code == 404:
+                    raise RuntimeError(f"GitHub repository or path not found: {url}")
+                if response.status_code == 422:
+                    raise RuntimeError(f"GitHub validation error: {response.text}")
+
+                # For server errors, retry
+                if response.status_code >= 500:
+                    if attempt == retries - 1:
+                        raise RuntimeError(f"GitHub API server error: {response.status_code} - {response.text}")
+                    time.sleep(2 ** attempt)
+                    continue
+
+                return response
+
+            except requests.RequestException as e:
+                if attempt == retries - 1:
+                    raise RuntimeError(f"GitHub API request failed after {retries} attempts: {str(e)}")
+                logger.warning(f"GitHub API request failed (attempt {attempt + 1}): {str(e)}")
+                time.sleep(2 ** attempt)
+
+        raise RuntimeError("GitHub API request failed after all retries")
+
     def _verify_github_repository_access(self) -> Dict[str, Any]:
         """Verify GitHub repository exists and check permissions."""
         try:
@@ -1020,6 +1061,46 @@ class LandingPageGenerator:
 
         except Exception as e:
             logger.warning(f"Could not setup custom domain: {str(e)}")
+            return False
+
+    def setup_github_pages(self) -> bool:
+        """Setup GitHub Pages for the repository if not already enabled."""
+        try:
+            logger.info("Setting up GitHub Pages for repository...")
+
+            # Check if GitHub Pages is already enabled
+            get_response = self._github_get("/pages")
+            if get_response.status_code == 200:
+                pages_data = get_response.json()
+                current_source = pages_data.get("source", {})
+                if current_source.get("branch") == "main" and current_source.get("path") == "/":
+                    logger.info("✅ GitHub Pages already enabled with correct configuration")
+                    return True
+                else:
+                    logger.info(f"GitHub Pages enabled but with different config: {current_source}")
+                    # Could update here if needed, but for now just proceed
+
+            # Enable GitHub Pages with main branch and root path
+            payload = {
+                "source": {
+                    "branch": "main",
+                    "path": "/"
+                }
+            }
+
+            post_response = self._github_post("/pages", payload)
+            if post_response.status_code in [201, 204]:
+                logger.info("✅ GitHub Pages enabled successfully")
+                return True
+            elif post_response.status_code == 409:
+                logger.warning("GitHub Pages setup conflict - may already be configured")
+                return True  # Consider it successful
+            else:
+                logger.warning(f"Failed to setup GitHub Pages: {post_response.status_code} - {post_response.text}")
+                return False
+
+        except Exception as e:
+            logger.warning(f"Could not setup GitHub Pages: {str(e)}")
             return False
 
     def publish_as_github_pages(self, folder_name: str, html_content: str) -> Dict[str, Any]:
