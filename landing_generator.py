@@ -627,7 +627,7 @@ class LandingPageGenerator:
 
         raise RuntimeError("GitHub API request failed after all retries")
 
-    def _github_put(self, path: str, payload: dict, retries: int = None) -> requests.Response:
+    def _github_put(self, path: str, payload: dict, retries: int = None, allow_404_for_new: bool = False) -> requests.Response:
         """Make PUT request to GitHub API with retry logic."""
         if retries is None:
             retries = self.max_retries
@@ -647,7 +647,12 @@ class LandingPageGenerator:
                         raise RuntimeError("GitHub API rate limit exceeded. Please wait before retrying.")
                     raise RuntimeError("GitHub API access forbidden. Check repository permissions.")
                 if response.status_code == 404:
-                    raise RuntimeError(f"GitHub repository or path not found: {url}")
+                    # For file creation, 404 might be acceptable if we're creating a new file
+                    if allow_404_for_new and "sha" not in payload:
+                        logger.warning(f"GitHub returned 404 for new file creation, this might be expected: {url}")
+                        return response  # Return the 404 response so caller can handle it
+                    else:
+                        raise RuntimeError(f"GitHub repository or path not found: {url}")
                 if response.status_code == 422:
                     raise RuntimeError(f"GitHub validation error: {response.text}")
 
@@ -668,6 +673,42 @@ class LandingPageGenerator:
 
         raise RuntimeError("GitHub API request failed after all retries")
 
+    def _verify_github_repository_access(self) -> Dict[str, Any]:
+        """Verify GitHub repository exists and check permissions."""
+        try:
+            response = self._github_get("")
+            if response.status_code == 200:
+                repo_data = response.json()
+                permissions = repo_data.get("permissions", {})
+
+                result = {
+                    "exists": True,
+                    "name": repo_data.get("full_name"),
+                    "private": repo_data.get("private"),
+                    "permissions": {
+                        "push": permissions.get("push", False),
+                        "pull": permissions.get("pull", False),
+                        "admin": permissions.get("admin", False)
+                    }
+                }
+
+                # Check if we have push permissions
+                if not permissions.get("push", False):
+                    logger.warning(f"No push permissions to repository {result['name']}")
+                    result["can_push"] = False
+                else:
+                    result["can_push"] = True
+
+                return result
+            elif response.status_code == 404:
+                return {"exists": False, "error": "Repository not found"}
+            elif response.status_code == 401:
+                return {"exists": False, "error": "Authentication failed"}
+            else:
+                return {"exists": False, "error": f"HTTP {response.status_code}"}
+        except Exception as e:
+            return {"exists": False, "error": str(e)}
+
     def publish_to_github(self, ad_group_id: str, html_content: str, branch: str = "main") -> Dict[str, Any]:
         """Publish HTML content to GitHub repository."""
         if not ad_group_id or not isinstance(ad_group_id, str):
@@ -681,6 +722,17 @@ class LandingPageGenerator:
         content_size = len(html_content.encode('utf-8'))
         if content_size > 50 * 1024 * 1024:  # 50MB limit
             raise ValueError(f"HTML content too large: {content_size} bytes. Maximum allowed: 50MB")
+
+        # First, verify repository exists and is accessible
+        logger.info(f"Verifying repository access: {self.github_owner}/{self.github_repo}")
+        repo_check = self._verify_github_repository_access()
+        if not repo_check.get("exists"):
+            raise RuntimeError(f"GitHub repository verification failed: {repo_check.get('error', 'Unknown error')}")
+
+        if not repo_check.get("can_push", False):
+            raise RuntimeError(f"No push permissions to repository {repo_check.get('name', 'unknown')}")
+
+        logger.info(f"Repository verified: {repo_check.get('name')} (push access: {repo_check.get('can_push')})")
 
         folder = f"landing-{ad_group_id}"
         path = f"/{folder}/index.html"
@@ -719,8 +771,22 @@ class LandingPageGenerator:
             if sha:
                 payload["sha"] = sha
 
-            # Upload file
-            put_response = self._github_put(f"/contents{path}", payload)
+            # Upload file - GitHub allows creating files in new paths
+            put_response = self._github_put(f"/contents{path}", payload, allow_404_for_new=True)
+
+            # Handle the case where PUT returns 404 for new file creation
+            if put_response.status_code == 404 and "sha" not in payload:
+                # This might happen if the repository doesn't exist or has permission issues
+                # Let's verify the repository exists
+                try:
+                    repo_check = self._github_get("")
+                    if repo_check.status_code != 200:
+                        raise RuntimeError(f"Repository verification failed: {repo_check.status_code}")
+                except Exception as e:
+                    raise RuntimeError(f"Repository access verification failed: {str(e)}")
+
+                # If repository exists but PUT still fails, it might be a permission issue
+                raise RuntimeError(f"GitHub file creation failed with 404. Repository exists but may have permission issues.")
 
             if put_response.status_code not in [200, 201]:
                 error_msg = f"GitHub file upload failed: {put_response.status_code}"
@@ -1115,14 +1181,32 @@ class LandingPageGenerator:
 
         # Test GitHub API
         try:
-            response = self._github_get("/contents/README.md")
-            if response.status_code in [200, 404]:  # 404 is OK if no README
-                results["checks"]["github_api"] = "✅"
+            # First test repository access
+            repo_response = self._github_get("")
+            if repo_response.status_code == 200:
+                results["checks"]["github_repo_exists"] = "✅"
+                # Then test file access
+                file_response = self._github_get("/contents/README.md")
+                if file_response.status_code in [200, 404]:  # 404 is OK if no README
+                    results["checks"]["github_api"] = "✅"
+                else:
+                    results["checks"]["github_api"] = "❌"
+                    results["errors"].append(f"GitHub file API error: {file_response.status_code}")
+            elif repo_response.status_code == 404:
+                results["checks"]["github_api"] = "❌"
+                results["checks"]["github_repo_exists"] = "❌"
+                results["errors"].append(f"GitHub repository '{self.github_owner}/{self.github_repo}' not found")
+            elif repo_response.status_code == 401:
+                results["checks"]["github_api"] = "❌"
+                results["checks"]["github_repo_exists"] = "❌"
+                results["errors"].append("GitHub authentication failed")
             else:
                 results["checks"]["github_api"] = "❌"
-                results["errors"].append(f"GitHub API error: {response.status_code}")
+                results["checks"]["github_repo_exists"] = "❌"
+                results["errors"].append(f"GitHub API error: {repo_response.status_code}")
         except Exception as e:
             results["checks"]["github_api"] = "❌"
+            results["checks"]["github_repo_exists"] = "❌"
             results["errors"].append(f"GitHub API test failed: {str(e)}")
 
         # Test Vercel API
