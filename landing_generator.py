@@ -67,10 +67,14 @@ class LandingPageGenerator:
         return get_google_ads_client()
 
     def extract_ad_group_context(self, customer_id: str, ad_group_id: str) -> AdGroupContext:
+        print(f"  🔍 [Context] Extrayendo datos para CID: {customer_id}, AdGroup: {ad_group_id}")
         client = self._get_google_ads_client()
         svc = client.get_service("GoogleAdsService")
         customer_id = customer_id.replace("-", "")
         ad_group_id = ad_group_id.replace("-", "")
+
+        # Keywords
+        print("  🔍 [Context] Consultando keywords...")
 
         kw_query = f"""
             SELECT ad_group_criterion.criterion_id,
@@ -88,7 +92,10 @@ class LandingPageGenerator:
             text = row.ad_group_criterion.keyword.text
             if text:
                 keywords.append(text)
+        print(f"  ✅ [Context] {len(keywords)} keywords encontradas (Primary)")
+        
         if not keywords:
+            print("  🔍 [Context] Intentando fallback de keywords...")
             kw_fallback = svc.search(customer_id=customer_id, query=f"""
                 SELECT ad_group_criterion.keyword.text, metrics.impressions
                 FROM keyword_view
@@ -100,6 +107,8 @@ class LandingPageGenerator:
         if len(keywords) > 10:
             keywords = keywords[:10]
 
+        # Ads
+        print("  🔍 [Context] Consultando anuncios...")
         ads_query = f"""
             SELECT ad_group_ad.ad.id,
                    ad_group_ad.ad.responsive_search_ad.headlines,
@@ -122,8 +131,10 @@ class LandingPageGenerator:
                 headlines.extend([h.text for h in ad.responsive_search_ad.headlines if h.text])
             if ad.responsive_search_ad and ad.responsive_search_ad.descriptions:
                 descriptions.extend([d.text for d in ad.responsive_search_ad.descriptions if d.text])
+        print(f"  ✅ [Context] {len(headlines)} titulares y {len(descriptions)} descripciones encontradas")
 
-        # Obtener Resource Name de campaña
+        # Locations
+        print("  🔍 [Context] Consultando ubicación (Campaign Resource Name)...")
         camp_query = f"SELECT ad_group.campaign FROM ad_group WHERE ad_group.id = {ad_group_id}"
         camp_rows = svc.search(customer_id=customer_id, query=camp_query)
         campaign_resource_name = None
@@ -131,8 +142,8 @@ class LandingPageGenerator:
             campaign_resource_name = row.ad_group.campaign
             break
             
-        locations = []
         if campaign_resource_name:
+            print(f"  🔍 [Context] Campaña encontrada: {campaign_resource_name}")
             loc_query = f"""
                 SELECT campaign_criterion.criterion_id,
                        campaign_criterion.location.geo_target_constant
@@ -146,6 +157,9 @@ class LandingPageGenerator:
                 rn = row.campaign_criterion.location.geo_target_constant
                 if rn:
                     locations.append(str(rn))
+            print(f"  ✅ [Context] {len(locations)} ubicaciones encontradas")
+        else:
+            print("  ⚠️ [Context] No se encontró la campaña asociada")
 
         primary_keyword = keywords[0] if keywords else ""
         return AdGroupContext(keywords=keywords, headlines=headlines, descriptions=descriptions, locations=locations, primary_keyword=primary_keyword)
@@ -157,10 +171,11 @@ class LandingPageGenerator:
             "Responde SOLO con un JSON válido con las claves: "
             "headline_h1, subheadline, cta_text, social_proof (lista de 3 strings con testimonios falsos pero altamente creíbles y persuasivos), benefits (lista de 4 strings), "
             "seo_title, seo_description. El tono debe alinearse con los titulares y la keyword principal. "
-            "Usa el idioma del usuario objetivo según la ubicación si es evidente. "
+            "Usa el idioma del usuario en español mexicano."
         )
 
     def generate_content(self, ctx: AdGroupContext) -> GeneratedContent:
+        print(f"  🤖 [AI] Iniciando generación con modelo: {self.openai_model}")
         payload = {
             "keywords": ctx.keywords,
             "headlines": ctx.headlines,
@@ -219,6 +234,7 @@ class LandingPageGenerator:
                 )
                 content = rsp["choices"][0]["message"]["content"]
         
+        print("  ✅ [AI] Respuesta recibida. Procesando JSON...")
         # Strip markdown code blocks if present
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0]
@@ -268,6 +284,7 @@ class LandingPageGenerator:
         return r
 
     def publish_to_github(self, ad_group_id: str, html_content: str, branch: str = "main") -> Dict[str, Any]:
+        print(f"  🐙 [GitHub] Publicando landing-{ad_group_id}...")
         folder = f"landing-{ad_group_id}"
         path = f"/{folder}/index.html"
         content_b64 = base64.b64encode(html_content.encode("utf-8")).decode("ascii")
@@ -275,10 +292,13 @@ class LandingPageGenerator:
         sha = None
         if get_rsp.status_code == 200:
             sha = get_rsp.json().get("sha")
+            print(f"  ℹ️ [GitHub] Archivo existente encontrado (SHA: {sha})")
         payload = {"message": f"feat: add landing {folder}", "content": content_b64, "branch": branch}
         if sha:
             payload["sha"] = sha
         put_rsp = self._github_put(f"/contents{path}", payload)
+        if put_rsp.status_code not in [200, 201]:
+            print(f"  ❌ [GitHub] Error publicando: {put_rsp.status_code} - {put_rsp.text}")
         put_rsp.raise_for_status()
         return put_rsp.json()
 
@@ -296,6 +316,7 @@ class LandingPageGenerator:
         return f"{k}.{self.base_domain}"
 
     def wait_vercel_ready_for_commit(self, commit_sha: Optional[str] = None, timeout_sec: int = 900) -> Dict[str, Any]:
+        print(f"  ▲ [Vercel] Esperando despliegue para commit: {commit_sha}")
         if not commit_sha:
             # Fallback if no SHA provided (should not happen in normal flow)
             return self.vercel.list_deployments(limit=1)["deployments"][0]
@@ -309,6 +330,7 @@ class LandingPageGenerator:
             if deployments:
                 target = deployments[0]
                 dep_id = target.get("uid") or target.get("id")
+                print(f"  ▲ [Vercel] Despliegue encontrado: {dep_id}. Esperando estado READY...")
                 # Once found, poll for readiness
                 return self.vercel.poll_ready(dep_id, timeout_sec=timeout_sec)
             time.sleep(3)
@@ -316,41 +338,43 @@ class LandingPageGenerator:
         raise RuntimeError(f"No deployment found for commit {commit_sha} after waiting")
 
     def health_check(self, url: str, whatsapp_number: str, phone_number: str, gtm_id: str) -> bool:
+        print(f"  🏥 [Health] Verificando {url}...")
         try:
             r = requests.get(url, timeout=30)
             if r.status_code != 200:
-                print(f"Health check failed: Status {r.status_code}")
+                print(f"  ❌ [Health] Status {r.status_code}")
                 return False
             html = r.text
             
             # Content checks
             if f"wa.me/{whatsapp_number}" not in html:
-                print("Health check failed: WhatsApp number missing")
+                print("  ❌ [Health] WhatsApp number missing")
                 return False
             if f"tel:{phone_number}" not in html:
-                print("Health check failed: Phone number missing")
+                print("  ❌ [Health] Phone number missing")
                 return False
             if gtm_id not in html:
-                print("Health check failed: GTM ID missing")
+                print("  ❌ [Health] GTM ID missing")
                 return False
                 
             # Basic SEO checks (simulating Lighthouse accessibility/SEO)
             if "<h1" not in html:
-                print("Health check failed: Missing H1")
+                print("  ❌ [Health] Missing H1")
                 return False
             if "<title>" not in html:
-                print("Health check failed: Missing title")
+                print("  ❌ [Health] Missing title")
                 return False
             if 'name="description"' not in html:
-                print("Health check failed: Missing meta description")
+                print("  ❌ [Health] Missing meta description")
                 return False
                 
             return True
         except Exception as e:
-            print(f"Health check exception: {e}")
+            print(f"  ❌ [Health] Exception: {e}")
             return False
 
     def update_final_urls(self, customer_id: str, ad_group_id: str, final_url: str):
+        print(f"  🔄 [GoogleAds] Actualizando Final URLs para AdGroup {ad_group_id}...")
         client = self._get_google_ads_client()
         ga_svc = client.get_service("GoogleAdsService")
         ag_svc = client.get_service("AdGroupAdService")
@@ -374,40 +398,69 @@ class LandingPageGenerator:
             op.update_mask.CopyFrom(client.get_type("FieldMask")(paths=["ad.final_urls"]))
             ops.append(op)
         if ops:
+            print(f"  🔄 [GoogleAds] Enviando {len(ops)} operaciones de actualización...")
             ag_svc.mutate_ad_group_ads(customer_id=customer_id, operations=ops)
 
     def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None) -> Dict[str, Any]:
-        if not phone_number:
-            phone_number = whatsapp_number
+        print(f"🚀 Iniciando generación de landing para AdGroup: {ad_group_id}")
+        try:
+            if not phone_number:
+                phone_number = whatsapp_number
+                
+            print("📊 Extrayendo contexto del Ad Group...")
+            ctx = self.extract_ad_group_context(customer_id, ad_group_id)
+            print(f"✅ Contexto extraído. Keywords: {len(ctx.keywords)}, Ads: {len(ctx.headlines)}")
             
-        ctx = self.extract_ad_group_context(customer_id, ad_group_id)
-        gen = self.generate_content(ctx)
-        
-        config = {
-            "whatsapp_number": whatsapp_number,
-            "phone_number": phone_number,
-            "gtm_id": gtm_id,
-            "webhook_url": webhook_url,
-            "primary_keyword": ctx.primary_keyword
-        }
-        
-        html = self.render(gen, config)
-        gh = self.publish_to_github(ad_group_id, html)
-        
-        alias = self.build_alias_domain(ctx.primary_keyword or f"landing-{ad_group_id}")
-        
-        dep = self.wait_vercel_ready_for_commit(commit_sha=gh.get("commit", {}).get("sha"))
-        self.vercel.create_alias(dep.get("uid") or dep.get("id"), alias)
-        
-        url = f"https://{alias}"
-        
-        ok = self.health_check(url, whatsapp_number, phone_number, gtm_id)
-        if not ok:
-            raise RuntimeError(f"Health check failed for {url}")
+            print("🤖 Generando contenido con IA...")
+            gen = self.generate_content(ctx)
+            print("✅ Contenido generado correctamente")
             
-        self.update_final_urls(customer_id, ad_group_id, url)
-        
-        return {"url": url, "alias": alias}
+            config = {
+                "whatsapp_number": whatsapp_number,
+                "phone_number": phone_number,
+                "gtm_id": gtm_id,
+                "webhook_url": webhook_url,
+                "primary_keyword": ctx.primary_keyword
+            }
+            
+            print("🎨 Renderizando HTML...")
+            html = self.render(gen, config)
+            
+            print("octocat Publicando a GitHub...")
+            gh = self.publish_to_github(ad_group_id, html)
+            print(f"✅ Publicado en GitHub. SHA: {gh.get('commit', {}).get('sha')}")
+            
+            alias = self.build_alias_domain(ctx.primary_keyword or f"landing-{ad_group_id}")
+            print(f"🔗 Alias construido: {alias}")
+            
+            print("⏳ Esperando despliegue en Vercel...")
+            dep = self.wait_vercel_ready_for_commit(commit_sha=gh.get("commit", {}).get("sha"))
+            print(f"✅ Despliegue listo. UID: {dep.get('uid')}")
+            
+            print(f"🌐 Creando alias {alias}...")
+            self.vercel.create_alias(dep.get("uid") or dep.get("id"), alias)
+            
+            url = f"https://{alias}"
+            print(f"✅ URL final: {url}")
+            
+            print("🏥 Ejecutando Health Check...")
+            ok = self.health_check(url, whatsapp_number, phone_number, gtm_id)
+            if not ok:
+                print("❌ Health check falló")
+                raise RuntimeError(f"Health check failed for {url}")
+            print("✅ Health check exitoso")
+                
+            print("🔄 Actualizando Final URLs en Google Ads...")
+            self.update_final_urls(customer_id, ad_group_id, url)
+            print("✅ Final URLs actualizadas")
+            
+            return {"url": url, "alias": alias}
+            
+        except Exception as e:
+            import traceback
+            print(f"❌ ERROR CRÍTICO en LandingPageGenerator: {str(e)}")
+            traceback.print_exc()
+            raise e
 
     def system_prompt_text(self) -> str:
         return self._system_prompt()
