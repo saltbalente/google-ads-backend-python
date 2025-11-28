@@ -1451,38 +1451,41 @@ class LandingPageGenerator:
 
             logger.info(f"Found {len(resource_names)} ads to update")
 
-            # Prepare operations
+            # Prepare operations - Update tracking URL template instead of final_urls
+            # Since final_urls cannot be modified on existing ads, we'll update tracking_url_template - Update tracking URL template instead of final_urls
+            # Since final_urls cannot be modified on existing ads, we'll update tracking_url_template
             operations = []
             for resource_name in resource_names:
                 update = client.get_type("AdGroupAd")
                 update.resource_name = resource_name
                 update.ad = client.get_type("Ad")
-                # Clear existing final URLs and add new one
-                del update.ad.final_urls[:]
-                update.ad.final_urls.append(final_url)
+
+                # Instead of modifying final_urls (immutable), update tracking_url_template
+                # This allows redirecting to new URL while preserving the original final_url
+                update.ad.tracking_url_template = final_url + "?utm_source=google&utm_medium=cpc&utm_campaign={{campaign.name}}&ad_group={{ad_group.name}}"
 
                 op = client.get_type("AdGroupAdOperation")
                 op.update = update
-                op.update_mask.CopyFrom(FieldMask(paths=["ad.final_urls"]))
+                op.update_mask.CopyFrom(FieldMask(paths=["ad.tracking_url_template"]))
                 operations.append(op)
 
             if operations:
-                logger.info(f"Sending {len(operations)} update operations to Google Ads")
+                logger.info(f"Sending {len(operations)} update operations to Google Ads (updating tracking URL templates)")
                 try:
                     response = ag_svc.mutate_ad_group_ads(customer_id=customer_id, operations=operations)
 
                     success_count = len(response.results)
-                    logger.info(f"Successfully updated {success_count} ads")
+                    logger.info(f"Successfully updated {success_count} ads with new tracking URL templates")
 
                     if success_count != len(operations):
                         logger.warning(f"Expected {len(operations)} updates but got {success_count} results")
                 except Exception as api_error:
-                    # Check if this is the immutable field error
+                    # Check if this is still an immutable field error (shouldn't happen with tracking_url_template)
                     error_str = str(api_error).lower()
-                    if "immutable_field" in error_str or "cannot be modified" in error_str or "final_urls" in error_str:
-                        logger.warning(f"Cannot update final_urls on existing ads (immutable field): {str(api_error)}")
-                        logger.info("Landing page published successfully, but final URLs cannot be updated on existing ads")
-                        logger.info("New ads created in this ad group will use the new landing page URL")
+                    if "immutable_field" in error_str or "cannot be modified" in error_str:
+                        logger.warning(f"Cannot update tracking URL template on existing ads: {str(api_error)}")
+                        logger.info("Landing page published successfully, but existing ads will keep their current tracking settings")
+                        logger.info("Consider creating new ads with the new landing page URL")
                         # Don't raise an exception - this is expected behavior
                         return
                     else:
@@ -1494,147 +1497,6 @@ class LandingPageGenerator:
         except Exception as e:
             logger.error(f"Failed to update Final URLs: {str(e)}")
             raise RuntimeError(f"Google Ads URL update failed: {str(e)}")
-
-    def create_ad_group_from_existing(self, customer_id: str, campaign_id: str, source_ad_group_id: str, keywords: List[str], final_url: str) -> Dict[str, Any]:
-        """Create a new Ad Group based on an existing one with keywords and correct URL."""
-        if not customer_id or not isinstance(customer_id, str):
-            raise ValueError("customer_id must be a non-empty string")
-        if not campaign_id or not isinstance(campaign_id, str):
-            raise ValueError("campaign_id must be a non-empty string")
-        if not source_ad_group_id or not isinstance(source_ad_group_id, str):
-            raise ValueError("source_ad_group_id must be a non-empty string")
-        if not keywords or not isinstance(keywords, list):
-            raise ValueError("keywords must be a non-empty list")
-        if not final_url or not isinstance(final_url, str):
-            raise ValueError("final_url must be a non-empty string")
-
-        logger.info(f"Creating new Ad Group in Campaign {campaign_id} based on Ad Group {source_ad_group_id}")
-
-        try:
-            client = self._get_google_ads_client()
-            ga_svc = client.get_service("GoogleAdsService")
-            ag_svc = client.get_service("AdGroupService")
-            ak_svc = client.get_service("AdGroupCriterionService")
-
-            # Normalize IDs
-            customer_id = customer_id.replace("-", "")
-            campaign_id = campaign_id.replace("-", "")
-            source_ad_group_id = source_ad_group_id.replace("-", "")
-
-            # Get source ad group info for naming
-            query = f"""
-                SELECT ad_group.name, ad_group.cpc_bid_micros
-                FROM ad_group
-                WHERE ad_group.id = {source_ad_group_id}
-            """
-
-            rows = ga_svc.search(customer_id=customer_id, query=query)
-            source_info = None
-            for row in rows:
-                source_info = {
-                    "name": row.ad_group.name,
-                    "cpc_bid_micros": row.ad_group.cpc_bid_micros
-                }
-                break
-
-            if not source_info:
-                raise RuntimeError(f"Could not find source Ad Group {source_ad_group_id}")
-
-            # Create new ad group name
-            base_name = source_info["name"]
-            new_name = f"{base_name} - Landing"
-            if len(new_name) > 255:  # Ad Group name limit
-                new_name = f"{base_name[:240]} - Landing"
-
-            # Create new Ad Group
-            ad_group_operation = client.get_type("AdGroupOperation")
-            ad_group = ad_group_operation.create
-            ad_group.name = new_name
-            ad_group.campaign = client.get_type("Campaign").resource_name_with_ids(customer_id, campaign_id)
-            ad_group.type = client.enums.AdGroupTypeEnum.SEARCH_STANDARD
-            ad_group.status = client.enums.AdGroupStatusEnum.ENABLED
-            ad_group.cpc_bid_micros = source_info["cpc_bid_micros"] or 1000000  # Default 1.00 USD if none
-
-            # Create the ad group
-            response = ag_svc.mutate_ad_group(customer_id=customer_id, operation=ad_group_operation)
-            new_ad_group_resource_name = response.result.resource_name
-            new_ad_group_id = new_ad_group_resource_name.split('/')[-1]
-
-            logger.info(f"✅ Created Ad Group: {new_name} (ID: {new_ad_group_id})")
-
-            # Add keywords to the new ad group (limit to top 10 keywords)
-            keywords_to_add = keywords[:10] if len(keywords) > 10 else keywords
-
-            keyword_operations = []
-            for keyword_text in keywords_to_add:
-                if keyword_text and len(keyword_text.strip()) > 0:
-                    operation = client.get_type("AdGroupCriterionOperation")
-                    criterion = operation.create
-                    criterion.ad_group = new_ad_group_resource_name
-                    criterion.keyword.text = keyword_text.strip()
-                    criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.PHRASE
-                    criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-                    keyword_operations.append(operation)
-
-            if keyword_operations:
-                ak_svc.mutate_ad_group_criteria(customer_id=customer_id, operations=keyword_operations)
-                logger.info(f"✅ Added {len(keyword_operations)} keywords to new Ad Group")
-
-            # Create a basic responsive search ad with the correct URL
-            ad_operation = client.get_type("AdGroupAdOperation")
-            ad_group_ad = ad_operation.create
-            ad_group_ad.ad_group = new_ad_group_resource_name
-            ad_group_ad.status = client.enums.AdGroupAdStatusEnum.ENABLED
-
-            # Create responsive search ad
-            ad = ad_group_ad.ad = client.get_type("Ad")
-            ad.type = client.enums.AdTypeEnum.RESPONSIVE_SEARCH_AD
-            ad.name = f"Landing Ad - {new_name}"
-
-            # Headlines (use generic ones since we don't have the original)
-            headlines = [
-                f"Encuentra {keywords[0] if keywords else 'lo que buscas'}",
-                f"Expertos en {keywords[0] if keywords else 'servicios'}",
-                "Contáctanos Ahora"
-            ]
-
-            for headline in headlines:
-                asset = client.get_type("AdTextAsset")
-                asset.text = headline
-                ad.responsive_search_ad.headlines.append(asset)
-
-            # Descriptions
-            descriptions = [
-                "Servicio profesional y confiable",
-                "Atención personalizada las 24 horas"
-            ]
-
-            for desc in descriptions:
-                asset = client.get_type("AdTextAsset")
-                asset.text = desc
-                ad.responsive_search_ad.descriptions.append(asset)
-
-            # Set the final URL
-            ad.final_urls.append(final_url)
-
-            # Create the ad
-            ad_response = client.get_service("AdGroupAdService").mutate_ad_group_ads(
-                customer_id=customer_id, operations=[ad_operation]
-            )
-
-            logger.info(f"✅ Created ad in new Ad Group with correct URL: {final_url}")
-
-            return {
-                "ad_group_id": new_ad_group_id,
-                "ad_group_name": new_name,
-                "campaign_id": campaign_id,
-                "keywords_added": len(keyword_operations),
-                "final_url": final_url
-            }
-
-        except Exception as e:
-            logger.error(f"Failed to create new Ad Group: {str(e)}")
-            raise RuntimeError(f"Failed to create new Ad Group: {str(e)}")
 
     def _generate_folder_name(self, keywords: List[str]) -> str:
         """Generate a unique folder name based on a random keyword from the list."""
@@ -1666,7 +1528,7 @@ class LandingPageGenerator:
 
         return folder_name
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, create_new_ad_group: bool = False, campaign_id: Optional[str] = None) -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None) -> Dict[str, Any]:
         """Execute the complete landing page generation pipeline."""
         start_time = time.time()
 
@@ -1690,13 +1552,7 @@ class LandingPageGenerator:
         if not gtm_id.startswith("GTM-") or len(gtm_id) < 8:
             raise ValueError("gtm_id must be in format GTM-XXXXXXX")
 
-        # Validate create_new_ad_group parameters
-        if create_new_ad_group and not campaign_id:
-            raise ValueError("campaign_id is required when create_new_ad_group=True")
-
         logger.info(f"🚀 Starting landing page generation for Ad Group: {ad_group_id}")
-        if create_new_ad_group:
-            logger.info(f"📝 Will create new Ad Group in Campaign: {campaign_id}")
 
         try:
             # Set default phone number
@@ -1750,18 +1606,6 @@ class LandingPageGenerator:
             logger.info(f"✅ Published to GitHub Pages (commit: {commit_sha})")
             logger.info(f"🌐 GitHub Pages URL: {final_url}")
 
-            # Step 1.5: Create new Ad Group if requested (after we have the URL)
-            if create_new_ad_group:
-                logger.info("🏗️ Step 1.5: Creating new Ad Group with correct URL...")
-                new_ad_group_result = self.create_ad_group_from_existing(
-                    customer_id, campaign_id, ad_group_id, ctx.keywords, final_url
-                )
-                new_ad_group_id = new_ad_group_result["ad_group_id"]
-                logger.info(f"✅ Created new Ad Group: {new_ad_group_id}")
-
-                # Update ad_group_id for subsequent operations
-                ad_group_id = new_ad_group_id
-
             # Step 6: Deploy to Vercel (if configured)
             vercel_result = None
             vercel_url = None
@@ -1785,18 +1629,15 @@ class LandingPageGenerator:
             else:
                 logger.info("✅ Health check passed")
 
-            # Step 7: Update Google Ads Final URLs (skip if we created a new ad group)
-            if not create_new_ad_group:
-                logger.info("🔄 Step 6: Updating Google Ads Final URLs...")
-                try:
-                    self.update_final_urls(customer_id, ad_group_id, final_url)
-                    logger.info("✅ Google Ads URLs updated")
-                except Exception as url_error:
-                    logger.warning(f"Could not update Google Ads URLs: {str(url_error)}")
-                    logger.info("Landing page published successfully, but existing ads will keep their current URLs")
-                    logger.info("New ads created in this ad group will need manual URL updates")
-            else:
-                logger.info("ℹ️ Skipping URL update - new Ad Group already has correct URL")
+            # Step 7: Update Google Ads Final URLs
+            logger.info("🔄 Step 6: Updating Google Ads Tracking URL Templates...")
+            try:
+                self.update_final_urls(customer_id, ad_group_id, final_url)
+                logger.info("✅ Google Ads tracking URL templates updated")
+            except Exception as url_error:
+                logger.warning(f"Could not update Google Ads tracking URLs: {str(url_error)}")
+                logger.info("Landing page published successfully, but existing ads will keep their current tracking settings")
+                logger.info("Consider creating new ads with the new landing page URL")
 
             # Success!
             execution_time = time.time() - start_time
@@ -1808,10 +1649,7 @@ class LandingPageGenerator:
                 "execution_time_seconds": round(execution_time, 2),
                 "primary_keyword": ctx.primary_keyword,
                 "keywords_found": len(ctx.keywords),
-                "headlines_found": len(ctx.headlines),
-                "new_ad_group_created": create_new_ad_group,
-                "ad_group_id": ad_group_id,
-                "campaign_id": campaign_id if create_new_ad_group else None
+                "headlines_found": len(ctx.headlines)
             }
 
             logger.info(f"🎉 Landing page generation completed successfully in {execution_time:.2f}s")
