@@ -1125,7 +1125,8 @@ class LandingPageGenerator:
 
         # Use provided folder name for subdomain-friendly alias
         alias = self.build_alias_domain(folder_name)
-        folder = alias
+        # For GitHub Pages, use the clean folder name (not the full domain alias)
+        folder = folder_name
         path = f"{folder}/index.html"
 
         logger.info(f"🚀 Publishing to GitHub Pages: {folder}/index.html")
@@ -1190,30 +1191,19 @@ class LandingPageGenerator:
 
                 # Generate URL based on domain configuration
                 if self.custom_domain:
-                    # Clean alias if it already contains the domain to avoid duplication
-                    clean_alias = alias
-                    if self.custom_domain in alias:
-                        clean_alias = alias.replace(f".{self.custom_domain}", "").replace(self.custom_domain, "")
-                    
-                    # If alias was built with base_domain but custom_domain is different
-                    if self.base_domain in clean_alias and self.base_domain != self.custom_domain:
-                         clean_alias = clean_alias.replace(f".{self.base_domain}", "")
-                    
-                    # Construct URL: https://slug.customdomain.com/ or https://customdomain.com/slug/
-                    # Assuming folder structure in repo, GitHub Pages usually serves at root/folder
-                    # But if CNAME is set, it serves at domain/folder
-                    github_pages_url = f"https://{self.custom_domain}/{folder}/"
+                    # Construct URL: https://customdomain.com/folder/
+                    github_pages_url = f"https://{self.custom_domain}/{folder_name}/"
                     logger.info(f"🌐 Custom domain URL: {github_pages_url}")
                 else:
                     # Use default GitHub Pages: https://owner.github.io/repo/folder/
-                    github_pages_url = f"https://{self.github_owner}.github.io/{self.github_repo}/{folder}/"
+                    github_pages_url = f"https://{self.github_owner}.github.io/{self.github_repo}/{folder_name}/"
                     logger.info(f"🌐 GitHub Pages URL: {github_pages_url}")
 
                 return {
                     "commit_sha": commit_sha,
                     "url": github_pages_url,
                     "alias": alias,
-                    "path": path,
+                    "path": f"{folder_name}/index.html",
                     "size": content_size,
                     "custom_domain": self.custom_domain
                 }
