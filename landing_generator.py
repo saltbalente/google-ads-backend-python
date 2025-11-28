@@ -47,6 +47,16 @@ class LandingPageGenerator:
         vercel_token: Optional[str] = os.getenv("VERCEL_TOKEN"),
         base_domain: str = os.getenv("LANDINGS_BASE_DOMAIN", "tudominio.com"),
     ):
+        # Validate critical environment variables
+        if not os.getenv("OPENAI_API_KEY"):
+            raise ValueError("OPENAI_API_KEY environment variable is required")
+        if not github_token:
+            raise ValueError("GITHUB_TOKEN environment variable is required")
+        if not vercel_token:
+            raise ValueError("VERCEL_TOKEN environment variable is required")
+        if not vercel_project_id:
+            raise ValueError("VERCEL_PROJECT_ID environment variable is required")
+
         self.google_ads_client_provider = google_ads_client_provider
         self.openai_model = openai_model
         self.github_owner = github_owner
@@ -55,6 +65,8 @@ class LandingPageGenerator:
         td = templates_dir
         if not os.path.isabs(td):
             td = os.path.abspath(os.path.join(os.path.dirname(__file__), td))
+        if not os.path.exists(td):
+            raise ValueError(f"Templates directory does not exist: {td}")
         self.templates_dir = td
         self.env = Environment(loader=FileSystemLoader(td), autoescape=select_autoescape(["html"]))
         self.vercel = VercelClient(token=vercel_token, team_id=vercel_team_id, project_id=vercel_project_id)
@@ -67,26 +79,36 @@ class LandingPageGenerator:
         return get_google_ads_client()
 
     def extract_ad_group_context(self, customer_id: str, ad_group_id: str) -> AdGroupContext:
+        if not customer_id or not ad_group_id:
+            raise ValueError("customer_id and ad_group_id are required")
+        
         print(f"  🔍 [Context] Extrayendo datos para CID: {customer_id}, AdGroup: {ad_group_id}")
-        client = self._get_google_ads_client()
-        svc = client.get_service("GoogleAdsService")
+        try:
+            client = self._get_google_ads_client()
+            svc = client.get_service("GoogleAdsService")
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize Google Ads client: {str(e)}")
+        
         customer_id = customer_id.replace("-", "")
         ad_group_id = ad_group_id.replace("-", "")
 
         # Keywords
         print("  🔍 [Context] Consultando keywords...")
-
-        kw_query = f"""
-            SELECT ad_group_criterion.criterion_id,
-                   ad_group_criterion.keyword.text,
-                   metrics.impressions
-            FROM keyword_view
-            WHERE ad_group_criterion.status != REMOVED
-              AND ad_group.id = {ad_group_id}
-            ORDER BY metrics.impressions DESC
-            LIMIT 50
-        """
-        kw_rows = svc.search(customer_id=customer_id, query=kw_query)
+        try:
+            kw_query = f"""
+                SELECT ad_group_criterion.criterion_id,
+                       ad_group_criterion.keyword.text,
+                       metrics.impressions
+                FROM keyword_view
+                WHERE ad_group_criterion.status != REMOVED
+                  AND ad_group.id = {ad_group_id}
+                ORDER BY metrics.impressions DESC
+                LIMIT 50
+            """
+            kw_rows = svc.search(customer_id=customer_id, query=kw_query)
+        except Exception as e:
+            raise RuntimeError(f"Failed to query keywords: {str(e)}")
+        
         keywords = []
         for row in kw_rows:
             text = row.ad_group_criterion.keyword.text
@@ -96,33 +118,41 @@ class LandingPageGenerator:
         
         if not keywords:
             print("  🔍 [Context] Intentando fallback de keywords...")
-            kw_fallback = svc.search(customer_id=customer_id, query=f"""
-                SELECT ad_group_criterion.keyword.text, metrics.impressions
-                FROM keyword_view
-                WHERE ad_group.id = {ad_group_id}
-                ORDER BY metrics.impressions DESC
-                LIMIT 20
-            """)
-            keywords = [r.ad_group_criterion.keyword.text for r in kw_fallback if r.ad_group_criterion.keyword.text]
+            try:
+                kw_fallback = svc.search(customer_id=customer_id, query=f"""
+                    SELECT ad_group_criterion.keyword.text, metrics.impressions
+                    FROM keyword_view
+                    WHERE ad_group.id = {ad_group_id}
+                    ORDER BY metrics.impressions DESC
+                    LIMIT 20
+                """)
+                keywords = [r.ad_group_criterion.keyword.text for r in kw_fallback if r.ad_group_criterion.keyword.text]
+            except Exception as e:
+                print(f"  ⚠️ [Context] Fallback keywords query failed: {str(e)}")
+        
         if len(keywords) > 10:
             keywords = keywords[:10]
 
         # Ads
         print("  🔍 [Context] Consultando anuncios...")
-        ads_query = f"""
-            SELECT ad_group_ad.ad.id,
-                   ad_group_ad.ad.responsive_search_ad.headlines,
-                   ad_group_ad.ad.responsive_search_ad.descriptions,
-                   metrics.impressions,
-                   metrics.clicks
-            FROM ad_group_ad
-            WHERE ad_group_ad.ad.type = RESPONSIVE_SEARCH_AD
-              AND ad_group_ad.status != REMOVED
-              AND ad_group.id = {ad_group_id}
-            ORDER BY metrics.impressions DESC
-            LIMIT 10
-        """
-        ads_rows = svc.search(customer_id=customer_id, query=ads_query)
+        try:
+            ads_query = f"""
+                SELECT ad_group_ad.ad.id,
+                       ad_group_ad.ad.responsive_search_ad.headlines,
+                       ad_group_ad.ad.responsive_search_ad.descriptions,
+                       metrics.impressions,
+                       metrics.clicks
+                FROM ad_group_ad
+                WHERE ad_group_ad.ad.type = RESPONSIVE_SEARCH_AD
+                  AND ad_group_ad.status != REMOVED
+                  AND ad_group.id = {ad_group_id}
+                ORDER BY metrics.impressions DESC
+                LIMIT 10
+            """
+            ads_rows = svc.search(customer_id=customer_id, query=ads_query)
+        except Exception as e:
+            raise RuntimeError(f"Failed to query ads: {str(e)}")
+        
         headlines = []
         descriptions = []
         locations = []
@@ -136,29 +166,37 @@ class LandingPageGenerator:
 
         # Locations
         print("  🔍 [Context] Consultando ubicación (Campaign Resource Name)...")
-        camp_query = f"SELECT ad_group.campaign FROM ad_group WHERE ad_group.id = {ad_group_id}"
-        camp_rows = svc.search(customer_id=customer_id, query=camp_query)
-        campaign_resource_name = None
-        for row in camp_rows:
-            campaign_resource_name = row.ad_group.campaign
-            break
+        try:
+            camp_query = f"SELECT ad_group.campaign FROM ad_group WHERE ad_group.id = {ad_group_id}"
+            camp_rows = svc.search(customer_id=customer_id, query=camp_query)
+        except Exception as e:
+            print(f"  ⚠️ [Context] Campaign query failed: {str(e)}")
+            campaign_resource_name = None
+        else:
+            campaign_resource_name = None
+            for row in camp_rows:
+                campaign_resource_name = row.ad_group.campaign
+                break
             
         if campaign_resource_name:
             print(f"  🔍 [Context] Campaña encontrada: {campaign_resource_name}")
-            loc_query = f"""
-                SELECT campaign_criterion.criterion_id,
-                       campaign_criterion.location.geo_target_constant
-                FROM campaign_criterion
-                WHERE campaign_criterion.type = LOCATION
-                  AND campaign.resource_name = '{campaign_resource_name}'
-                LIMIT 20
-            """
-            loc_rows = svc.search(customer_id=customer_id, query=loc_query)
-            for row in loc_rows:
-                rn = row.campaign_criterion.location.geo_target_constant
-                if rn:
-                    locations.append(str(rn))
-            print(f"  ✅ [Context] {len(locations)} ubicaciones encontradas")
+            try:
+                loc_query = f"""
+                    SELECT campaign_criterion.criterion_id,
+                           campaign_criterion.location.geo_target_constant
+                    FROM campaign_criterion
+                    WHERE campaign_criterion.type = LOCATION
+                      AND campaign.resource_name = '{campaign_resource_name}'
+                    LIMIT 20
+                """
+                loc_rows = svc.search(customer_id=customer_id, query=loc_query)
+                for row in loc_rows:
+                    rn = row.campaign_criterion.location.geo_target_constant
+                    if rn:
+                        locations.append(str(rn))
+                print(f"  ✅ [Context] {len(locations)} ubicaciones encontradas")
+            except Exception as e:
+                print(f"  ⚠️ [Context] Locations query failed: {str(e)}")
         else:
             print("  ⚠️ [Context] No se encontró la campaña asociada")
 
@@ -232,7 +270,19 @@ class LandingPageGenerator:
         elif "```" in content:
             content = content.split("```")[1].split("```")[0]
             
-        data = json.loads(content)
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError as e:
+            print(f"  ❌ [AI] Error parsing JSON: {e}")
+            print(f"  ❌ [AI] Raw content: {content[:500]}...")
+            raise RuntimeError(f"AI returned invalid JSON: {str(e)}")
+        
+        # Validate required keys
+        required_keys = ["headline_h1", "subheadline", "cta_text", "social_proof", "benefits", "seo_title", "seo_description"]
+        missing_keys = [key for key in required_keys if key not in data]
+        if missing_keys:
+            raise RuntimeError(f"AI response missing required keys: {missing_keys}")
+        
         return GeneratedContent(
             headline_h1=data["headline_h1"],
             subheadline=data["subheadline"],
@@ -244,21 +294,28 @@ class LandingPageGenerator:
         )
 
     def render(self, gen: GeneratedContent, config: Dict[str, Any]) -> str:
-        tpl = self.env.get_template("base.html")
-        return tpl.render(
-            headline_h1=gen.headline_h1,
-            subheadline=gen.subheadline,
-            cta_text=gen.cta_text,
-            social_proof=gen.social_proof,
-            benefits=gen.benefits,
-            seo_title=gen.seo_title,
-            seo_description=gen.seo_description,
-            whatsapp_number=config["whatsapp_number"],
-            phone_number=config.get("phone_number", config["whatsapp_number"]),
-            webhook_url=config.get("webhook_url", ""),
-            gtm_id=config["gtm_id"],
-            primary_keyword=config.get("primary_keyword", ""),
-        )
+        try:
+            tpl = self.env.get_template("base.html")
+        except Exception as e:
+            raise RuntimeError(f"Template 'base.html' not found or invalid: {str(e)}")
+        
+        try:
+            return tpl.render(
+                headline_h1=gen.headline_h1,
+                subheadline=gen.subheadline,
+                cta_text=gen.cta_text,
+                social_proof=gen.social_proof,
+                benefits=gen.benefits,
+                seo_title=gen.seo_title,
+                seo_description=gen.seo_description,
+                whatsapp_number=config["whatsapp_number"],
+                phone_number=config.get("phone_number", config["whatsapp_number"]),
+                webhook_url=config.get("webhook_url", ""),
+                gtm_id=config["gtm_id"],
+                primary_keyword=config.get("primary_keyword", ""),
+            )
+        except Exception as e:
+            raise RuntimeError(f"Template rendering failed: {str(e)}")
 
     def _github_headers(self):
         return {"Authorization": f"Bearer {self.github_token}", "Accept": "application/vnd.github+json"}
@@ -266,13 +323,33 @@ class LandingPageGenerator:
     def _github_api(self, path: str):
         return f"https://api.github.com/repos/{self.github_owner}/{self.github_repo}{path}"
 
-    def _github_get(self, path: str):
-        r = requests.get(self._github_api(path), headers=self._github_headers(), timeout=30)
-        return r
+    def _github_get(self, path: str, retries: int = 3):
+        for attempt in range(retries):
+            try:
+                r = requests.get(self._github_api(path), headers=self._github_headers(), timeout=30)
+                if r.status_code == 401:
+                    raise RuntimeError("GitHub authentication failed. Check GITHUB_TOKEN.")
+                if r.status_code == 403:
+                    raise RuntimeError("GitHub API rate limit exceeded or insufficient permissions.")
+                return r
+            except requests.RequestException as e:
+                if attempt == retries - 1:
+                    raise RuntimeError(f"GitHub API request failed after {retries} attempts: {str(e)}")
+                time.sleep(2 ** attempt)  # Exponential backoff
 
-    def _github_put(self, path: str, payload: dict):
-        r = requests.put(self._github_api(path), headers=self._github_headers(), json=payload, timeout=60)
-        return r
+    def _github_put(self, path: str, payload: dict, retries: int = 3):
+        for attempt in range(retries):
+            try:
+                r = requests.put(self._github_api(path), headers=self._github_headers(), json=payload, timeout=60)
+                if r.status_code == 401:
+                    raise RuntimeError("GitHub authentication failed. Check GITHUB_TOKEN.")
+                if r.status_code == 403:
+                    raise RuntimeError("GitHub API rate limit exceeded or insufficient permissions.")
+                return r
+            except requests.RequestException as e:
+                if attempt == retries - 1:
+                    raise RuntimeError(f"GitHub API request failed after {retries} attempts: {str(e)}")
+                time.sleep(2 ** attempt)  # Exponential backoff
 
     def publish_to_github(self, ad_group_id: str, html_content: str, branch: str = "main") -> Dict[str, Any]:
         print(f"  🐙 [GitHub] Publicando landing-{ad_group_id}...")
@@ -338,30 +415,26 @@ class LandingPageGenerator:
             html = r.text
             
             # Content checks
-            if f"wa.me/{whatsapp_number}" not in html:
-                print("  ❌ [Health] WhatsApp number missing")
-                return False
-            if f"tel:{phone_number}" not in html:
-                print("  ❌ [Health] Phone number missing")
-                return False
-            if gtm_id not in html:
-                print("  ❌ [Health] GTM ID missing")
-                return False
-                
-            # Basic SEO checks (simulating Lighthouse accessibility/SEO)
-            if "<h1" not in html:
-                print("  ❌ [Health] Missing H1")
-                return False
-            if "<title>" not in html:
-                print("  ❌ [Health] Missing title")
-                return False
-            if 'name="description"' not in html:
-                print("  ❌ [Health] Missing meta description")
-                return False
+            checks = [
+                (f"wa.me/{whatsapp_number}", "WhatsApp number"),
+                (f"tel:{phone_number}", "Phone number"),
+                (gtm_id, "GTM ID"),
+                ("<h1", "H1 tag"),
+                ("<title>", "Title tag"),
+                ('name="description"', "Meta description"),
+            ]
+            
+            for check_content, check_name in checks:
+                if check_content not in html:
+                    print(f"  ❌ [Health] Missing {check_name}")
+                    return False
                 
             return True
+        except requests.RequestException as e:
+            print(f"  ❌ [Health] Request failed: {str(e)}")
+            return False
         except Exception as e:
-            print(f"  ❌ [Health] Exception: {e}")
+            print(f"  ❌ [Health] Unexpected error: {str(e)}")
             return False
 
     def update_final_urls(self, customer_id: str, ad_group_id: str, final_url: str):
@@ -393,6 +466,14 @@ class LandingPageGenerator:
             ag_svc.mutate_ad_group_ads(customer_id=customer_id, operations=ops)
 
     def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None) -> Dict[str, Any]:
+        # Input validation
+        if not customer_id or not ad_group_id:
+            raise ValueError("customer_id and ad_group_id are required")
+        if not whatsapp_number or not gtm_id:
+            raise ValueError("whatsapp_number and gtm_id are required")
+        if not whatsapp_number.startswith("+"):
+            raise ValueError("whatsapp_number must start with +")
+        
         print(f"🚀 Iniciando generación de landing para AdGroup: {ad_group_id}")
         try:
             if not phone_number:
@@ -425,25 +506,37 @@ class LandingPageGenerator:
             print(f"🔗 Alias construido: {alias}")
             
             print("⏳ Esperando despliegue en Vercel...")
-            dep = self.wait_vercel_ready_for_commit(commit_sha=gh.get("commit", {}).get("sha"))
-            print(f"✅ Despliegue listo. UID: {dep.get('uid')}")
+            try:
+                dep = self.wait_vercel_ready_for_commit(commit_sha=gh.get("commit", {}).get("sha"))
+                print(f"✅ Despliegue listo. UID: {dep.get('uid')}")
+            except Exception as e:
+                raise RuntimeError(f"Vercel deployment failed: {str(e)}")
             
             print(f"🌐 Creando alias {alias}...")
-            self.vercel.create_alias(dep.get("uid") or dep.get("id"), alias)
+            try:
+                self.vercel.create_alias(dep.get("uid") or dep.get("id"), alias)
+            except Exception as e:
+                raise RuntimeError(f"Failed to create Vercel alias: {str(e)}")
             
             url = f"https://{alias}"
             print(f"✅ URL final: {url}")
             
             print("🏥 Ejecutando Health Check...")
-            ok = self.health_check(url, whatsapp_number, phone_number, gtm_id)
-            if not ok:
-                print("❌ Health check falló")
-                raise RuntimeError(f"Health check failed for {url}")
-            print("✅ Health check exitoso")
+            try:
+                ok = self.health_check(url, whatsapp_number, phone_number, gtm_id)
+                if not ok:
+                    print("❌ Health check falló")
+                    raise RuntimeError(f"Health check failed for {url}")
+                print("✅ Health check exitoso")
+            except Exception as e:
+                raise RuntimeError(f"Health check error: {str(e)}")
                 
             print("🔄 Actualizando Final URLs en Google Ads...")
-            self.update_final_urls(customer_id, ad_group_id, url)
-            print("✅ Final URLs actualizadas")
+            try:
+                self.update_final_urls(customer_id, ad_group_id, url)
+                print("✅ Final URLs actualizadas")
+            except Exception as e:
+                raise RuntimeError(f"Failed to update Google Ads URLs: {str(e)}")
             
             return {"url": url, "alias": alias}
             
