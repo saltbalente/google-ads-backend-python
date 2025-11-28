@@ -19,6 +19,18 @@ import sys
 import json
 from pathlib import Path
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    # Solo cargar desde .env si existe (desarrollo), sino usar variables del sistema (producción)
+    if os.path.exists('.env'):
+        load_dotenv()
+        print("✅ Loaded environment variables from .env file")
+    else:
+        print("ℹ️  Using system environment variables (production mode)")
+except ImportError:
+    print("⚠️  python-dotenv not installed, using system environment variables")
+
 # Add the current directory to Python path
 sys.path.insert(0, str(Path(__file__).parent))
 

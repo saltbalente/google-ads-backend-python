@@ -25,7 +25,12 @@ from automation_models import init_db, create_job, get_job, update_job, get_user
 from automation_worker import get_worker
 
 # Cargar variables de entorno
-load_dotenv()
+# Solo cargar desde .env en desarrollo, no en producción (Render.com)
+if os.path.exists('.env'):
+    load_dotenv()
+    print("✅ Loaded environment variables from .env file")
+else:
+    print("ℹ️  Using system environment variables (production mode)")
 
 app = Flask(__name__)
 
