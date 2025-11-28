@@ -115,7 +115,7 @@ def get_landing_history():
                     "phone_number": phone_number,
                     "gtm_id": gtm_id,
                     "created_at": created_at,
-                    "url": f"https://{os.getenv('GITHUB_PAGES_CUSTOM_DOMAIN', 'saltbalente.github.io')}/{folder_name}"
+                    "url": f"https://consultadebrujosgratis.store/{folder_name}"
                 })
     
     return {"landings": landings}
