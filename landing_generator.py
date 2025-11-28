@@ -358,8 +358,7 @@ class LandingPageGenerator:
                     raise RuntimeError("GitHub authentication failed. Check GITHUB_TOKEN.")
                 if r.status_code == 403:
                     raise RuntimeError("GitHub API rate limit exceeded or insufficient permissions.")
-                if r.status_code == 404:
-                    raise RuntimeError(f"GitHub repository or path not found: {self._github_api(path)}")
+                # Don't raise for 404 - let caller handle it
                 return r
             except requests.RequestException as e:
                 if attempt == retries - 1:
@@ -392,6 +391,11 @@ class LandingPageGenerator:
         if get_rsp.status_code == 200:
             sha = get_rsp.json().get("sha")
             print(f"  ℹ️ [GitHub] Archivo existente encontrado (SHA: {sha})")
+        elif get_rsp.status_code == 404:
+            print(f"  ℹ️ [GitHub] Archivo no existe, se creará nuevo")
+        else:
+            raise RuntimeError(f"Unexpected GitHub response: {get_rsp.status_code} - {get_rsp.text}")
+        
         payload = {"message": f"feat: add landing {folder}", "content": content_b64, "branch": branch}
         if sha:
             payload["sha"] = sha
