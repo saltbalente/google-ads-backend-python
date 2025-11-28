@@ -226,14 +226,14 @@ class LandingPageGenerator:
                 )
                 content = rsp.choices[0].message.content
             except Exception:
-                import openai
-                openai.api_key = os.getenv("OPENAI_API_KEY")
-                rsp = openai.ChatCompletion.create(
+                from openai import OpenAI
+                client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+                rsp = client.chat.completions.create(
                     model=self.openai_model,
                     messages=[{"role": "system", "content": self._system_prompt()}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
                     temperature=0.7,
                 )
-                content = rsp["choices"][0]["message"]["content"]
+                content = rsp.choices[0].message.content
         
         print("  ✅ [AI] Respuesta recibida. Procesando JSON...")
         # Strip markdown code blocks if present
