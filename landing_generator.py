@@ -540,6 +540,9 @@ class LandingPageGenerator:
             # Convert to RGB if needed
             if original_image.mode in ('P', 'RGBA', 'LA', 'CMYK'):
                 original_image = original_image.convert('RGB')
+            
+            # Load image data into memory before buffer closes
+            original_image.load()
         
         logger.info(f"🤖 Starting Gemini optimization for {position} ({original_resolution}, {original_format})")
         
@@ -579,6 +582,7 @@ class LandingPageGenerator:
         # Validate quality
         with io.BytesIO(optimized_bytes) as buf:
             final_img = Image.open(buf)
+            final_img.load()  # Load into memory before buffer closes
             final_resolution = f"{final_img.width}x{final_img.height}"
         
         metrics = ImageOptimizationMetrics(
