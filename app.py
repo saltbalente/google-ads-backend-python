@@ -458,7 +458,7 @@ def get_template_preview(template_name):
     try:
         # Validate template name
         valid_templates = [
-            'base', 'mystical', 'romantic', 'prosperity', 'llama-gemela', 'llamado-del-alma', 
+            'base_optimized', 'base', 'mystical', 'romantic', 'prosperity', 'llama-gemela', 'llamado-del-alma', 
             'el-libro-prohibido', 'la-luz', 'amarre-eterno', 'tarot-akashico', 'brujeria-blanca',
             'santeria-prosperidad', 'curanderismo-ancestral', 'brujeria-negra-venganza',
             'ritual-amor-eterno', 'lectura-aura-sanacion', 'hechizos-abundancia',

@@ -2342,6 +2342,13 @@ class LandingPageGenerator:
         """Retorna la lista estática de templates disponibles para landing pages"""
         return [
             {
+                "name": "base_optimized",
+                "title": "Base Optimizada (Recomendado)",
+                "description": "Template de alto rendimiento con carga rápida, SEO avanzado y soporte para 6 imágenes.",
+                "category": "general",
+                "preview": "/static/previews/base-optimized-preview.jpg"
+            },
+            {
                 "name": "base",
                 "title": "Template Base",
                 "description": "Template básico y versátil para cualquier tipo de campaña",
