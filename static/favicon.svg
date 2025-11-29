@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- Background circle -->
+  <circle cx="24" cy="24" r="22" fill="#7c3aed" stroke="#581c87" stroke-width="2"/>
+  
+  <!-- Mystical star symbol -->
+  <path d="M24 8 L26.5 18 L37 18 L28.5 24 L31 34 L24 28 L17 34 L19.5 24 L11 18 L21.5 18 Z" 
+        fill="#fef08a" 
+        stroke="#facc15" 
+        stroke-width="1"/>
+  
+  <!-- Inner mystical eye -->
+  <ellipse cx="24" cy="22" rx="3" ry="4" fill="#581c87"/>
+</svg>

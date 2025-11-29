@@ -5,6 +5,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ seo_title }}</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/apple-touch-icon.png">
+
   <meta name="description" content="{{ seo_description }}" />
 
   <!-- Mystical Fonts: Cinzel for ancient feel + Outfit for readability -->
@@ -176,9 +181,25 @@
         0 0 50px rgba(168, 85, 247, 0.2);
     }
   </style>
+
+  <!-- Google Tag Manager -->
+  <script>
+    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','{{ gtm_id }}');
+  </script>
+  <!-- End Google Tag Manager -->
 </head>
 
 <body class="mystical-bg text-shadow-900 font-sans antialiased selection:bg-mystical-200 selection:text-mystical-900 min-h-screen relative overflow-x-hidden">
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ gtm_id }}"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+
   <!-- Floating mystical particles -->
   <div class="fixed inset-0 pointer-events-none z-0">
     <div class="particle absolute top-1/4 left-1/4"></div>
