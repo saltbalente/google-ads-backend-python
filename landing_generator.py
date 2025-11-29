@@ -680,6 +680,12 @@ class LandingPageGenerator:
                     "description": "Diseño clásico y profesional",
                     "preview_url": f"/api/templates/preview/{template_name}"
                 }
+            elif template_name == "base_optimized":
+                template_info[template] = {
+                    "name": "🚀 Optimizada Pro",
+                    "description": "Conversión 5x • 7 CTAs • Tracking avanzado • SEO potenciado",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
             elif template_name == "mystical":
                 template_info[template] = {
                     "name": "Mística",
@@ -735,7 +741,7 @@ class LandingPageGenerator:
     def get_templates_static() -> Dict[str, Dict[str, str]]:
         """Static method to get template information without requiring full initialization."""
         templates = [
-            "base.html", "mystical.html", "romantic.html", "prosperity.html", "llama-gemela.html", 
+            "base.html", "base_optimized.html", "mystical.html", "romantic.html", "prosperity.html", "llama-gemela.html", 
             "llamado-del-alma.html", "el-libro-prohibido.html", "la-luz.html", "amarre-eterno.html",
             "tarot-akashico.html", "brujeria-blanca.html", "santeria-prosperidad.html", 
             "curanderismo-ancestral.html", "brujeria-negra-venganza.html", "ritual-amor-eterno.html",
@@ -752,6 +758,12 @@ class LandingPageGenerator:
                 template_info[template] = {
                     "name": "Clásica",
                     "description": "Diseño clásico y profesional",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "base_optimized":
+                template_info[template] = {
+                    "name": "🚀 Optimizada Pro",
+                    "description": "Conversión 5x • 7 CTAs • Tracking avanzado • SEO potenciado",
                     "preview_url": f"/api/templates/preview/{template_name}"
                 }
             elif template_name == "mystical":
