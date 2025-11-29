@@ -26,7 +26,8 @@ max_requests_jitter = 50
 # - 6 images × 20s = 120s minimum
 # - Adding 3-minute buffer for API delays
 # Professional Plan: Can handle longer timeouts safely
-timeout = 300  # 5 minutes (was 30s default)
+# Increased to match client timeout (600s) for consistency
+timeout = 600  # 10 minutes (increased from 300s)
 graceful_timeout = 120
 keepalive = 5
 
