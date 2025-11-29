@@ -329,13 +329,14 @@ def build_landing():
         selected_template = data.get('selectedTemplate') or data.get('selected_template')
         user_images = data.get('userImages') or data.get('user_images')
         paragraph_template = data.get('paragraphTemplate') or data.get('paragraph_template')
+        optimize_images_with_ai = data.get('optimizeImagesWithAI') or data.get('optimize_images_with_ai', False)
         
         if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
             result = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'}), 400
             result[0].headers.add('Access-Control-Allow-Origin', '*')
             return result
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
-        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, paragraph_template=paragraph_template)
+        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai)
         result = jsonify({'success': True, 'url': out['url'], 'alias': out['alias']}), 200
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result

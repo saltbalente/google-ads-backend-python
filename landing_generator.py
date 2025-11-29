@@ -68,6 +68,32 @@ class GeneratedContent:
     optimized_paragraph: str = ""
 
 
+@dataclass
+class ImageOptimizationMetrics:
+    """Métricas de optimización de imágenes con IA"""
+    original_size: int
+    optimized_size: int
+    reduction_percentage: float
+    processing_time: float
+    position: str
+    ai_used: bool
+    format_conversion: str  # e.g., "PNG -> WebP"
+    resolution: str  # e.g., "1920x1080 -> 1600x900"
+
+
+@dataclass
+class ImageOptimizationMetrics:
+    """Métricas de optimización de imágenes con IA"""
+    original_size: int
+    optimized_size: int
+    reduction_percentage: float
+    processing_time: float
+    position: str
+    ai_used: bool
+    format_conversion: str  # e.g., "PNG -> WebP"
+    resolution: str  # e.g., "1920x1080 -> 1600x900"
+
+
 class LandingPageGenerator:
     def __init__(
         self,
@@ -442,6 +468,231 @@ class LandingPageGenerator:
         if any(k in text for k in esoteric_keywords):
             return "esoteric"
         return "general"
+
+    def _generate_image_optimization_prompt(self, keywords: List[str], position: str) -> str:
+        """Generate dynamic prompt for Gemini image optimization.
+        
+        Args:
+            keywords: Keywords from the ad group
+            position: Image position (top, middle, bottom, hero_bg, etc.)
+        
+        Returns:
+            Optimized prompt string for Gemini
+        """
+        primary_keyword = keywords[0] if keywords else "servicio profesional"
+        
+        # Build context-aware prompt
+        prompt_parts = [
+            f"Optimiza esta imagen para una landing page de '{primary_keyword}'.",
+            "Mantén la esencia visual y estilo de la imagen original.",
+            "Mejora la estética, nitidez y coherencia visual.",
+            "Asegúrate de que la imagen sea profesional y apta para publicidad."
+        ]
+        
+        # Position-specific enhancements
+        if position in ["top", "hero_bg"]:
+            prompt_parts.append("Esta es la imagen principal/hero: debe ser impactante y captar atención inmediata.")
+        elif position in ["benefits", "promo"]:
+            prompt_parts.append("Esta imagen debe transmitir confianza y profesionalismo.")
+        elif position.startswith("cta"):
+            prompt_parts.append("Esta imagen debe motivar acción y conversión.")
+        
+        # Niche-specific context
+        niche = self._detect_niche(keywords)
+        if niche == "esoteric":
+            prompt_parts.append("Debe tener un tono místico, espiritual y resonar emocionalmente.")
+        
+        prompt_parts.append("Genera una variación única y optimizada manteniendo los elementos clave.")
+        
+        return " ".join(prompt_parts)
+
+    def _optimize_image_with_gemini(self, image_bytes: bytes, keywords: List[str], position: str) -> Tuple[bytes, ImageOptimizationMetrics]:
+        """Optimize image using Gemini Vision API.
+        
+        Args:
+            image_bytes: Original image bytes
+            keywords: Keywords from ad group
+            position: Image position in landing
+        
+        Returns:
+            Tuple of (optimized_image_bytes, metrics)
+        """
+        start_time = time.time()
+        original_size = len(image_bytes)
+        
+        try:
+            import google.generativeai as genai
+        except ImportError:
+            raise ImportError("google-generativeai required. Install: pip install google-generativeai")
+        
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY environment variable required for Gemini")
+        
+        genai.configure(api_key=api_key)
+        
+        # Load original image
+        with io.BytesIO(image_bytes) as buf:
+            original_image = Image.open(buf)
+            original_format = original_image.format or "JPEG"
+            original_resolution = f"{original_image.width}x{original_image.height}"
+            
+            # Convert to RGB if needed
+            if original_image.mode in ('P', 'RGBA', 'LA', 'CMYK'):
+                original_image = original_image.convert('RGB')
+        
+        logger.info(f"🤖 Starting Gemini optimization for {position} ({original_resolution}, {original_format})")
+        
+        # Generate prompt
+        prompt = self._generate_image_optimization_prompt(keywords, position)
+        
+        # Use Gemini for image analysis and enhancement
+        # Note: Gemini 2.0 Flash can analyze images, but cannot generate new images
+        # We'll use it to analyze and then apply PIL enhancements based on analysis
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        
+        # Convert image to bytes for Gemini
+        with io.BytesIO() as temp_buf:
+            original_image.save(temp_buf, format='JPEG', quality=95)
+            img_data = temp_buf.getvalue()
+        
+        # Get AI analysis
+        response = model.generate_content([
+            prompt + " Analiza esta imagen y sugiere mejoras específicas (brillo, contraste, saturación, encuadre).",
+            {"mime_type": "image/jpeg", "data": img_data}
+        ])
+        
+        ai_suggestions = response.text
+        logger.info(f"🧠 Gemini analysis: {ai_suggestions[:200]}...")
+        
+        # Apply AI-guided enhancements using PIL
+        enhanced_image = self._apply_ai_enhancements(original_image, ai_suggestions)
+        
+        # Post-processing: compression and quality control
+        optimized_bytes = self._post_process_image(enhanced_image, original_format)
+        optimized_size = len(optimized_bytes)
+        
+        # Calculate metrics
+        reduction_pct = ((original_size - optimized_size) / original_size) * 100 if original_size > 0 else 0
+        processing_time = time.time() - start_time
+        
+        # Validate quality
+        with io.BytesIO(optimized_bytes) as buf:
+            final_img = Image.open(buf)
+            final_resolution = f"{final_img.width}x{final_img.height}"
+        
+        metrics = ImageOptimizationMetrics(
+            original_size=original_size,
+            optimized_size=optimized_size,
+            reduction_percentage=round(reduction_pct, 2),
+            processing_time=round(processing_time, 2),
+            position=position,
+            ai_used=True,
+            format_conversion=f"{original_format} -> WebP",
+            resolution=f"{original_resolution} -> {final_resolution}"
+        )
+        
+        logger.info(f"✅ Optimized {position}: {original_size//1024}KB -> {optimized_size//1024}KB ({reduction_pct:.1f}% reduction, {processing_time:.1f}s)")
+        
+        return optimized_bytes, metrics
+        
+    def _apply_ai_enhancements(self, image: Image.Image, ai_suggestions: str) -> Image.Image:
+        """Apply AI-suggested enhancements to image using PIL.
+        
+        Args:
+            image: PIL Image object
+            ai_suggestions: Text suggestions from Gemini
+        
+        Returns:
+            Enhanced PIL Image
+        """
+        from PIL import ImageEnhance, ImageFilter
+        
+        enhanced = image.copy()
+        suggestions_lower = ai_suggestions.lower()
+        
+        # Apply brightness adjustment
+        if "oscur" in suggestions_lower or "brillo" in suggestions_lower or "brightness" in suggestions_lower:
+            enhancer = ImageEnhance.Brightness(enhanced)
+            enhanced = enhancer.enhance(1.15)  # Increase brightness 15%
+            logger.info("📊 Applied brightness enhancement")
+        
+        # Apply contrast adjustment
+        if "contrast" in suggestions_lower or "contraste" in suggestions_lower:
+            enhancer = ImageEnhance.Contrast(enhanced)
+            enhanced = enhancer.enhance(1.2)  # Increase contrast 20%
+            logger.info("📊 Applied contrast enhancement")
+        
+        # Apply sharpness
+        if "nitidez" in suggestions_lower or "sharp" in suggestions_lower or "blur" in suggestions_lower:
+            enhanced = enhanced.filter(ImageFilter.SHARPEN)
+            logger.info("📊 Applied sharpness filter")
+        
+        # Apply color saturation
+        if "saturaci" in suggestions_lower or "color" in suggestions_lower or "vibrant" in suggestions_lower:
+            enhancer = ImageEnhance.Color(enhanced)
+            enhanced = enhancer.enhance(1.15)  # Increase saturation 15%
+            logger.info("📊 Applied color saturation")
+        
+        return enhanced
+    
+    def _post_process_image(self, image: Image.Image, original_format: str) -> bytes:
+        """Post-process image: resize, compress, convert to WebP.
+        
+        Args:
+            image: PIL Image to process
+            original_format: Original image format
+        
+        Returns:
+            Optimized image bytes (WebP format)
+        """
+        # Resize if too large (responsive optimization)
+        max_dimension = 1600
+        if image.width > max_dimension or image.height > max_dimension:
+            image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+            logger.info(f"📏 Resized to max {max_dimension}px")
+        
+        # Quality control: minimum resolution
+        min_dimension = 400
+        if image.width < min_dimension or image.height < min_dimension:
+            logger.warning(f"⚠️ Image below minimum resolution ({image.width}x{image.height})")
+        
+        # Convert to WebP with intelligent compression
+        with io.BytesIO() as output_buf:
+            # Use higher quality for small images, lower for large
+            quality = 85 if max(image.width, image.height) < 800 else 80
+            
+            image.save(output_buf, format="WEBP", quality=quality, method=6, optimize=True)
+            return output_buf.getvalue()
+
+    def _compress_image_standard(self, image_bytes: bytes, position: str) -> bytes:
+        """Standard image compression without AI (fallback method).
+        
+        Args:
+            image_bytes: Original image bytes
+            position: Image position
+        
+        Returns:
+            Compressed WebP bytes
+        """
+        with io.BytesIO(image_bytes) as input_buf:
+            image = Image.open(input_buf)
+            original_format = image.format or "JPEG"
+            
+            # Convert to RGB if mode is not compatible
+            if image.mode in ('P', 'CMYK', 'RGBA', 'LA'):
+                image = image.convert('RGB')
+            
+            # Resize if too large
+            max_dimension = 1600
+            if image.width > max_dimension or image.height > max_dimension:
+                image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+                logger.info(f"📏 Resized {position} to max {max_dimension}px")
+            
+            with io.BytesIO() as output_buf:
+                # Save as WebP with compression
+                image.save(output_buf, format="WEBP", quality=80, optimize=True)
+                return output_buf.getvalue()
 
     def _system_prompt(self, niche: str = "general", paragraph_template_text: Optional[str] = None) -> str:
         base_prompt = (
@@ -1884,7 +2135,7 @@ class LandingPageGenerator:
             logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
             return 0
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "auto", user_images: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None) -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "auto", user_images: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False) -> Dict[str, Any]:
         """
         Execute the complete landing page generation pipeline.
 
@@ -1902,6 +2153,8 @@ class LandingPageGenerator:
                 - "create_only": Create new ads if group is empty, don't update existing
                 - "auto": Full automation (default) - update existing or create new as needed
             user_images: Optional list of user provided images with position info
+            paragraph_template: Optional paragraph template ID for AI optimization
+            optimize_images_with_ai: If True, use Gemini to optimize images
         """
         start_time = time.time()
 
@@ -1964,8 +2217,16 @@ class LandingPageGenerator:
             logger.info("✅ Content generated successfully")
 
             # Process user images if provided
+            image_metrics = []  # Track optimization metrics
+            
             if user_images:
                 processed_images = []
+                
+                # Log AI optimization status
+                if optimize_images_with_ai:
+                    logger.info("🎨 AI Image Optimization ENABLED - Images will be processed with Gemini")
+                else:
+                    logger.info("📸 AI Image Optimization DISABLED - Images will be compressed only")
                 
                 # Deduplication Strategy 1: Filter by position (Last one wins)
                 # This prevents processing multiple images for the same slot
@@ -2021,24 +2282,27 @@ class LandingPageGenerator:
                                 url = content_hash_map[img_hash]
                                 logger.info(f"♻️ Reusing uploaded image for {pos} (Hash match)")
                             else:
-                                # Convert to WebP and compress
-                                with io.BytesIO(image_bytes) as input_buf:
-                                    image = Image.open(input_buf)
-                                    
-                                    # Convert to RGB if mode is not compatible
-                                    if image.mode in ('P', 'CMYK'):
-                                        image = image.convert('RGB')
-                                    
-                                    # Resize if too large (Responsive Optimization)
-                                    max_dimension = 1600
-                                    if image.width > max_dimension or image.height > max_dimension:
-                                        image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
-                                        logger.info(f"Resized image to max {max_dimension}px")
-                                    
-                                    with io.BytesIO() as output_buf:
-                                        # Save as WebP with compression
-                                        image.save(output_buf, format="WEBP", quality=80, optimize=True)
-                                        webp_data = output_buf.getvalue()
+                                # AI OPTIMIZATION BRANCH
+                                if optimize_images_with_ai:
+                                    try:
+                                        # Use Gemini to optimize image
+                                        optimized_bytes, metrics = self._optimize_image_with_gemini(
+                                            image_bytes, 
+                                            ctx.keywords, 
+                                            pos
+                                        )
+                                        image_metrics.append(metrics)
+                                        
+                                        # Use optimized bytes
+                                        webp_data = optimized_bytes
+                                    except Exception as ai_error:
+                                        logger.error(f"❌ AI optimization failed for {pos}: {ai_error}")
+                                        logger.info("⚠️ Falling back to standard compression")
+                                        # Fallback: standard compression
+                                        webp_data = self._compress_image_standard(image_bytes, pos)
+                                else:
+                                    # STANDARD COMPRESSION (No AI)
+                                    webp_data = self._compress_image_standard(image_bytes, pos)
                                 
                                 # Generate filename
                                 filename = f"{uuid.uuid4()}.webp"
@@ -2063,6 +2327,12 @@ class LandingPageGenerator:
                 
                 # Update user_images with processed ones
                 user_images = processed_images
+                
+                # Log metrics summary if AI was used
+                if optimize_images_with_ai and image_metrics:
+                    total_reduction = sum(m.reduction_percentage for m in image_metrics) / len(image_metrics)
+                    total_time = sum(m.processing_time for m in image_metrics)
+                    logger.info(f"📊 AI Optimization Summary: {len(image_metrics)} images, {total_reduction:.1f}% avg reduction, {total_time:.1f}s total")
 
             # Step 3: Prepare configuration
             config = {
