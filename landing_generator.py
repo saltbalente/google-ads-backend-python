@@ -46,6 +46,7 @@ class GeneratedContent:
     benefits: List[str]
     seo_title: str
     seo_description: str
+    additional_ctas: List[Dict[str, str]]
 
 
 class LandingPageGenerator:
@@ -429,7 +430,7 @@ class LandingPageGenerator:
             "Recibirás contexto de un Ad Group de Google Ads con keywords principales, mensajes de anuncios y ubicación. "
             "Responde SOLO con un JSON válido con las claves: "
             "headline_h1, subheadline, cta_text, social_proof (lista de 3 strings con testimonios falsos pero altamente creíbles y persuasivos), benefits (lista de 4 strings), "
-            "seo_title, seo_description. "
+            "seo_title, seo_description, additional_ctas (lista de 4 objetos, cada uno con 'headline', 'tag', 'description'). "
         )
         
         if niche == "esoteric":
@@ -599,6 +600,7 @@ class LandingPageGenerator:
                 benefits=[str(b).strip() for b in data.get("benefits", [])[:4] if b],
                 seo_title=str(data["seo_title"]).strip(),
                 seo_description=str(data["seo_description"]).strip(),
+                additional_ctas=data.get("additional_ctas", [])
             )
         except Exception as e:
             raise RuntimeError(f"Error processing AI response data: {str(e)}")
@@ -661,6 +663,11 @@ class LandingPageGenerator:
                     img_context[f"user_image_{pos}"] = url
 
         try:
+            # Shuffle additional CTAs for variety
+            additional_ctas = getattr(gen, 'additional_ctas', [])
+            if additional_ctas:
+                random.shuffle(additional_ctas)
+
             return tpl.render(
                 headline_h1=gen.headline_h1,
                 subheadline=gen.subheadline,
@@ -669,6 +676,7 @@ class LandingPageGenerator:
                 benefits=gen.benefits,
                 seo_title=gen.seo_title,
                 seo_description=gen.seo_description,
+                additional_ctas=additional_ctas,
                 whatsapp_number=config["whatsapp_number"],
                 phone_number=config.get("phone_number", config["whatsapp_number"]),
                 webhook_url=config.get("webhook_url", ""),
