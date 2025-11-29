@@ -2059,7 +2059,7 @@ class LandingPageGenerator:
             logger.error(f"Failed to create ads for Ad Group {ad_group_id}: {str(e)}")
             raise RuntimeError(f"Google Ads ad creation failed: {str(e)}")
 
-    def automate_ad_group_complete_setup(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "auto") -> Dict[str, Any]:
+    def automate_ad_group_complete_setup(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none") -> Dict[str, Any]:
         """
         Complete automation: Extract context, generate landing page, publish, and setup ads.
 
@@ -2165,7 +2165,7 @@ class LandingPageGenerator:
             logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
             return 0
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "auto", user_images: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False) -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False) -> Dict[str, Any]:
         """
         Execute the complete landing page generation pipeline.
 
