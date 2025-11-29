@@ -27,6 +27,24 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 DEFAULT_PUBLIC_DOMAIN = os.getenv("DEFAULT_PUBLIC_LANDING_DOMAIN", "consultadebrujosgratis.store")
 
+# Paragraph Templates
+PARAGRAPH_TEMPLATES = {
+    "curandero_services": """
+Nuestro curandero con más de 25 años de experiencia ofrece servicios profesionales de curación espiritual, 
+limpias energéticas y amarres de amor efectivos. Atención personalizada las 24 horas del día, los 7 días 
+de la semana. Cada consulta incluye diagnóstico espiritual completo y plan de acción personalizado. 
+Trabajamos con métodos tradicionales respaldados por generaciones de conocimiento ancestral.
+""".strip(),
+    
+    "consultoria_esoterica": """
+Ofrecemos consultoría esotérica profesional con lectura de cartas del tarot, interpretación de sueños 
+y orientación para el desarrollo espiritual. Nuestra metodología combina técnicas milenarias con un 
+enfoque moderno y personalizado. Sesiones disponibles en modalidad presencial y virtual. Contamos con 
+más de 15 años ayudando a personas a encontrar claridad, propósito y equilibrio en sus vidas.
+""".strip()
+}
+
+
 
 @dataclass
 class AdGroupContext:
@@ -47,6 +65,7 @@ class GeneratedContent:
     seo_title: str
     seo_description: str
     additional_ctas: List[Dict[str, str]]
+    optimized_paragraph: str = ""
 
 
 class LandingPageGenerator:
@@ -424,13 +443,14 @@ class LandingPageGenerator:
             return "esoteric"
         return "general"
 
-    def _system_prompt(self, niche: str = "general") -> str:
+    def _system_prompt(self, niche: str = "general", paragraph_template_text: Optional[str] = None) -> str:
         base_prompt = (
             "Eres un generador experto de contenido para Landing Pages de alta conversión. "
             "Recibirás contexto de un Ad Group de Google Ads con keywords principales, mensajes de anuncios y ubicación. "
             "Responde SOLO con un JSON válido con las claves: "
             "headline_h1, subheadline, cta_text, social_proof (lista de 3 strings con testimonios falsos pero altamente creíbles y persuasivos), benefits (lista de 4 strings), "
-            "seo_title, seo_description, additional_ctas (lista de 4 objetos, cada uno con 'headline', 'tag', 'description'). "
+            "seo_title, seo_description, additional_ctas (lista de 4 objetos, cada uno con 'headline', 'tag', 'description'), "
+            "optimized_paragraph (string, párrafo de alta conversión basado en el template proporcionado). "
         )
         
         if niche == "esoteric":
@@ -445,10 +465,24 @@ class LandingPageGenerator:
         else:
             base_prompt += "El tono debe alinearse con los titulares y la keyword principal. "
 
-        base_prompt += "Usa el idioma del usuario en español mexicano."
+        if paragraph_template_text:
+            base_prompt += (
+                f"\n\nPARA optimized_paragraph: DEBES reescribir y optimizar el siguiente texto base "
+                f"usando las keywords proporcionadas. Mantén la estructura profesional, agrega urgencia sutil y "
+                f"asegúrate de que el texto sea fácil de leer y persuasivo:\n\n"
+                f"\"{paragraph_template_text}\"\n\n"
+                f"Integra las keywords de forma natural y mantén un tono profesional pero cercano."
+            )
+        else:
+            base_prompt += (
+                "\n\nPARA optimized_paragraph: Como no se proporcionó paragraph_template, "
+                "deja optimized_paragraph vacío ('')."
+            )
+        
+        base_prompt += "\n\nUsa el idioma del usuario en español mexicano."
         return base_prompt
 
-    def generate_content(self, ctx: AdGroupContext) -> GeneratedContent:
+    def generate_content(self, ctx: AdGroupContext, paragraph_template: Optional[str] = None) -> GeneratedContent:
         """Generate landing page content using AI with comprehensive error handling."""
         if not ctx or not isinstance(ctx, AdGroupContext):
             raise ValueError("Valid AdGroupContext is required")
@@ -458,6 +492,12 @@ class LandingPageGenerator:
         # Validate context has minimum required data
         if not ctx.keywords and not ctx.headlines and not ctx.descriptions:
             raise ValueError("AdGroupContext must contain at least keywords, headlines, or descriptions")
+
+        # Get template text if template is specified
+        template_text = None
+        if paragraph_template and paragraph_template != "none" and paragraph_template in PARAGRAPH_TEMPLATES:
+            template_text = PARAGRAPH_TEMPLATES[paragraph_template]
+            logger.info(f"Using paragraph template: {paragraph_template}")
 
         payload = {
             "keywords": ctx.keywords[:5],  # Limit to prevent token overflow
@@ -475,9 +515,9 @@ class LandingPageGenerator:
 
         try:
             if self.openai_model.startswith("gemini"):
-                content = self._generate_with_gemini(payload, niche)
+                content = self._generate_with_gemini(payload, niche, template_text)
             else:
-                content = self._generate_with_openai(payload, niche)
+                content = self._generate_with_openai(payload, niche, template_text)
         except Exception as e:
             logger.error(f"AI content generation failed: {str(e)}")
             raise RuntimeError(f"Failed to generate content with {self.openai_model}: {str(e)}")
@@ -485,7 +525,7 @@ class LandingPageGenerator:
         logger.info("AI response received, processing JSON")
         return self._parse_ai_response(content)
 
-    def _generate_with_gemini(self, payload: dict, niche: str = "general") -> str:
+    def _generate_with_gemini(self, payload: dict, niche: str = "general", template_text: Optional[str] = None) -> str:
         """Generate content using Google Gemini API."""
         try:
             import google.generativeai as genai
@@ -499,7 +539,7 @@ class LandingPageGenerator:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(self.openai_model)
 
-        prompt = f"{self._system_prompt(niche)}\n\nContexto:\n{json.dumps(payload, ensure_ascii=False)}"
+        prompt = f"{self._system_prompt(niche, template_text)}\n\nContexto:\n{json.dumps(payload, ensure_ascii=False)}"
 
         generation_config = genai.types.GenerationConfig(temperature=0.7)
 
@@ -514,7 +554,7 @@ class LandingPageGenerator:
 
         return response.text
 
-    def _generate_with_openai(self, payload: dict, niche: str = "general") -> str:
+    def _generate_with_openai(self, payload: dict, niche: str = "general", template_text: Optional[str] = None) -> str:
         """Generate content using OpenAI API."""
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
@@ -528,7 +568,7 @@ class LandingPageGenerator:
         request_payload = {
             "model": self.openai_model,
             "messages": [
-                {"role": "system", "content": self._system_prompt(niche)},
+                {"role": "system", "content": self._system_prompt(niche, template_text)},
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}
             ],
             "response_format": {"type": "json_object"},
@@ -600,7 +640,8 @@ class LandingPageGenerator:
                 benefits=[str(b).strip() for b in data.get("benefits", [])[:4] if b],
                 seo_title=str(data["seo_title"]).strip(),
                 seo_description=str(data["seo_description"]).strip(),
-                additional_ctas=data.get("additional_ctas", [])
+                additional_ctas=data.get("additional_ctas", []),
+                optimized_paragraph=str(data.get("optimized_paragraph", "")).strip()
             )
         except Exception as e:
             raise RuntimeError(f"Error processing AI response data: {str(e)}")
@@ -677,6 +718,7 @@ class LandingPageGenerator:
                 seo_title=gen.seo_title,
                 seo_description=gen.seo_description,
                 additional_ctas=additional_ctas,
+                optimized_paragraph=getattr(gen, 'optimized_paragraph', ''),
                 whatsapp_number=config["whatsapp_number"],
                 phone_number=config.get("phone_number", config["whatsapp_number"]),
                 webhook_url=config.get("webhook_url", ""),
@@ -1842,7 +1884,7 @@ class LandingPageGenerator:
             logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
             return 0
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "auto", user_images: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "auto", user_images: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None) -> Dict[str, Any]:
         """
         Execute the complete landing page generation pipeline.
 
@@ -1913,7 +1955,12 @@ class LandingPageGenerator:
 
             # Step 2: Generate content with AI
             logger.info("🤖 Step 2: Generating content with AI...")
-            gen = self.generate_content(ctx)
+            
+            # Inject paragraph template into payload if provided
+            if paragraph_template:
+                logger.info(f"📝 Using paragraph template: {paragraph_template}")
+            
+            gen = self.generate_content(ctx, paragraph_template)
             logger.info("✅ Content generated successfully")
 
             # Process user images if provided
