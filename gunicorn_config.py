@@ -9,7 +9,9 @@ bind = f"0.0.0.0:{os.getenv('PORT', '8080')}"
 backlog = 2048
 
 # Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1
+# Conservative: 4 workers for Render (512MB-1GB RAM)
+# Formula: CPU × 2 + 1 can create too many workers on some plans
+workers = int(os.getenv('WEB_CONCURRENCY', '4'))
 worker_class = 'sync'
 worker_connections = 1000
 
