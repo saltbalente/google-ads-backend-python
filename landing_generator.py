@@ -558,13 +558,15 @@ class LandingPageGenerator:
             selected_template = config.get("selected_template")
 
             if selected_template:
+                # El nombre del template ya viene con .html desde la app
+                template_name = selected_template if selected_template.endswith('.html') else f"{selected_template}.html"
+                
                 # Validate selected template exists
                 available_templates = self.get_available_templates()
-                if selected_template in available_templates:
-                    template_name = selected_template
+                if template_name in available_templates:
                     logger.info(f"🎨 Using user-selected template: {template_name}")
                 else:
-                    logger.warning(f"⚠️ Selected template '{selected_template}' not available, falling back to auto-selection")
+                    logger.warning(f"⚠️ Selected template '{template_name}' not available, falling back to auto-selection")
                     selected_template = None
 
             if not selected_template:
@@ -1366,7 +1368,7 @@ class LandingPageGenerator:
 
                 # Generate URL based on domain configuration
                 if self.custom_domain:
-                    # Construct URL: https://customdomain.com/folder/
+                    # Construct URL with folder path: https://customdomain.com/folder/
                     github_pages_url = f"https://{self.custom_domain}/{folder_name}/"
                     logger.info(f"🌐 Custom domain URL: {github_pages_url}")
                 else:
@@ -1377,7 +1379,7 @@ class LandingPageGenerator:
                 return {
                     "commit_sha": commit_sha,
                     "url": github_pages_url,
-                    "alias": alias,
+                    "alias": github_pages_url,  # Use the actual URL as alias
                     "path": f"{folder_name}/index.html",
                     "size": content_size,
                     "custom_domain": self.custom_domain
