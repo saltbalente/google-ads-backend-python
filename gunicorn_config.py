@@ -9,11 +9,11 @@ bind = f"0.0.0.0:{os.getenv('PORT', '8080')}"
 backlog = 2048
 
 # Worker processes
-# Professional Plan: More resources available
-# Default: 8 workers (good for 2-4GB RAM)
-# Can scale up to 16 with autoscaling
-workers = int(os.getenv('WEB_CONCURRENCY', '8'))
-worker_class = 'sync'
+# OPTIMIZED FOR FREE/STARTER PLAN (512MB RAM)
+# Reduced from 8 to 2 workers to prevent memory exhaustion
+# 2 workers × sync = ~150-200MB total (safe for 512MB limit)
+workers = int(os.getenv('WEB_CONCURRENCY', '2'))  # Reduced from 8 to 2
+worker_class = 'sync'  # No threads, less memory overhead
 worker_connections = 1000
 
 # Max requests per worker (helps prevent memory leaks)
@@ -74,9 +74,9 @@ def on_reload(server):
 def when_ready(server):
     """Called just after the server is started."""
     server.log.info(f"✅ Server ready on {bind}")
-    server.log.info(f"⚙️  Configuration: {workers} workers × {threads} threads = {workers * threads} concurrent requests")
+    server.log.info(f"⚙️  Configuration: {workers} workers (sync) = {workers} concurrent requests")
     server.log.info(f"⏱️  Timeout: {timeout}s (AI optimization support)")
-    server.log.info(f"🚀 Professional Plan: Autoscaling enabled, 500GB bandwidth")
+    server.log.info(f"🆓 Free/Starter Plan: Memory optimized (512MB limit)")
 
 def worker_int(worker):
     """Called when a worker receives the INT or QUIT signal."""
