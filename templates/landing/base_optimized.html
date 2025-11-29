@@ -229,6 +229,14 @@
 
   <!-- Hero Section -->
   <section class="relative min-h-screen flex items-center justify-center mystic-gradient particle-bg overflow-hidden pt-20">
+    <!-- Background Image (Optional) -->
+    {% if user_image_hero_bg %}
+    <div class="absolute inset-0 z-0">
+      <img src="{{ user_image_hero_bg }}" alt="Background" class="w-full h-full object-cover opacity-30">
+      <div class="absolute inset-0 bg-gradient-to-b from-slate-900/80 via-slate-900/50 to-slate-900"></div>
+    </div>
+    {% endif %}
+
     <!-- Elementos flotantes decorativos -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
       <div class="absolute top-20 left-10 w-2 h-2 bg-mystic-400 rounded-full animate-float opacity-60"></div>
@@ -334,6 +342,25 @@
       </div>
 
       <!-- Grid de beneficios -->
+      {% if user_image_benefits %}
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <div class="grid sm:grid-cols-2 gap-6">
+          {% for benefit in benefits %}
+          <div class="group crystal-card p-6 rounded-xl hover:border-mystic-400/40 transition-all duration-500 hover:-translate-y-2">
+            <div class="w-14 h-14 rounded-lg bg-gradient-to-br from-mystic-600 to-mystic-800 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
+              <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <p class="text-gray-300 text-center leading-relaxed">{{ benefit }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="relative rounded-2xl overflow-hidden shadow-2xl border border-mystic-500/20 h-full min-h-[400px]">
+          <img src="{{ user_image_benefits }}" alt="Beneficios" class="absolute inset-0 w-full h-full object-cover">
+        </div>
+      </div>
+      {% else %}
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {% for benefit in benefits %}
         <div class="group crystal-card p-6 rounded-xl hover:border-mystic-400/40 transition-all duration-500 hover:-translate-y-2">
@@ -348,8 +375,26 @@
         </div>
         {% endfor %}
       </div>
+      {% endif %}
     </div>
   </section>
+
+  <!-- Promo Banner (Optional) -->
+  {% if user_image_promo %}
+  <section class="py-10 bg-mystic-900/50">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="rounded-2xl overflow-hidden shadow-2xl border border-gold-500/30 relative group">
+        <img src="{{ user_image_promo }}" alt="Promoción Especial" class="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-8">
+          <div class="text-white">
+            <span class="bg-gold-500 text-black text-xs font-bold px-3 py-1 rounded-full mb-2 inline-block">OFERTA LIMITADA</span>
+            <h3 class="text-2xl font-mystical font-bold">Consulta Especial Hoy</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
 
   <!-- Testimonios / Social Proof -->
   <section class="py-20 mystic-gradient particle-bg relative overflow-hidden">
