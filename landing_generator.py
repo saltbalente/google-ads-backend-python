@@ -1944,6 +1944,12 @@ class LandingPageGenerator:
                                     if image.mode in ('P', 'CMYK'):
                                         image = image.convert('RGB')
                                     
+                                    # Resize if too large (Responsive Optimization)
+                                    max_dimension = 1600
+                                    if image.width > max_dimension or image.height > max_dimension:
+                                        image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+                                        logger.info(f"Resized image to max {max_dimension}px")
+                                    
                                     with io.BytesIO() as output_buf:
                                         # Save as WebP with compression
                                         image.save(output_buf, format="WEBP", quality=80, optimize=True)
