@@ -657,12 +657,26 @@ class LandingPageGenerator:
         if image.width < min_dimension or image.height < min_dimension:
             logger.warning(f"⚠️ Image below minimum resolution ({image.width}x{image.height})")
         
+        # Remove EXIF metadata for privacy and smaller file size
+        # Create new image without metadata
+        data = list(image.getdata())
+        image_without_exif = Image.new(image.mode, image.size)
+        image_without_exif.putdata(data)
+        logger.info("🔒 Removed EXIF metadata")
+        
         # Convert to WebP with intelligent compression
         with io.BytesIO() as output_buf:
             # Use higher quality for small images, lower for large
             quality = 85 if max(image.width, image.height) < 800 else 80
             
-            image.save(output_buf, format="WEBP", quality=quality, method=6, optimize=True)
+            image_without_exif.save(
+                output_buf, 
+                format="WEBP", 
+                quality=quality, 
+                method=6, 
+                optimize=True,
+                exif=b''  # Ensure no EXIF data
+            )
             return output_buf.getvalue()
 
     def _compress_image_standard(self, image_bytes: bytes, position: str) -> bytes:
@@ -689,9 +703,21 @@ class LandingPageGenerator:
                 image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
                 logger.info(f"📏 Resized {position} to max {max_dimension}px")
             
+            # Remove EXIF metadata
+            data = list(image.getdata())
+            image_without_exif = Image.new(image.mode, image.size)
+            image_without_exif.putdata(data)
+            logger.info(f"🔒 Removed EXIF metadata from {position}")
+            
             with io.BytesIO() as output_buf:
-                # Save as WebP with compression
-                image.save(output_buf, format="WEBP", quality=80, optimize=True)
+                # Save as WebP with compression (no EXIF)
+                image_without_exif.save(
+                    output_buf, 
+                    format="WEBP", 
+                    quality=80, 
+                    optimize=True,
+                    exif=b''
+                )
                 return output_buf.getvalue()
 
     def _system_prompt(self, niche: str = "general", paragraph_template_text: Optional[str] = None) -> str:
