@@ -25,6 +25,7 @@ load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+DEFAULT_PUBLIC_DOMAIN = os.getenv("DEFAULT_PUBLIC_LANDING_DOMAIN", "consultadebrujosgratis.store")
 
 
 @dataclass
@@ -58,6 +59,7 @@ class LandingPageGenerator:
         templates_dir: str = os.getenv("LANDING_TEMPLATES_DIR", "templates/landing"),
         base_domain: str = os.getenv("LANDINGS_BASE_DOMAIN", "tudominio.com"),
         custom_domain: Optional[str] = os.getenv("GITHUB_PAGES_CUSTOM_DOMAIN"),
+        public_base_url: Optional[str] = os.getenv("LANDING_PUBLIC_BASE_URL"),
         max_retries: int = 5,
         request_timeout: int = 60,
         health_check_timeout: int = 30,
@@ -116,6 +118,9 @@ class LandingPageGenerator:
             raise ValueError("LANDINGS_BASE_DOMAIN cannot be empty")
         self.base_domain = base_domain.strip()
         self.custom_domain = custom_domain.strip() if custom_domain else None
+        self.public_base_url = self._normalize_public_base_url(public_base_url or self.custom_domain or DEFAULT_PUBLIC_DOMAIN)
+        if not self.public_base_url:
+            logger.warning("No public landing domain configured; defaulting to GitHub Pages URLs")
 
         # Configuration parameters
         self.max_retries = max(1, max_retries)
@@ -123,6 +128,22 @@ class LandingPageGenerator:
         self.health_check_timeout = max(5, health_check_timeout)
 
         logger.info(f"LandingPageGenerator initialized successfully with model: {self.openai_model}")
+
+    def _normalize_public_base_url(self, base: Optional[str]) -> Optional[str]:
+        if not base:
+            return None
+        base = base.strip()
+        if not base:
+            return None
+        if not base.startswith(("http://", "https://")):
+            base = f"https://{base}"
+        return base.rstrip("/")
+
+    def _get_public_url(self, folder_name: str) -> str:
+        if self.public_base_url:
+            return f"{self.public_base_url}/{folder_name}/"
+        # Fallback to GitHub Pages when no domain is configured
+        return f"https://{self.github_owner}.github.io/{self.github_repo}/{folder_name}/"
 
     def _get_google_ads_client(self):
         """Get Google Ads client with comprehensive error handling."""
@@ -554,6 +575,9 @@ class LandingPageGenerator:
 
     def render(self, gen: GeneratedContent, config: Dict[str, Any]) -> str:
         try:
+            # Initialize template_name variable
+            template_name = None
+            
             # Check if template is explicitly selected from iOS app
             selected_template = config.get("selected_template")
 
@@ -567,9 +591,10 @@ class LandingPageGenerator:
                     logger.info(f"🎨 Using user-selected template: {template_name}")
                 else:
                     logger.warning(f"⚠️ Selected template '{template_name}' not available, falling back to auto-selection")
-                    selected_template = None
+                    template_name = None  # Reset to trigger auto-selection
 
-            if not selected_template:
+            # Only auto-select if no valid template was specified
+            if not template_name:
                 # Seleccionar template basado en la palabra clave principal (auto-selection)
                 primary_keyword = config.get("primary_keyword", "").lower()
 
@@ -585,7 +610,7 @@ class LandingPageGenerator:
                 else:
                     template_name = "base.html"  # Template por defecto
 
-                logger.info(f"🎨 Auto-selected template: {template_name}")
+                logger.info(f"🎨 Auto-selected template based on keyword: {template_name}")
 
             tpl = self.env.get_template(template_name)
         except Exception as e:
@@ -1367,19 +1392,17 @@ class LandingPageGenerator:
                 logger.info(f"✅ Published to GitHub Pages (commit: {commit_sha})")
 
                 # Generate URL based on domain configuration
-                if self.custom_domain:
-                    # Construct URL with folder path: https://customdomain.com/folder/
-                    github_pages_url = f"https://{self.custom_domain}/{folder_name}/"
-                    logger.info(f"🌐 Custom domain URL: {github_pages_url}")
-                else:
-                    # Use default GitHub Pages: https://owner.github.io/repo/folder/
-                    github_pages_url = f"https://{self.github_owner}.github.io/{self.github_repo}/{folder_name}/"
-                    logger.info(f"🌐 GitHub Pages URL: {github_pages_url}")
+                public_url = self._get_public_url(folder_name)
+                github_preview_url = f"https://{self.github_owner}.github.io/{self.github_repo}/{folder_name}/"
+                logger.info(f"🌐 Public landing URL: {public_url}")
+                if public_url != github_preview_url:
+                    logger.info(f"🔎 GitHub preview URL: {github_preview_url}")
 
                 return {
                     "commit_sha": commit_sha,
-                    "url": github_pages_url,
-                    "alias": github_pages_url,  # Use the actual URL as alias
+                    "url": public_url,
+                    "alias": public_url,  # Alias always matches the public URL
+                    "github_preview_url": github_preview_url,
                     "path": f"{folder_name}/index.html",
                     "size": content_size,
                     "custom_domain": self.custom_domain
@@ -2262,9 +2285,9 @@ class LandingPageGenerator:
 
     @staticmethod
     def get_available_templates() -> List[str]:
-        """Retorna la lista de nombres de templates disponibles"""
+        """Retorna la lista de nombres de templates disponibles con extensión .html"""
         templates = LandingPageGenerator.get_templates_static()
-        return [template["name"] for template in templates]
+        return [template["name"] + ".html" if not template["name"].endswith(".html") else template["name"] for template in templates]
 
     @staticmethod
     def get_templates_static() -> List[Dict[str, Any]]:

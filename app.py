@@ -36,6 +36,36 @@ else:
 
 app = Flask(__name__)
 
+DEFAULT_PUBLIC_LANDING_DOMAIN = os.getenv("DEFAULT_PUBLIC_LANDING_DOMAIN", "consultadebrujosgratis.store")
+
+
+def build_public_landing_url(folder_name: str) -> str:
+    """Return canonical URL for a landing folder with sensible fallbacks."""
+    candidates = [
+        os.getenv("LANDING_PUBLIC_BASE_URL"),
+        os.getenv("GITHUB_PAGES_CUSTOM_DOMAIN"),
+        DEFAULT_PUBLIC_LANDING_DOMAIN,
+    ]
+
+    public_base = None
+    for candidate in candidates:
+        candidate = (candidate or "").strip()
+        if not candidate:
+            continue
+        if candidate.startswith(("http://", "https://")):
+            public_base = candidate
+        else:
+            public_base = f"https://{candidate}"
+        break
+
+    if not public_base:
+        owner = os.getenv("GITHUB_REPO_OWNER", "")
+        repo = os.getenv("GITHUB_REPO_NAME", "monorepo-landings")
+        public_base = f"https://{owner}.github.io/{repo}"
+
+    public_base = public_base.rstrip("/")
+    return f"{public_base}/{folder_name}/"
+
 # Inicializar base de datos para automation jobs
 init_db()
 
@@ -115,7 +145,7 @@ def get_landing_history():
                     "phone_number": phone_number,
                     "gtm_id": gtm_id,
                     "created_at": created_at,
-                    "url": f"https://consultadebrujosgratis.store/{folder_name}"
+                    "url": build_public_landing_url(folder_name)
                 })
     
     return {"landings": landings}
