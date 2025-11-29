@@ -59,9 +59,20 @@ gunicorn --bind 0.0.0.0:$PORT --timeout 300 --graceful-timeout 120 --workers 4 -
 |-----------|-------|-------|
 | `timeout` | 300s (5 min) | Permite 6 imágenes × 20s/img + buffer |
 | `graceful_timeout` | 120s | Shutdown suave |
-| `workers` | CPU × 2 + 1 | Balance entre throughput y memoria |
+| `workers` | 8 (Professional) | Óptimo para 2-4GB RAM |
+| `threads` | 2 | 8 workers × 2 threads = 16 concurrent requests |
+| `max_requests` | 1000 | Previene memory leaks |
 | `preload_app` | True | Reduce memoria, mejora startup |
 | `keepalive` | 5s | Mantiene conexiones activas |
+
+### Configuración por Plan Render
+
+| Plan | RAM | Workers | Threads | Total Concurrent |
+|------|-----|---------|---------|------------------|
+| **Free** | 512MB | 2 | 1 | 2 requests |
+| **Starter** | 1GB | 4 | 1 | 4 requests |
+| **Professional** | 2-4GB | **8** | **2** | **16 requests** ✅ |
+| **Enterprise** | 8GB+ | 16 | 4 | 64 requests |
 
 ---
 

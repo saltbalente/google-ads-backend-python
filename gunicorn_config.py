@@ -9,20 +9,29 @@ bind = f"0.0.0.0:{os.getenv('PORT', '8080')}"
 backlog = 2048
 
 # Worker processes
-# Conservative: 4 workers for Render (512MB-1GB RAM)
-# Formula: CPU × 2 + 1 can create too many workers on some plans
-workers = int(os.getenv('WEB_CONCURRENCY', '4'))
+# Professional Plan: More resources available
+# Default: 8 workers (good for 2-4GB RAM)
+# Can scale up to 16 with autoscaling
+workers = int(os.getenv('WEB_CONCURRENCY', '8'))
 worker_class = 'sync'
 worker_connections = 1000
+
+# Max requests per worker (helps prevent memory leaks)
+max_requests = 1000
+max_requests_jitter = 50
 
 # Timeout settings
 # CRITICAL: Increased for AI image optimization with Gemini
 # - Image optimization can take 15-20s per image
 # - 6 images × 20s = 120s minimum
 # - Adding 3-minute buffer for API delays
+# Professional Plan: Can handle longer timeouts safely
 timeout = 300  # 5 minutes (was 30s default)
 graceful_timeout = 120
 keepalive = 5
+
+# Threading (Professional Plan can handle more concurrent requests)
+threads = 2  # 8 workers × 2 threads = 16 concurrent requests
 
 # Logging
 accesslog = '-'
@@ -63,7 +72,10 @@ def on_reload(server):
 
 def when_ready(server):
     """Called just after the server is started."""
-    server.log.info(f"✅ Server ready on {bind} (timeout: {timeout}s)")
+    server.log.info(f"✅ Server ready on {bind}")
+    server.log.info(f"⚙️  Configuration: {workers} workers × {threads} threads = {workers * threads} concurrent requests")
+    server.log.info(f"⏱️  Timeout: {timeout}s (AI optimization support)")
+    server.log.info(f"🚀 Professional Plan: Autoscaling enabled, 500GB bandwidth")
 
 def worker_int(worker):
     """Called when a worker receives the INT or QUIT signal."""
