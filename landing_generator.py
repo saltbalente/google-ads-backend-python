@@ -411,15 +411,41 @@ class LandingPageGenerator:
 
         return "landing"
 
-    def _system_prompt(self) -> str:
-        return (
+    def _detect_niche(self, keywords: List[str]) -> str:
+        """Detect the niche based on keywords."""
+        esoteric_keywords = [
+            "amarre", "brujeria", "brujería", "hechizo", "retorno", "tarot", "vidente", 
+            "espiritual", "limpia", "endulzamiento", "dominio", "separacion", "alejar",
+            "magia", "negra", "blanca", "santeria", "santería"
+        ]
+        text = " ".join(keywords).lower()
+        if any(k in text for k in esoteric_keywords):
+            return "esoteric"
+        return "general"
+
+    def _system_prompt(self, niche: str = "general") -> str:
+        base_prompt = (
             "Eres un generador experto de contenido para Landing Pages de alta conversión. "
             "Recibirás contexto de un Ad Group de Google Ads con keywords principales, mensajes de anuncios y ubicación. "
             "Responde SOLO con un JSON válido con las claves: "
             "headline_h1, subheadline, cta_text, social_proof (lista de 3 strings con testimonios falsos pero altamente creíbles y persuasivos), benefits (lista de 4 strings), "
-            "seo_title, seo_description. El tono debe alinearse con los titulares y la keyword principal. "
-            "Usa el idioma del usuario en español mexicano."
+            "seo_title, seo_description. "
         )
+        
+        if niche == "esoteric":
+            base_prompt += (
+                "DETECTADO NICHO ESOTÉRICO/BRUJERÍA. "
+                "IMPORTANTE: Genera headlines con ALTA URGENCIA y CONEXIÓN EMOCIONAL. "
+                "Usa palabras como 'Inmediato', 'Hoy Mismo', 'Garantizado', 'Recupera', 'Regresa'. "
+                "El tono debe ser místico pero directo y seguro. "
+                "Enfócate en solucionar el dolor del usuario (amor perdido, mala suerte) AHORA MISMO. "
+                "Ejemplos de H1: 'Recupera a tu Pareja Hoy Mismo - Amarres Garantizados', '¿Sientes que se Aleja? Haz que Regrese Suplicando'. "
+            )
+        else:
+            base_prompt += "El tono debe alinearse con los titulares y la keyword principal. "
+
+        base_prompt += "Usa el idioma del usuario en español mexicano."
+        return base_prompt
 
     def generate_content(self, ctx: AdGroupContext) -> GeneratedContent:
         """Generate landing page content using AI with comprehensive error handling."""
@@ -440,13 +466,17 @@ class LandingPageGenerator:
             "primary_keyword": ctx.primary_keyword or "servicio"
         }
 
+        # Detect niche for prompt fine-tuning
+        niche = self._detect_niche(ctx.keywords + [ctx.primary_keyword or ""])
+        logger.info(f"Detected niche: {niche}")
+
         content = ""
 
         try:
             if self.openai_model.startswith("gemini"):
-                content = self._generate_with_gemini(payload)
+                content = self._generate_with_gemini(payload, niche)
             else:
-                content = self._generate_with_openai(payload)
+                content = self._generate_with_openai(payload, niche)
         except Exception as e:
             logger.error(f"AI content generation failed: {str(e)}")
             raise RuntimeError(f"Failed to generate content with {self.openai_model}: {str(e)}")
@@ -454,7 +484,7 @@ class LandingPageGenerator:
         logger.info("AI response received, processing JSON")
         return self._parse_ai_response(content)
 
-    def _generate_with_gemini(self, payload: dict) -> str:
+    def _generate_with_gemini(self, payload: dict, niche: str = "general") -> str:
         """Generate content using Google Gemini API."""
         try:
             import google.generativeai as genai
@@ -468,7 +498,7 @@ class LandingPageGenerator:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(self.openai_model)
 
-        prompt = f"{self._system_prompt()}\n\nContexto:\n{json.dumps(payload, ensure_ascii=False)}"
+        prompt = f"{self._system_prompt(niche)}\n\nContexto:\n{json.dumps(payload, ensure_ascii=False)}"
 
         generation_config = genai.types.GenerationConfig(temperature=0.7)
 
@@ -483,7 +513,7 @@ class LandingPageGenerator:
 
         return response.text
 
-    def _generate_with_openai(self, payload: dict) -> str:
+    def _generate_with_openai(self, payload: dict, niche: str = "general") -> str:
         """Generate content using OpenAI API."""
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
@@ -497,7 +527,7 @@ class LandingPageGenerator:
         request_payload = {
             "model": self.openai_model,
             "messages": [
-                {"role": "system", "content": self._system_prompt()},
+                {"role": "system", "content": self._system_prompt(niche)},
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}
             ],
             "response_format": {"type": "json_object"},
