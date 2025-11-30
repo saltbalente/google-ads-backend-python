@@ -76,6 +76,15 @@ COLOR_PALETTES = {
     }
 }
 
+# Paragraph Templates for AI Optimization
+PARAGRAPH_TEMPLATES = {
+    "curandero_services": "Soy un curandero experto con años de experiencia ayudando a personas a recuperar su bienestar espiritual y emocional. Mis servicios están garantizados y son totalmente confidenciales.",
+    "consultoria_esoterica": "Ofrezco consultoría esotérica profesional para guiarte en los momentos más difíciles. Utilizo técnicas ancestrales para brindarte claridad y soluciones efectivas.",
+    "lectura_cartas": "Lectura de cartas profesional y detallada para revelar tu pasado, presente y futuro. Obtén respuestas claras a tus preguntas más profundas.",
+    "limpieza_energetica": "Realizo limpiezas energéticas profundas para eliminar bloqueos y atraer energía positiva a tu vida. Siente la diferencia desde la primera sesión.",
+    "amarres_amor": "Especialista en amarres de amor efectivos y seguros. Recupera a tu pareja y fortalece tu relación con mis rituales personalizados."
+}
+
 
 
 @dataclass
