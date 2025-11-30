@@ -898,8 +898,10 @@ body {
 h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
     line-height: 1.2;
-    margin-bottom: 1rem;
+    margin: 0 0 1rem 0;
+    padding: 0 1rem;
     color: #222;
+    text-align: center;
 }
 
 h1 { font-size: 2.5rem; margin-bottom: 2rem; }
@@ -910,7 +912,8 @@ h5 { font-size: 1.25rem; margin-bottom: 0.75rem; }
 h6 { font-size: 1.1rem; margin-bottom: 0.5rem; }
 
 p {
-    margin-bottom: 1rem;
+    margin: 0 0 1rem 0;
+    padding: 0 1rem;
     text-align: justify;
 }
 
@@ -931,8 +934,8 @@ a:visited {
 
 /* Lists */
 ul, ol {
-    margin-bottom: 1rem;
-    padding-left: 2rem;
+    margin: 0 0 1rem 0;
+    padding: 0 1rem 0 2rem;
 }
 
 li {
@@ -962,10 +965,10 @@ code, pre {
 
 pre {
     padding: 1rem;
+    margin: 0 0 1rem 0;
     overflow-x: auto;
     white-space: pre-wrap;
     word-wrap: break-word;
-    margin-bottom: 1rem;
     border: 1px solid #ddd;
 }
 
