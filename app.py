@@ -26,6 +26,7 @@ from video_processor import VideoProcessor
 from web_cloner import WebCloner, WebClonerConfig
 from github_cloner_uploader import GitHubClonerUploader
 from custom_template_manager import CustomTemplateManager
+from repository_importer import RepositoryImporter
 
 import logging
 logger = logging.getLogger(__name__)
@@ -1876,6 +1877,111 @@ def get_demographic_stats():
 # ==========================================
 app.register_blueprint(circuit_breaker_bp)
 start_circuit_breaker_scheduler()
+
+
+# ==========================================
+# REPOSITORY IMPORTER - Clone and Modify Repos
+# ==========================================
+
+@app.route('/api/repository/import', methods=['POST', 'OPTIONS'])
+def import_repository():
+    """
+    Import and modify a GitHub repository
+    
+    Request Body:
+    {
+        "repoURL": "https://github.com/user/repo",
+        "newRepoName": "modified-repo" (optional),
+        "whatsappNumber": "+1234567890",
+        "phoneNumber": "+9876543210" (optional),
+        "gtmId": "GTM-XXXXXXX"
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "url": "https://github.com/user/modified-repo",
+        "repoName": "modified-repo",
+        "modifiedFiles": 5,
+        "files": ["index.html", "about.html", ...]
+    }
+    """
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response, 200
+    
+    try:
+        data = request.json
+        
+        # Validate required fields
+        required_fields = ['repoURL', 'whatsappNumber', 'gtmId']
+        missing_fields = [f for f in required_fields if f not in data]
+        
+        if missing_fields:
+            return jsonify({
+                'success': False,
+                'error': f'Missing required fields: {", ".join(missing_fields)}'
+            }), 400
+        
+        # Extract parameters
+        repo_url = data['repoURL']
+        new_repo_name = data.get('newRepoName')
+        whatsapp = data['whatsappNumber']
+        phone = data.get('phoneNumber')
+        gtm_id = data['gtmId']
+        
+        # Validate GTM ID format
+        if not re.match(r'^GTM-[A-Z0-9]+$', gtm_id, re.IGNORECASE):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid GTM ID format. Expected: GTM-XXXXXXX'
+            }), 400
+        
+        # Get GitHub token from environment
+        github_token = os.getenv('GITHUB_TOKEN')
+        if not github_token:
+            return jsonify({
+                'success': False,
+                'error': 'GitHub token not configured on server'
+            }), 500
+        
+        # Create importer instance
+        importer = RepositoryImporter(github_token=github_token)
+        
+        # Import and modify repository
+        result = importer.import_and_modify(
+            repo_url=repo_url,
+            new_repo_name=new_repo_name,
+            whatsapp_number=whatsapp,
+            phone_number=phone,
+            gtm_id=gtm_id
+        )
+        
+        # Add CORS headers
+        response = jsonify(result)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 200
+        
+    except ValueError as e:
+        response = jsonify({
+            'success': False,
+            'error': f'Validation error: {str(e)}'
+        })
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 400
+        
+    except Exception as e:
+        logger.error(f"Repository import error: {str(e)}")
+        response = jsonify({
+            'success': False,
+            'error': str(e)
+        })
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 500
 
 
 # ==========================================
