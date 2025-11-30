@@ -399,44 +399,44 @@ def build_landing():
                 logger.info(f"🎨 Using custom template: '{template_name}' -> '{selected_template}'")
         
         if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
-            result = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'}), 400
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            response = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
         out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, user_videos=user_videos, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette)
-        result = jsonify({'success': True, 'url': out['url'], 'alias': out['alias']}), 200
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify({'success': True, 'url': out['url'], 'alias': out['alias']})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
     except Exception as e:
-        result = jsonify({'success': False, 'error': str(e)}), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @app.route('/api/landing/history', methods=['GET'])
 def landing_history():
     try:
         history = get_landing_history()
-        result = jsonify(history)
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify(history)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
     except Exception as e:
-        result = jsonify({"error": str(e)}), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify({"error": str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @app.route('/api/landing/delete/<folder_name>', methods=['DELETE', 'OPTIONS'])
 def delete_landing(folder_name):
     if request.method == 'OPTIONS':
-        result = jsonify({}), 200
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        result.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        result.headers.add('Access-Control-Allow-Methods', 'DELETE, OPTIONS')
-        return result
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'DELETE, OPTIONS')
+        return response, 200
     try:
         delete_landing_from_github(folder_name)
-        result = jsonify({"success": True, "message": f"Landing {folder_name} deleted"})
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify({"success": True, "message": f"Landing {folder_name} deleted"})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
     except Exception as e:
         result = jsonify({"success": False, "error": str(e)}), 500
         result.headers.add('Access-Control-Allow-Origin', '*')
@@ -594,16 +594,16 @@ def get_templates():
     try:
         # Usar método estático para no requerir inicialización completa
         templates_info = LandingPageGenerator.get_templates_static()
-        result = jsonify({
+        response = jsonify({
             'success': True,
             'templates': templates_info
-        }), 200
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
     except Exception as e:
-        result = jsonify({'success': False, 'error': str(e)}), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @app.route('/api/templates/preview/<template_name>', methods=['GET'])
 def get_template_preview(template_name):
@@ -618,17 +618,17 @@ def get_template_preview(template_name):
             'conexion-guias-espirituales', 'nocturnal', 'jose-amp'
         ]
         if template_name not in valid_templates:
-            result = jsonify({'success': False, 'error': 'Template not found'}), 404
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            response = jsonify({'success': False, 'error': 'Template not found'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 404
 
         # Path to preview file
         preview_file = os.path.join('templates', 'previews', f'{template_name}_preview.html')
 
         if not os.path.exists(preview_file):
-            result = jsonify({'success': False, 'error': 'Preview not available'}), 404
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            response = jsonify({'success': False, 'error': 'Preview not available'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 404
 
         # Read and return the HTML content
         with open(preview_file, 'r', encoding='utf-8') as f:
@@ -640,9 +640,9 @@ def get_template_preview(template_name):
         return response
 
     except Exception as e:
-        result = jsonify({'success': False, 'error': str(e)}), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 # ============================================
 # CUSTOM TEMPLATES ENDPOINTS
@@ -4197,12 +4197,12 @@ def list_campaigns():
         customer_id = data.get('customerId')
         
         if not customer_id:
-            result = jsonify({
+            response = jsonify({
                 'success': False,
                 'error': 'Falta parámetro requerido: customerId'
-            }), 400
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
@@ -4235,14 +4235,13 @@ def list_campaigns():
         
         print(f"✅ Encontradas {len(campaigns)} campañas")
         
-        result = jsonify({
+        response = jsonify({
             'success': True,
             'campaigns': campaigns,
             'count': len(campaigns)
-        }), 200
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
         
     except GoogleAdsException as ex:
         print(f"❌ Google Ads API Error: {ex}")
@@ -4251,24 +4250,22 @@ def list_campaigns():
             for error in ex.failure.errors:
                 errors.append(error.message)
         
-        result = jsonify({
+        response = jsonify({
             'success': False,
             'error': 'Google Ads API Error',
             'errors': errors
-        }), 500
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
-        result = jsonify({
+        response = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 
 # ==========================================
@@ -4776,12 +4773,12 @@ def execute_query():
         query = data.get('query')
         
         if not customer_id or not query:
-            result = jsonify({
+            response = jsonify({
                 'success': False,
                 'error': 'customerId y query son requeridos'
-            }), 400
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         print(f"📊 Ejecutando query para cuenta {customer_id}")
         print(f"📝 Query: {query[:200]}...")
@@ -4893,14 +4890,13 @@ def execute_query():
         
         print(f"✅ Query ejecutada exitosamente. Resultados: {len(results_list)}")
         
-        result = jsonify({
+        response = jsonify({
             'success': True,
             'results': results_list,
             'count': len(results_list)
-        }), 200
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
         
     except GoogleAdsException as ex:
         print(f"❌ Google Ads API Error: {ex}")
@@ -4909,27 +4905,25 @@ def execute_query():
             for error in ex.failure.errors:
                 errors.append(error.message)
         
-        result = jsonify({
+        response = jsonify({
             'success': False,
             'error': 'Google Ads API Error',
             'errors': errors
-        }), 500
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         import traceback
         traceback.print_exc()
         
-        result = jsonify({
+        response = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 # Run server (after all routes are registered)
 @app.route('/api/keyword-ideas', methods=['POST', 'OPTIONS'])
@@ -6412,4 +6406,3 @@ def delete_cloned_site(site_name):
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
-
