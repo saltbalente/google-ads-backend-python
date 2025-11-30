@@ -12,3 +12,16 @@ __pycache__/
 *.pyc
 venv/
 .DS_Store
+
+# Web Cloner outputs (test directories)
+*_output/
+cloned_output/
+amarreahora_output/
+test_output/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+node_modules/

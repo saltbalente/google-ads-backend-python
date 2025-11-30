@@ -19,6 +19,16 @@ Sistema profesional de clonación de sitios web con integración automática a G
   - Actualización de IDs de Google Tag Manager (`GTM-XXXXXX`)
   - Expresiones regulares robustas para múltiples formatos
 
+- **🎨 Optimizaciones de Elementor**
+  - **Compatibilidad Completa**: Manejo automático de elementos invisibles, carousels y animaciones
+  - **Corrección de Elementos Invisibles**: Remueve clases `elementor-invisible` para mostrar contenido oculto
+  - **Conversión de Carousels**: Transforma carousels de Elementor en grids responsivos cuando JavaScript no está disponible
+  - **Corrección de Animaciones**: Soluciona problemas de transparencia en animaciones (zoomIn, fadeIn, etc.)
+  - **Optimización Móvil**: Redimensionamiento automático al 70% de ancho máximo para imágenes en móviles (≤768px)
+  - **Organización del Layout**: Container máximo de 1200px, márgenes consistentes y espaciado adecuado
+  - **Preservación del Logo**: Exclusión automática del logo de optimizaciones móviles para mantener calidad visual
+  - **Estilos Visuales**: Bordes redondeados (12-15px) y sombras sutiles en imágenes
+
 - **Integración con GitHub**
   - Autenticación con GitHub API
   - Creación automática del repositorio si no existe

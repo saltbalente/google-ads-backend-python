@@ -143,6 +143,37 @@ class ContentProcessor:
     
     def __init__(self):
         self.replacements: Dict[str, str] = {}
+    
+    @staticmethod
+    def get_resource_filename(url: str) -> str:
+        """Generate a unique filename for a resource URL"""
+        parsed = urlparse(url)
+        path = parsed.path
+        
+        # Get filename from path
+        if path and path != '/':
+            filename = Path(path).name
+            if filename:
+                # Remove query params from filename
+                filename = filename.split('?')[0]
+                return filename
+                
+        # Generate hash-based name if no filename
+        url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+        
+        # Try to guess extension from content-type
+        ext = '.bin'
+        if 'css' in url.lower():
+            ext = '.css'
+        elif 'js' in url.lower() or 'javascript' in url.lower():
+            ext = '.js'
+        elif any(img_ext in url.lower() for img_ext in ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp']):
+            for img_ext in ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp']:
+                if img_ext in url.lower():
+                    ext = img_ext
+                    break
+                    
+        return f"resource_{url_hash}{ext}"
         
     def set_replacements(
         self,
@@ -171,16 +202,22 @@ class ContentProcessor:
             if link.get('href'):
                 full_url = urljoin(base_url, link['href'])
                 resource_urls.append(('css', full_url, link))
+                # Update href to relative path
+                link['href'] = ContentProcessor.get_resource_filename(full_url)
                 
         # Extract and update script sources
         for script in soup.find_all('script', src=True):
             full_url = urljoin(base_url, script['src'])
             resource_urls.append(('js', full_url, script))
+            # Update src to relative path
+            script['src'] = ContentProcessor.get_resource_filename(full_url)
             
         # Extract and update images
         for img in soup.find_all('img', src=True):
             full_url = urljoin(base_url, img['src'])
             resource_urls.append(('img', full_url, img))
+            # Update src to relative path
+            img['src'] = ContentProcessor.get_resource_filename(full_url)
             
         # Extract srcset images
         for img in soup.find_all('img', srcset=True):
@@ -201,21 +238,38 @@ class ContentProcessor:
             style = element['style']
             bg_urls = self._extract_background_urls(style, base_url)
             resource_urls.extend([('img', url, None) for url in bg_urls])
+            # Fix Elementor CSS issues and replace URLs in inline styles
+            style = self._fix_elementor_css_issues(style)
+            element['style'] = self._replace_css_urls(style, base_url)
             
         # Extract and update favicon
         for link in soup.find_all('link', rel=lambda r: r and 'icon' in r.lower()):
             if link.get('href'):
                 full_url = urljoin(base_url, link['href'])
                 resource_urls.append(('img', full_url, link))
+                # Update href to relative path
+                link['href'] = ContentProcessor.get_resource_filename(full_url)
                 
-        # Extract inline CSS
+        # Extract and update inline CSS
         for style_tag in soup.find_all('style'):
             if style_tag.string:
                 css_urls = self._extract_urls_from_css(style_tag.string, base_url)
                 resource_urls.extend([('css_asset', url, None) for url in css_urls])
+                # Fix Elementor CSS issues and replace URLs in inline CSS
+                style_tag.string = self._fix_elementor_css_issues(style_tag.string)
+                style_tag.string = self._replace_css_urls(style_tag.string, base_url)
         
         # Neutralize all non-WhatsApp links (replace with #)
         self._neutralize_links(soup)
+        
+        # Remove elementor-invisible class to make elements visible
+        self._remove_elementor_invisible(soup)
+        
+        # Convert Elementor carousels to simple responsive grids
+        self._fix_elementor_carousels(soup)
+        
+        # Fix Elementor animation transparency issues
+        self._fix_elementor_animations(soup)
                 
         # Apply content replacements
         html_str = str(soup)
@@ -226,10 +280,51 @@ class ContentProcessor:
     def process_css(self, css_content: str, base_url: str) -> Tuple[str, List[str]]:
         """
         Process CSS content and extract resource URLs
+        Also replaces absolute URLs with relative paths
         Returns: (processed_css, list_of_resource_urls)
         """
         resource_urls = self._extract_urls_from_css(css_content, base_url)
-        return css_content, resource_urls
+        
+        # Replace absolute URLs with relative paths in CSS
+        processed_css = self._replace_css_urls(css_content, base_url)
+        
+        return processed_css, resource_urls
+    
+    def _replace_css_urls(self, css_content: str, base_url: str) -> str:
+        """Replace absolute URLs in CSS with relative paths"""
+        # Pattern to match url(...) in CSS
+        pattern = r'url\(["\']?([^"\')]+)["\']?\)'
+        
+        def replace_url(match):
+            url = match.group(1).strip()
+            
+            # Skip data URIs and already relative URLs
+            if url.startswith('data:') or url.startswith('#') or not url.startswith('http'):
+                return match.group(0)
+            
+            # Get the filename for this resource
+            try:
+                full_url = urljoin(base_url, url)
+                parsed = urlparse(full_url)
+                path = parsed.path
+                
+                if path and path != '/':
+                    filename = Path(path).name
+                    if filename:
+                        # Remove query params from filename
+                        filename = filename.split('?')[0]
+                        # Return relative path
+                        return f'url({filename})'
+                
+                # If we can't get a proper filename, return a hash-based name
+                url_hash = hashlib.md5(full_url.encode()).hexdigest()[:8]
+                return f'url(resource_{url_hash}.bin)'
+                
+            except Exception as e:
+                logger.debug(f"Failed to replace URL in CSS: {url} - {str(e)}")
+                return match.group(0)
+        
+        return re.sub(pattern, replace_url, css_content)
         
     def _extract_background_urls(self, style: str, base_url: str) -> List[str]:
         """Extract background image URLs from inline style"""
@@ -292,6 +387,294 @@ class ContentProcessor:
                 logger.debug(f"Neutralized link: {href[:60]}")
         
         logger.info(f"Link neutralization: {neutralized_count} neutralized, {preserved_count} WhatsApp links preserved")
+    
+    def _remove_elementor_invisible(self, soup: BeautifulSoup) -> None:
+        """Remove elementor-invisible class from all elements to make them visible"""
+        invisible_count = 0
+        
+        # Find all elements with elementor-invisible class
+        for element in soup.find_all(class_='elementor-invisible'):
+            if 'class' in element.attrs:
+                # Remove the elementor-invisible class from the class list
+                classes = element['class']
+                if 'elementor-invisible' in classes:
+                    classes.remove('elementor-invisible')
+                    invisible_count += 1
+                    element['class'] = classes
+        
+        if invisible_count > 0:
+            logger.info(f"Removed elementor-invisible class from {invisible_count} elements")
+    
+    def _fix_elementor_css_issues(self, css_content: str) -> str:
+        """Fix common Elementor CSS issues that cause problems in cloned sites"""
+        
+        # Fix Elementor image carousel sizing issues
+        # When swiper is not initialized, slides have restrictive max-width
+        # This makes images appear too small in carousels
+        css_fixes = [
+            # Fix for image carousel slides when swiper is not initialized
+            (r'\.elementor-image-carousel-wrapper:not\(\.swiper-initialized\)\s+\.swiper-slide\s*\{[^}]*max-width:\s*calc\(100%\s*/\s*var\(--e-image-carousel-slides-to-show,\s*3\)\)[^}]*\}',
+             '.elementor-image-carousel-wrapper:not(.swiper-initialized) .swiper-slide { width: 100% !important; max-width: 100% !important; }'),
+            
+            # Alternative fix - force full width for carousel slides
+            (r'\.elementor-image-carousel-wrapper\s+\.swiper-slide\s*\{[^}]*max-width:\s*calc\([^}]+\)[^}]*\}',
+             '.elementor-image-carousel-wrapper .swiper-slide { width: 100% !important; max-width: 100% !important; }'),
+             
+            # Fix for any Elementor carousel wrapper issues
+            (r'\.elementor-image-carousel-wrapper\s*\{[^}]*display:\s*flex[^}]*\}',
+             '.elementor-image-carousel-wrapper { display: block !important; }'),
+             
+            # Make carousel images responsive and visible
+            (r'\.elementor-image-carousel\s+\.swiper-slide\s*\{[^}]*display:\s*none[^}]*\}',
+             '.elementor-image-carousel .swiper-slide { display: block !important; }'),
+             
+            # Fix swiper wrapper to show images in a column layout as fallback
+            (r'\.elementor-image-carousel\.swiper-wrapper\s*\{[^}]*flex-direction:\s*row[^}]*\}',
+             '.elementor-image-carousel.swiper-wrapper { flex-direction: column !important; display: flex !important; }'),
+             
+            # Ensure carousel images are properly sized
+            (r'\.swiper-slide-image\s*\{[^}]*max-width:\s*100%[^}]*\}',
+             '.swiper-slide-image { max-width: 100% !important; height: auto !important; display: block !important; }'),
+             
+            # Add fallback styles for converted carousels
+            (r'\.elementor-carousel-fallback\s*\{[^}]*\}',
+             '.elementor-carousel-fallback { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; padding: 20px 0; } .elementor-carousel-fallback img { width: 100%; height: auto; max-width: 100%; display: block; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }'),
+             
+            # Fix Elementor animation transparency issues
+            (r'\.animated[^}]*\{[^}]*opacity:\s*0[^}]*\}',
+             '.animated { opacity: 1 !important; visibility: visible !important; }'),
+             
+            # Force visibility for elements with animation classes
+            (r'\.elementor-invisible[^}]*\{[^}]*\}',
+             '.elementor-invisible { opacity: 1 !important; visibility: visible !important; display: block !important; }'),
+             
+            # Fix zoomIn animation initial state
+            (r'@keyframes\s+zoomIn\s*\{[^}]*from\s*\{[^}]*opacity:\s*0[^}]*\}[^}]*\}',
+             '@keyframes zoomIn { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: scale(1); } } .zoomIn { opacity: 1 !important; transform: scale(1) !important; }'),
+             
+            # Fix fadeIn animation initial state
+            (r'@keyframes\s+fadeIn\s*\{[^}]*from\s*\{[^}]*opacity:\s*0[^}]*\}[^}]*\}',
+             '@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } .fadeIn { opacity: 1 !important; }'),
+             
+            # Center all images and make them responsive for mobile
+            (r'img\s*\{[^}]*\}',
+             'img { display: block; margin: 0 auto; max-width: 100%; height: auto; width: auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }'),
+             
+            # Center image boxes and make them responsive
+            (r'\.elementor-image-box-wrapper\s*\{[^}]*\}',
+             '.elementor-image-box-wrapper { text-align: center; margin: 20px auto; max-width: 100%; }'),
+             
+            # Make image box images responsive and centered
+            (r'\.elementor-image-box-img\s*img\s*\{[^}]*\}',
+             '.elementor-image-box-img img { display: block; margin: 0 auto; max-width: 100%; height: auto; width: auto; border-radius: 15px; box-shadow: 0 6px 20px rgba(0,0,0,0.2); }'),
+             
+            # Center carousel fallback images
+            (r'\.elementor-carousel-fallback\s+img\s*\{[^}]*\}',
+             '.elementor-carousel-fallback img { display: block; margin: 0 auto; max-width: 100%; height: auto; width: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }'),
+             
+            # Responsive image sizing for mobile - 70% size
+            (r'@media\s*\(max-width:\s*768px\)\s*\{[^}]*img\s*\{[^}]*\}[^}]*\}',
+             '@media (max-width: 768px) { img { max-width: 70%; margin: 15px auto; } .elementor-image-box-img img { max-width: 70%; margin: 20px auto; } .elementor-carousel-fallback img { max-width: 70%; margin: 15px auto; } }'),
+             
+            # Additional mobile optimizations - 70% size
+            (r'@media\s*\(max-width:\s*480px\)\s*\{[^}]*img\s*\{[^}]*\}[^}]*\}',
+             '@media (max-width: 480px) { img { max-width: 70%; margin: 12px auto; } .elementor-image-box-img img { max-width: 70%; margin: 18px auto; } .elementor-carousel-fallback img { max-width: 70%; margin: 12px auto; } }'),
+             
+            # Global image centering and responsive design
+            (r'\.wp-image-[^}]*\{[^}]*\}',
+             '.wp-image- { display: block; margin: 0 auto; max-width: 100%; height: auto; }'),
+             
+            # Center all figure elements containing images
+            (r'figure\s*\{[^}]*\}',
+             'figure { text-align: center; margin: 20px auto; }'),
+             
+            # Ensure all image containers are centered
+            (r'\.elementor-widget-image[^}]*\{[^}]*\}',
+             '.elementor-widget-image { text-align: center; margin: 20px auto; }'),
+             
+            # Logo exclusion - keep logo at full size and nice styling
+            (r'\.site-logo[^}]*\{[^}]*\}',
+             '.site-logo { max-width: 100% !important; width: auto !important; border-radius: 8px; }'),
+             
+            # Logo image specific rule - exclude from mobile resizing
+            (r'\.site-logo\s+img\s*\{[^}]*\}',
+             '.site-logo img { max-width: 100% !important; width: auto !important; height: auto !important; border-radius: 8px; box-shadow: none !important; }'),
+             
+            # Header logo exclusion
+            (r'\.site-header\s+\.site-logo[^}]*\{[^}]*\}',
+             '.site-header .site-logo { max-width: 100% !important; width: auto !important; }'),
+             
+            # Custom logo class exclusion
+            (r'\.custom-logo[^}]*\{[^}]*\}',
+             '.custom-logo { max-width: 100% !important; width: auto !important; height: auto !important; border-radius: 8px; }'),
+        ]
+        
+        fixed_css = css_content
+        fixes_applied = 0
+        
+        for pattern, replacement in css_fixes:
+            if re.search(pattern, fixed_css, re.IGNORECASE | re.DOTALL):
+                fixed_css = re.sub(pattern, replacement, fixed_css, flags=re.IGNORECASE | re.DOTALL)
+                fixes_applied += 1
+                logger.debug(f"Applied Elementor CSS fix: {pattern[:50]}...")
+        
+        if fixes_applied > 0:
+            logger.info(f"Applied {fixes_applied} Elementor CSS fixes")
+        
+        # Always add mobile optimization rule if not present
+        mobile_rule = '@media (max-width: 768px) { img { max-width: 70% !important; margin: 15px auto; } .elementor-image-box-img img { max-width: 70% !important; margin: 20px auto; } .elementor-carousel-fallback img { max-width: 70% !important; margin: 15px auto; } }'
+        if '@media (max-width: 768px)' not in fixed_css:
+            fixed_css += '\n\n' + mobile_rule
+            logger.info("Added mobile optimization rule (70% image sizing)")
+        
+        # Always add layout organization rules if not present
+        layout_rules = 'body { margin: 0; padding: 0; } .elementor-section { margin-bottom: 0; } .elementor-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; } .elementor-row { margin: 0 -10px; } .elementor-column { padding: 0 10px; margin-bottom: 20px; } .elementor-widget-container { margin-bottom: 20px; } .elementor-element { margin-bottom: 20px; } .site-main { padding: 20px 0; } .entry-content { margin-bottom: 20px; } .wp-block-group { margin-bottom: 20px; } .wp-block-columns { margin-bottom: 20px; }'
+        if 'body { margin: 0; padding: 0; }' not in fixed_css:
+            fixed_css += '\n\n' + layout_rules
+            logger.info("Added layout organization rules (margins and spacing)")
+        
+        # Always add logo exclusion rules if not present
+        logo_rules = '.site-logo { max-width: 100% !important; width: auto !important; border-radius: 8px; } .site-logo img { max-width: 100% !important; width: auto !important; height: auto !important; border-radius: 8px; box-shadow: none !important; } .site-header .site-logo { max-width: 100% !important; width: auto !important; } .custom-logo { max-width: 100% !important; width: auto !important; height: auto !important; border-radius: 8px; }'
+        if '.site-logo' not in fixed_css and '.custom-logo' not in fixed_css:
+            fixed_css += '\n\n' + logo_rules
+            logger.info("Added logo exclusion rules (preserve full size)")
+        
+        return fixed_css
+    
+    def _fix_elementor_carousels(self, soup: BeautifulSoup) -> None:
+        """Convert Elementor carousels to simple image galleries when JavaScript is not available"""
+        carousel_count = 0
+        
+        # Find all Elementor image carousels
+        carousels = soup.find_all('div', class_=lambda x: x and 'elementor-image-carousel-wrapper' in x)
+        
+        for carousel in carousels:
+            try:
+                # Get the swiper wrapper
+                swiper_wrapper = carousel.find('div', class_=lambda x: x and 'elementor-image-carousel' in x and 'swiper-wrapper' in x)
+                if not swiper_wrapper:
+                    continue
+                
+                # Get all slides
+                slides = swiper_wrapper.find_all('div', class_=lambda x: x and 'swiper-slide' in x)
+                if len(slides) <= 1:
+                    continue  # No need to fix single image carousels
+                
+                # Create a simple responsive grid container
+                grid_container = soup.new_tag('div')
+                grid_container['class'] = 'elementor-carousel-fallback'
+                grid_container['style'] = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; padding: 20px 0;'
+                
+                # Extract images from slides and add them to the grid
+                for slide in slides:
+                    figure = slide.find('figure')
+                    if figure:
+                        img = figure.find('img')
+                        if img:
+                            # Clone the image and add it to the grid
+                            new_img = soup.new_tag('img')
+                            new_img.attrs = img.attrs.copy()
+                            # Ensure responsive sizing
+                            new_img['style'] = 'width: 100%; height: auto; max-width: 100%; display: block; border-radius: 8px;'
+                            grid_container.append(new_img)
+                
+                # Replace the entire carousel with the simple grid
+                if len(grid_container.contents) > 0:
+                    carousel.replace_with(grid_container)
+                    carousel_count += 1
+                    logger.debug(f"Converted carousel with {len(slides)} images to responsive grid")
+                    
+            except Exception as e:
+                logger.warning(f"Failed to fix carousel: {str(e)}")
+                continue
+        
+        if carousel_count > 0:
+            logger.info(f"Converted {carousel_count} Elementor carousels to responsive image grids")
+    
+    def _fix_elementor_animations(self, soup: BeautifulSoup) -> None:
+        """Remove Elementor animation classes that cause transparency issues"""
+        animation_count = 0
+        
+        # Remove animation classes that cause elements to be transparent
+        animation_classes = [
+            'animated-slow', 'animated', 'elementor-invisible', 
+            'zoomIn', 'fadeIn', 'slideInUp', 'slideInDown', 
+            'slideInLeft', 'slideInRight', 'bounceIn', 'rotateIn',
+            'flipInX', 'flipInY', 'lightSpeedIn', 'hinge'
+        ]
+        
+        for element in soup.find_all(attrs={'data-settings': True}):
+            settings = element.get('data-settings', '')
+            if '_animation' in settings or 'animation' in settings:
+                # Remove animation-related data attributes
+                if 'data-settings' in element.attrs:
+                    del element['data-settings']
+                animation_count += 1
+        
+        # Remove animation classes from elements
+        for element in soup.find_all(class_=True):
+            classes = element.get('class', [])
+            
+            # Ensure classes is a list
+            if isinstance(classes, str):
+                classes = classes.split()
+            elif not isinstance(classes, list):
+                classes = list(classes)
+            
+            original_classes = classes.copy()
+            
+            # Remove animation classes
+            for anim_class in animation_classes:
+                if anim_class in classes:
+                    classes.remove(anim_class)
+                    animation_count += 1
+            
+            # Force opacity to 1 for animated elements
+            if original_classes != classes:
+                style = element.get('style', '')
+                if 'opacity' not in style:
+                    if style and not style.endswith(';'):
+                        style += ';'
+                    style += 'opacity: 1 !important; visibility: visible !important;'
+                    element['style'] = style
+                
+                # Update the class attribute
+                element['class'] = classes
+        
+        # Also fix elements with animation data attributes
+        for element in soup.find_all(attrs={'data-animation': True}):
+            del element['data-animation']
+            animation_count += 1
+            
+            # Force visibility
+            style = element.get('style', '')
+            if 'opacity' not in style:
+                if style and not style.endswith(';'):
+                    style += ';'
+                style += 'opacity: 1 !important; visibility: visible !important;'
+                element['style'] = style
+        
+        if animation_count > 0:
+            logger.info(f"Fixed {animation_count} Elementor animation transparency issues")
+    
+    def process_css(self, css_content: str, base_url: str) -> Tuple[str, List[str]]:
+        """
+        Process CSS content to extract URLs and fix Elementor issues
+        Returns: (processed_css, list_of_extracted_urls)
+        """
+        # Fix Elementor CSS issues first
+        css_content = self._fix_elementor_css_issues(css_content)
+        
+        # Extract URLs from CSS
+        extracted_urls = self._extract_urls_from_css(css_content, base_url)
+        
+        # Replace URLs in CSS with relative paths
+        processed_css = self._replace_css_urls(css_content, base_url)
+        
+        # Apply text replacements (WhatsApp, GTM, etc.)
+        processed_css = self._apply_replacements(processed_css)
+        
+        return processed_css, extracted_urls
     
     def _apply_replacements(self, content: str) -> str:
         """Apply WhatsApp, phone, and GTM replacements"""
