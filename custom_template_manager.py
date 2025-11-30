@@ -1,29 +1,39 @@
 """
 Custom Template Manager
 Gestiona templates personalizados creados por usuarios con Grok AI
+Guarda en templates/landing/ y templates/previews/ para GitHub Pages
 """
 
 import os
 import json
-import uuid
+import re
 from datetime import datetime
 from typing import List, Dict, Optional
 
 class CustomTemplateManager:
-    def __init__(self, storage_dir: str = "custom_templates"):
+    def __init__(self, 
+                 landing_dir: str = "templates/landing",
+                 preview_dir: str = "templates/previews",
+                 index_dir: str = "custom_templates"):
         """
         Inicializa el gestor de templates personalizados
         
         Args:
-            storage_dir: Directorio donde se guardarán los templates
+            landing_dir: Directorio para templates completos (Jinja2)
+            preview_dir: Directorio para previews (HTML renderizado)
+            index_dir: Directorio para el índice JSON
         """
-        self.storage_dir = storage_dir
-        self.templates_index_file = os.path.join(storage_dir, "templates_index.json")
-        self._ensure_storage_dir()
+        self.landing_dir = landing_dir
+        self.preview_dir = preview_dir
+        self.index_dir = index_dir
+        self.templates_index_file = os.path.join(index_dir, "templates_index.json")
+        self._ensure_storage_dirs()
     
-    def _ensure_storage_dir(self):
-        """Crea el directorio de almacenamiento si no existe"""
-        os.makedirs(self.storage_dir, exist_ok=True)
+    def _ensure_storage_dirs(self):
+        """Crea los directorios de almacenamiento si no existen"""
+        os.makedirs(self.landing_dir, exist_ok=True)
+        os.makedirs(self.preview_dir, exist_ok=True)
+        os.makedirs(self.index_dir, exist_ok=True)
         
         # Crear archivo índice si no existe
         if not os.path.exists(self.templates_index_file):
@@ -43,9 +53,66 @@ class CustomTemplateManager:
         with open(self.templates_index_file, 'w', encoding='utf-8') as f:
             json.dump(index, f, indent=2, ensure_ascii=False)
     
+    def _sanitize_filename(self, name: str) -> str:
+        """
+        Convierte el nombre del template a un nombre de archivo válido
+        Ejemplo: "Template Tarot Místico" -> "template-tarot-mistico"
+        """
+        # Convertir a minúsculas
+        name = name.lower()
+        # Reemplazar espacios y caracteres especiales con guiones
+        name = re.sub(r'[^a-z0-9]+', '-', name)
+        # Eliminar guiones al inicio/final
+        name = name.strip('-')
+        # Limitar longitud
+        return name[:50]
+    
+    def _generate_preview_html(self, template_content: str, template_data: Dict) -> str:
+        """
+        Genera un preview HTML renderizando las variables Jinja2 con datos de ejemplo
+        
+        Args:
+            template_content: Contenido HTML/Jinja2 del template
+            template_data: Metadata del template para generar valores de ejemplo
+            
+        Returns:
+            HTML con variables reemplazadas
+        """
+        preview = template_content
+        
+        # Reemplazar variables comunes de Jinja2 con valores de ejemplo
+        replacements = {
+            r'\{\{\s*keywords\s*\}\}': ', '.join(template_data.get('keywords', ['servicios', 'profesionales'])),
+            r'\{\{\s*business_type\s*\}\}': template_data.get('businessType', 'Servicios Profesionales'),
+            r'\{\{\s*target_audience\s*\}\}': template_data.get('targetAudience', 'público general'),
+            r'\{\{\s*call_to_action\s*\}\}': template_data.get('callToAction', 'Contactar Ahora'),
+            r'\{\{\s*phone\s*\}\}': '+1 (555) 123-4567',
+            r'\{\{\s*email\s*\}\}': 'contacto@ejemplo.com',
+            r'\{\{\s*whatsapp\s*\}\}': '+1 (555) 123-4567',
+            r'\{\{\s*company_name\s*\}\}': template_data.get('businessType', 'Mi Empresa'),
+            r'\{\{\s*current_year\s*\}\}': str(datetime.now().year),
+        }
+        
+        for pattern, replacement in replacements.items():
+            preview = re.sub(pattern, replacement, preview)
+        
+        # Eliminar bloques de control Jinja2 que quedan ({% ... %})
+        preview = re.sub(r'\{%.*?%\}', '', preview)
+        
+        # Agregar comentario indicando que es un preview
+        preview_header = f"""<!-- 
+    PREVIEW GENERADO AUTOMÁTICAMENTE
+    Template: {template_data.get('name', 'Sin nombre')}
+    Generado: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    Nota: Este es un preview estático. El template original usa variables Jinja2.
+-->
+
+"""
+        return preview_header + preview
+    
     def save_template(self, template_data: Dict) -> Dict:
         """
-        Guarda un nuevo template personalizado
+        Guarda un nuevo template personalizado en templates/landing/ y templates/previews/
         
         Args:
             template_data: Diccionario con los datos del template
@@ -64,14 +131,31 @@ class CustomTemplateManager:
         Returns:
             Diccionario con información del template guardado
         """
-        # Generar ID único
-        template_id = str(uuid.uuid4())
         timestamp = datetime.utcnow().isoformat()
+        
+        # Generar nombre de archivo a partir del nombre del template
+        base_filename = self._sanitize_filename(template_data.get("name", "template"))
+        
+        # Verificar si ya existe un template con este nombre
+        existing_count = 0
+        for template in self._load_index():
+            if template.get('baseFilename', '').startswith(base_filename):
+                existing_count += 1
+        
+        # Agregar sufijo si es necesario
+        if existing_count > 0:
+            filename = f"{base_filename}-{existing_count + 1}.html"
+        else:
+            filename = f"{base_filename}.html"
+        
+        preview_filename = filename.replace('.html', '_preview.html')
         
         # Preparar metadata del template
         template_metadata = {
-            "id": template_id,
             "name": template_data.get("name"),
+            "baseFilename": base_filename,
+            "filename": filename,
+            "previewFilename": preview_filename,
             "businessType": template_data.get("businessType"),
             "targetAudience": template_data.get("targetAudience"),
             "tone": template_data.get("tone"),
@@ -82,15 +166,26 @@ class CustomTemplateManager:
             "campaignId": template_data.get("campaignId"),
             "adGroupId": template_data.get("adGroupId"),
             "createdAt": timestamp,
-            "filename": f"{template_id}.html"
+            "githubLandingPath": f"templates/landing/{filename}",
+            "githubPreviewPath": f"templates/previews/{preview_filename}"
         }
         
-        # Guardar contenido del template
-        template_file = os.path.join(self.storage_dir, template_metadata["filename"])
-        with open(template_file, 'w', encoding='utf-8') as f:
-            f.write(template_data.get("content", ""))
+        content = template_data.get("content", "")
         
-        # Actualizar índice
+        # 1. Guardar template completo (Jinja2) en templates/landing/
+        landing_file = os.path.join(self.landing_dir, filename)
+        with open(landing_file, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"✅ Template guardado en: {landing_file}")
+        
+        # 2. Generar y guardar preview en templates/previews/
+        preview_content = self._generate_preview_html(content, template_data)
+        preview_file = os.path.join(self.preview_dir, preview_filename)
+        with open(preview_file, 'w', encoding='utf-8') as f:
+            f.write(preview_content)
+        print(f"✅ Preview guardado en: {preview_file}")
+        
+        # 3. Actualizar índice
         index = self._load_index()
         index.append(template_metadata)
         self._save_index(index)
@@ -98,7 +193,11 @@ class CustomTemplateManager:
         return {
             "success": True,
             "template": template_metadata,
-            "message": f"Template '{template_metadata['name']}' guardado exitosamente"
+            "message": f"Template '{template_metadata['name']}' guardado exitosamente en templates/landing/ y templates/previews/",
+            "files": {
+                "landing": landing_file,
+                "preview": preview_file
+            }
         }
     
     def get_all_templates(self) -> List[Dict]:
@@ -112,10 +211,10 @@ class CustomTemplateManager:
     
     def get_template_by_id(self, template_id: str) -> Optional[Dict]:
         """
-        Obtiene un template por su ID
+        Obtiene un template por su nombre de archivo
         
         Args:
-            template_id: ID del template
+            template_id: Nombre de archivo del template (puede ser filename o baseFilename)
             
         Returns:
             Diccionario con metadata y contenido del template o None
@@ -123,9 +222,13 @@ class CustomTemplateManager:
         index = self._load_index()
         
         for template in index:
-            if template["id"] == template_id:
-                # Cargar contenido
-                template_file = os.path.join(self.storage_dir, template["filename"])
+            # Buscar por filename exacto o por baseFilename
+            if (template.get("filename") == template_id or 
+                template.get("baseFilename") == template_id or
+                template.get("filename", "").replace('.html', '') == template_id):
+                
+                # Cargar contenido desde templates/landing/
+                template_file = os.path.join(self.landing_dir, template["filename"])
                 
                 if os.path.exists(template_file):
                     with open(template_file, 'r', encoding='utf-8') as f:
@@ -173,10 +276,10 @@ class CustomTemplateManager:
     
     def delete_template(self, template_id: str) -> Dict:
         """
-        Elimina un template
+        Elimina un template de ambas carpetas (landing y preview)
         
         Args:
-            template_id: ID del template a eliminar
+            template_id: Nombre de archivo del template
             
         Returns:
             Diccionario con resultado de la operación
@@ -187,24 +290,33 @@ class CustomTemplateManager:
         new_index = []
         
         for template in index:
-            if template["id"] == template_id:
+            # Buscar por filename o baseFilename
+            if (template.get("filename") == template_id or 
+                template.get("baseFilename") == template_id or
+                template.get("filename", "").replace('.html', '') == template_id):
                 template_to_delete = template
             else:
                 new_index.append(template)
         
         if template_to_delete:
-            # Eliminar archivo
-            template_file = os.path.join(self.storage_dir, template_to_delete["filename"])
+            # Eliminar archivo de landing
+            landing_file = os.path.join(self.landing_dir, template_to_delete["filename"])
+            if os.path.exists(landing_file):
+                os.remove(landing_file)
+                print(f"✅ Eliminado: {landing_file}")
             
-            if os.path.exists(template_file):
-                os.remove(template_file)
+            # Eliminar archivo de preview
+            preview_file = os.path.join(self.preview_dir, template_to_delete.get("previewFilename", ""))
+            if os.path.exists(preview_file):
+                os.remove(preview_file)
+                print(f"✅ Eliminado: {preview_file}")
             
             # Actualizar índice
             self._save_index(new_index)
             
             return {
                 "success": True,
-                "message": f"Template '{template_to_delete['name']}' eliminado exitosamente"
+                "message": f"Template '{template_to_delete['name']}' eliminado exitosamente de landing y preview"
             }
         else:
             return {
@@ -214,10 +326,10 @@ class CustomTemplateManager:
     
     def update_template(self, template_id: str, updates: Dict) -> Dict:
         """
-        Actualiza un template existente
+        Actualiza un template existente en ambas carpetas
         
         Args:
-            template_id: ID del template
+            template_id: Nombre de archivo del template
             updates: Diccionario con campos a actualizar
             
         Returns:
@@ -227,7 +339,10 @@ class CustomTemplateManager:
         template_found = False
         
         for i, template in enumerate(index):
-            if template["id"] == template_id:
+            if (template.get("filename") == template_id or 
+                template.get("baseFilename") == template_id or
+                template.get("filename", "").replace('.html', '') == template_id):
+                
                 template_found = True
                 
                 # Actualizar metadata
@@ -239,9 +354,16 @@ class CustomTemplateManager:
                 
                 # Actualizar contenido si se proporciona
                 if "content" in updates:
-                    template_file = os.path.join(self.storage_dir, template["filename"])
-                    with open(template_file, 'w', encoding='utf-8') as f:
+                    # Actualizar landing
+                    landing_file = os.path.join(self.landing_dir, template["filename"])
+                    with open(landing_file, 'w', encoding='utf-8') as f:
                         f.write(updates["content"])
+                    
+                    # Regenerar preview
+                    preview_content = self._generate_preview_html(updates["content"], template)
+                    preview_file = os.path.join(self.preview_dir, template.get("previewFilename", ""))
+                    with open(preview_file, 'w', encoding='utf-8') as f:
+                        f.write(preview_content)
                 
                 index[i] = template
                 break
@@ -250,7 +372,7 @@ class CustomTemplateManager:
             self._save_index(index)
             return {
                 "success": True,
-                "message": "Template actualizado exitosamente"
+                "message": "Template actualizado exitosamente en landing y preview"
             }
         else:
             return {
