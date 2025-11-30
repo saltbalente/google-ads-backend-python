@@ -186,7 +186,13 @@ class ContentProcessor:
         for img in soup.find_all('img', srcset=True):
             srcset = img['srcset']
             for part in srcset.split(','):
-                url_part = part.strip().split()[0]
+                part = part.strip()
+                if not part:  # Skip empty parts
+                    continue
+                parts = part.split()
+                if not parts:  # Skip if no URL found
+                    continue
+                url_part = parts[0]
                 full_url = urljoin(base_url, url_part)
                 resource_urls.append(('img', full_url, None))
                 
