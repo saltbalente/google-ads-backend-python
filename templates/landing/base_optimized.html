@@ -538,7 +538,15 @@
       </div>
 
       <!-- Imagen Central (si existe) -->
-      {% if user_image_middle %}
+      <!-- Contenido Central (Video o Imagen) -->
+      {% if user_video_middle %}
+      <div class="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-mystic-500/20 mb-8">
+        <video controls class="w-full h-auto" poster="{{ user_video_middle_thumbnail }}">
+          <source src="{{ user_video_middle }}" type="video/mp4">
+          Tu navegador no soporta el elemento de video.
+        </video>
+      </div>
+      {% elif user_image_middle %}
       <div class="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-mystic-500/20">
         <img src="{{ user_image_middle }}" alt="Imagen central" class="w-full h-auto object-cover" loading="lazy">
       </div>
