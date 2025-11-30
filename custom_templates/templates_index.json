@@ -24,5 +24,33 @@
     "githubLandingPath": "templates/landing/test-template-b-sico.html",
     "githubPreviewPath": "templates/previews/test-template-b-sico_preview.html",
     "updatedAt": "2025-11-30T19:55:41.777462"
+  },
+  {
+    "name": "Curanderos",
+    "baseFilename": "curanderos",
+    "filename": "curanderos.html",
+    "previewFilename": "curanderos_preview.html",
+    "businessType": "Curandero Profesional",
+    "targetAudience": "Personas buscando sanación natural y medicina ancestral",
+    "tone": "Espiritual y Natural",
+    "callToAction": "Consulta Ahora",
+    "colorScheme": "Verde natural y tierras",
+    "sections": [
+      "hero",
+      "servicios",
+      "beneficios",
+      "contacto"
+    ],
+    "keywords": [
+      "curandero",
+      "sanación",
+      "medicina natural",
+      "limpias"
+    ],
+    "campaignId": null,
+    "adGroupId": null,
+    "createdAt": "2025-11-30T21:43:15.455191",
+    "githubLandingPath": "templates/landing/curanderos.html",
+    "githubPreviewPath": "templates/previews/curanderos_preview.html"
   }
 ]

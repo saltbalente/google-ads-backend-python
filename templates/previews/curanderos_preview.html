@@ -1,0 +1,393 @@
+<!-- 
+    PREVIEW GENERADO AUTOMÁTICAMENTE
+    Template: Curanderos
+    Generado: 2025-11-30 16:43:15
+    Nota: Este es un preview estático. El template original usa variables Jinja2.
+-->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curandero Profesional - Sanación Ancestral</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: linear-gradient(135deg, #2c5530 0%, #1a3d1f 100%);
+            color: #f0f4f0;
+            line-height: 1.8;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><path fill="rgba(255,255,255,0.03)" d="M0,400 Q300,350 600,400 T1200,400 L1200,800 L0,800 Z"/></svg>') no-repeat center bottom;
+            background-size: cover;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 3px 3px 10px rgba(0,0,0,0.5);
+            animation: fadeInDown 1.2s ease-out;
+            color: #c9e4ca;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        
+        .subtitle {
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+            color: #a8d5ba;
+            font-style: italic;
+            animation: fadeIn 1.5s ease-out;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            padding: 18px 45px;
+            background: linear-gradient(135deg, #5a9367 0%, #3d6d47 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            box-shadow: 0 8px 25px rgba(90, 147, 103, 0.4);
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+            border: 2px solid #c9e4ca;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(90, 147, 103, 0.6);
+            background: linear-gradient(135deg, #6aab76 0%, #4a7f52 100%);
+        }
+        
+        /* Servicios Section */
+        .servicios {
+            padding: 100px 20px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .servicios h2 {
+            text-align: center;
+            font-size: 3rem;
+            margin-bottom: 3rem;
+            color: #c9e4ca;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        
+        .servicios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .servicio-card {
+            background: linear-gradient(135deg, rgba(90, 147, 103, 0.2) 0%, rgba(61, 109, 71, 0.2) 100%);
+            padding: 35px;
+            border-radius: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(201, 228, 202, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .servicio-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(90, 147, 103, 0.4);
+            border-color: #c9e4ca;
+        }
+        
+        .servicio-icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+        
+        .servicio-card h3 {
+            font-size: 1.6rem;
+            margin-bottom: 15px;
+            color: #c9e4ca;
+        }
+        
+        .servicio-card p {
+            color: #a8d5ba;
+            font-size: 1.1rem;
+        }
+        
+        /* Beneficios Section */
+        .beneficios {
+            padding: 100px 20px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .beneficios h2 {
+            text-align: center;
+            font-size: 3rem;
+            margin-bottom: 3rem;
+            color: #c9e4ca;
+        }
+        
+        .beneficios-lista {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .beneficio-item {
+            background: linear-gradient(135deg, rgba(90, 147, 103, 0.2) 0%, rgba(61, 109, 71, 0.2) 100%);
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-left: 5px solid #5a9367;
+            transition: all 0.3s ease;
+        }
+        
+        .beneficio-item:hover {
+            transform: translateX(10px);
+            border-left-color: #c9e4ca;
+        }
+        
+        .beneficio-icon {
+            font-size: 2.5rem;
+            min-width: 50px;
+        }
+        
+        .beneficio-text {
+            flex: 1;
+        }
+        
+        .beneficio-text h4 {
+            font-size: 1.4rem;
+            margin-bottom: 8px;
+            color: #c9e4ca;
+        }
+        
+        .beneficio-text p {
+            color: #a8d5ba;
+            font-size: 1rem;
+        }
+        
+        /* Contacto Section */
+        .contacto {
+            padding: 100px 20px;
+            background: rgba(0, 0, 0, 0.4);
+            text-align: center;
+        }
+        
+        .contacto h2 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            color: #c9e4ca;
+        }
+        
+        .contacto p {
+            font-size: 1.3rem;
+            margin-bottom: 3rem;
+            color: #a8d5ba;
+        }
+        
+        .contacto-info {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+        
+        .contacto-item {
+            background: rgba(90, 147, 103, 0.2);
+            padding: 25px 40px;
+            border-radius: 15px;
+            border: 2px solid rgba(201, 228, 202, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .contacto-item:hover {
+            border-color: #c9e4ca;
+            transform: scale(1.05);
+        }
+        
+        .contacto-item a {
+            color: #c9e4ca;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 50px 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #a8d5ba;
+        }
+        
+        footer p {
+            margin: 10px 0;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 8px 25px rgba(90, 147, 103, 0.4); }
+            50% { box-shadow: 0 12px 35px rgba(90, 147, 103, 0.7); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .subtitle { font-size: 1.3rem; }
+            .servicios h2, .beneficios h2, .contacto h2 { font-size: 2rem; }
+            .servicios-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>🌿 Curandero Profesional 🌿</h1>
+            <p class="subtitle">Sanación Ancestral y Medicina Natural</p>
+            <p class="subtitle">curandero, sanación, medicina natural, limpias</p>
+            <a href="#contacto" class="cta-button">Consulta Ahora</a>
+        </div>
+    </section>
+    
+    <!-- Servicios Section -->
+    <section class="servicios">
+        <div class="container">
+            <h2>Nuestros Servicios de Curandería</h2>
+            
+            <div class="servicios-grid">
+                <div class="servicio-card">
+                    <div class="servicio-icon">🌱</div>
+                    <h3>Limpias Energéticas</h3>
+                    <p>Purificación espiritual con hierbas sagradas y ceremonias ancestrales</p>
+                </div>
+                
+                <div class="servicio-card">
+                    <div class="servicio-icon">🍃</div>
+                    <h3>Medicina Herbal</h3>
+                    <p>Remedios naturales preparados con plantas medicinales tradicionales</p>
+                </div>
+                
+                <div class="servicio-card">
+                    <div class="servicio-icon">🔮</div>
+                    <h3>Diagnóstico Espiritual</h3>
+                    <p>Lectura energética para identificar bloqueos y desequilibrios</p>
+                </div>
+                
+                <div class="servicio-card">
+                    <div class="servicio-icon">🕯️</div>
+                    <h3>Rituales de Sanación</h3>
+                    <p>Ceremonias sagradas para restaurar el equilibrio físico y espiritual</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Beneficios Section -->
+    <section class="beneficios">
+        <div class="container">
+            <h2>¿Por Qué Elegir Curandería Ancestral?</h2>
+            
+            <div class="beneficios-lista">
+                <div class="beneficio-item">
+                    <div class="beneficio-icon">✨</div>
+                    <div class="beneficio-text">
+                        <h4>Sabiduría Milenaria</h4>
+                        <p>Técnicas transmitidas de generación en generación por curanderos tradicionales</p>
+                    </div>
+                </div>
+                
+                <div class="beneficio-item">
+                    <div class="beneficio-icon">🌿</div>
+                    <div class="beneficio-text">
+                        <h4>100% Natural</h4>
+                        <p>Sin químicos ni procesos artificiales, solo plantas y energías puras</p>
+                    </div>
+                </div>
+                
+                <div class="beneficio-item">
+                    <div class="beneficio-icon">💚</div>
+                    <div class="beneficio-text">
+                        <h4>Enfoque Holístico</h4>
+                        <p>Tratamos cuerpo, mente y espíritu como una unidad integrada</p>
+                    </div>
+                </div>
+                
+                <div class="beneficio-item">
+                    <div class="beneficio-icon">🙏</div>
+                    <div class="beneficio-text">
+                        <h4>Atención Personalizada</h4>
+                        <p>Cada persona recibe un tratamiento único según sus necesidades</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Contacto Section -->
+    <section id="contacto" class="contacto">
+        <div class="container">
+            <h2>Inicia Tu Camino de Sanación</h2>
+            <p>Contáctanos hoy y comienza tu transformación espiritual</p>
+            
+            <a href="#" class="cta-button">Consulta Ahora</a>
+            
+            <div class="contacto-info">
+                <div class="contacto-item">
+                    <p>📧 Email</p>
+                    <a href="mailto:contacto@ejemplo.com">contacto@ejemplo.com</a>
+                </div>
+                
+                <div class="contacto-item">
+                    <p>📱 WhatsApp</p>
+                    <a href="https://wa.me/+1 (555) 123-4567">+1 (555) 123-4567</a>
+                </div>
+                
+                <div class="contacto-item">
+                    <p>📞 Teléfono</p>
+                    <a href="tel:+1 (555) 123-4567">+1 (555) 123-4567</a>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 - Curandero Profesional</p>
+        <p>Sanación Ancestral • Medicina Natural • Curandería Tradicional</p>
+        <p>Email: contacto@ejemplo.com | WhatsApp: +1 (555) 123-4567</p>
+    </footer>
+</body>
+</html>
