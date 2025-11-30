@@ -172,6 +172,11 @@ class ContentProcessor:
                 if img_ext in url.lower():
                     ext = img_ext
                     break
+        elif any(video_ext in url.lower() for video_ext in ['.mp4', '.webm', '.avi', '.mov', '.m4v', '.ogv', '.wmv', '.flv']):
+            for video_ext in ['.mp4', '.webm', '.avi', '.mov', '.m4v', '.ogv', '.wmv', '.flv']:
+                if video_ext in url.lower():
+                    ext = video_ext
+                    break
                     
         return f"resource_{url_hash}{ext}"
         
@@ -214,11 +219,47 @@ class ContentProcessor:
             
         # Extract and update images
         for img in soup.find_all('img', src=True):
+            # Check if this is a LiteSpeed lazy loading image with SVG placeholder
+            has_svg_placeholder = img['src'].startswith('data:image/svg+xml;base64,') or 'svg+xml;base64' in img['src']
+            has_data_src = 'data-src' in img.attrs
+            
+            # If it has SVG placeholder but also has data-src, process the data-src
+            if has_svg_placeholder and has_data_src:
+                full_url = urljoin(base_url, img['data-src'])
+                resource_urls.append(('img', full_url, img))
+                # Convert data-src to src and remove lazy loading attributes
+                img['src'] = ContentProcessor.get_resource_filename(full_url)
+                # Remove lazy loading attributes
+                if 'data-src' in img.attrs:
+                    del img['data-src']
+                if 'data-lazyloaded' in img.attrs:
+                    del img['data-lazyloaded']
+                if 'loading' in img.attrs:
+                    del img['loading']
+                continue
+            # Skip SVG placeholders that don't have data-src (these are just placeholders)
+            elif has_svg_placeholder:
+                continue
+                
             full_url = urljoin(base_url, img['src'])
             resource_urls.append(('img', full_url, img))
             # Update src to relative path
             img['src'] = ContentProcessor.get_resource_filename(full_url)
-            
+
+        # Handle remaining LiteSpeed lazy loading images (data-src attribute)
+        for img in soup.find_all('img', {'data-src': True}):
+            full_url = urljoin(base_url, img['data-src'])
+            resource_urls.append(('img', full_url, img))
+            # Convert data-src to src and remove lazy loading attributes
+            img['src'] = ContentProcessor.get_resource_filename(full_url)
+            # Remove lazy loading attributes
+            if 'data-src' in img.attrs:
+                del img['data-src']
+            if 'data-lazyloaded' in img.attrs:
+                del img['data-lazyloaded']
+            if 'loading' in img.attrs:
+                del img['loading']
+
         # Extract srcset images
         for img in soup.find_all('img', srcset=True):
             srcset = img['srcset']
@@ -232,6 +273,21 @@ class ContentProcessor:
                 url_part = parts[0]
                 full_url = urljoin(base_url, url_part)
                 resource_urls.append(('img', full_url, None))
+                
+        # Extract and update video sources
+        for video in soup.find_all('video', src=True):
+            full_url = urljoin(base_url, video['src'])
+            resource_urls.append(('video', full_url, video))
+            # Update src to relative path
+            video['src'] = ContentProcessor.get_resource_filename(full_url)
+            
+        # Extract video sources from <source> tags within <video> elements
+        for source in soup.find_all('source', src=True):
+            if source.parent.name == 'video':
+                full_url = urljoin(base_url, source['src'])
+                resource_urls.append(('video', full_url, source))
+                # Update src to relative path
+                source['src'] = ContentProcessor.get_resource_filename(full_url)
                 
         # Extract background images from inline styles
         for element in soup.find_all(style=True):
@@ -261,6 +317,9 @@ class ContentProcessor:
         
         # Neutralize all non-WhatsApp links (replace with #)
         self._neutralize_links(soup)
+        
+        # Remove LiteSpeed cache scripts that cause issues
+        self._remove_litespeed_scripts(soup)
         
         # Remove elementor-invisible class to make elements visible
         self._remove_elementor_invisible(soup)
@@ -657,6 +716,59 @@ class ContentProcessor:
         if animation_count > 0:
             logger.info(f"Fixed {animation_count} Elementor animation transparency issues")
     
+    def _remove_litespeed_scripts(self, soup: BeautifulSoup) -> None:
+        """Remove LiteSpeed cache scripts that cause issues in cloned sites"""
+        scripts_removed = 0
+        
+        # Remove LiteSpeed lazy load scripts
+        for script in soup.find_all('script', type='litespeed/javascript'):
+            script.decompose()
+            scripts_removed += 1
+        
+        # Remove scripts that reference litespeed
+        for script in soup.find_all('script', src=lambda x: x and 'litespeed' in x.lower()):
+            script.decompose()
+            scripts_removed += 1
+        
+        # Remove inline scripts that contain litespeed references
+        for script in soup.find_all('script'):
+            if script.string and ('litespeed' in script.string.lower() or 'lazyload' in script.string.lower()):
+                script.decompose()
+                scripts_removed += 1
+        
+        # Remove scripts that contain guest.vary.php references (LiteSpeed cache)
+        for script in soup.find_all('script', src=lambda x: x and 'guest.vary.php' in x.lower()):
+            script.decompose()
+            scripts_removed += 1
+        
+        # Remove noscript tags that contain litespeed lazy load fallbacks
+        for noscript in soup.find_all('noscript'):
+            if noscript.get_text() and 'litespeed' in noscript.get_text().lower():
+                noscript.decompose()
+                scripts_removed += 1
+        
+        # Remove data-litespeed-src attributes from images and other elements
+        for element in soup.find_all(attrs={'data-litespeed-src': True}):
+            del element['data-litespeed-src']
+        
+        # Remove other litespeed-related attributes
+        litespeed_attrs = ['data-lazyloaded', 'data-litespeed-loaded', 'data-src', 'data-srcset', 'loading']
+        for attr in litespeed_attrs:
+            for element in soup.find_all(attrs={attr: True}):
+                del element[attr]
+        
+        # Remove any remaining SVG data URIs from src attributes (fallback cleanup)
+        for img in soup.find_all('img', src=lambda x: x and (x.startswith('data:image/svg+xml;base64,') or 'svg+xml;base64' in x)):
+            # If this image has no other attributes, remove it entirely
+            if not any(attr for attr in ['alt', 'title', 'class'] if attr in img.attrs):
+                img.decompose()
+            else:
+                # Remove the src attribute to prevent 404 errors
+                del img['src']
+        
+        if scripts_removed > 0:
+            logger.info(f"Removed {scripts_removed} LiteSpeed cache scripts and attributes")
+    
     def process_css(self, css_content: str, base_url: str) -> Tuple[str, List[str]]:
         """
         Process CSS content to extract URLs and fix Elementor issues
@@ -942,6 +1054,11 @@ class WebCloner:
             for img_ext in ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp']:
                 if img_ext in url.lower():
                     ext = img_ext
+                    break
+        elif any(video_ext in url.lower() for video_ext in ['.mp4', '.webm', '.avi', '.mov', '.m4v', '.ogv', '.wmv', '.flv']):
+            for video_ext in ['.mp4', '.webm', '.avi', '.mov', '.m4v', '.ogv', '.wmv', '.flv']:
+                if video_ext in url.lower():
+                    ext = video_ext
                     break
                     
         return f"resource_{url_hash}{ext}"
