@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "name": "Test Template Básico",
+    "baseFilename": "test-template-b-sico",
+    "filename": "test-template-b-sico.html",
+    "previewFilename": "test-template-b-sico_preview.html",
+    "businessType": "Servicios de Tarot Profesional",
+    "targetAudience": "Personas buscando orientación espiritual",
+    "tone": "Místico y profesional",
+    "callToAction": "Consulta Ahora",
+    "colorScheme": "Púrpura y dorado",
+    "sections": [
+      "hero",
+      "contact"
+    ],
+    "keywords": [
+      "tarot",
+      "videncia",
+      "lectura de cartas"
+    ],
+    "campaignId": null,
+    "adGroupId": null,
+    "createdAt": "2025-11-30T19:55:41.775857",
+    "githubLandingPath": "templates/landing/test-template-b-sico.html",
+    "githubPreviewPath": "templates/previews/test-template-b-sico_preview.html",
+    "updatedAt": "2025-11-30T19:55:41.777462"
+  }
+]
