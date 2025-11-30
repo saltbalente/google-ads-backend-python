@@ -1204,7 +1204,7 @@ class LandingPageGenerator:
 
             # Extract GTM ID
             # Look for GTM-XXXXXXXX pattern in scripts, comments, or data attributes
-            gtm_pattern = r'GTM-[A-Z0-9]{8}'
+            gtm_pattern = r'GTM-[A-Z0-9]{7,8}'
             gtm_match = re.search(gtm_pattern, html_content, re.IGNORECASE)
             if gtm_match:
                 info["gtm_id"] = gtm_match.group(0).upper()  # Ensure uppercase format
