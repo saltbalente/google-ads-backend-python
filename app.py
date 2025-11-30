@@ -22,6 +22,9 @@ import re
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from landing_generator import LandingPageGenerator
 
+import logging
+logger = logging.getLogger(__name__)
+
 # Imports para sistema de automatización en background
 from automation_models import init_db, create_job, get_job, update_job, get_user_jobs, get_job_logs
 from automation_worker import get_worker
