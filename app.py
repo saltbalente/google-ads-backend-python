@@ -475,11 +475,11 @@ def update_landing():
 @app.route('/api/landing/extract-contact-info', methods=['POST', 'OPTIONS'])
 def extract_contact_info():
     if request.method == 'OPTIONS':
-        result = jsonify({}), 200
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        result.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        result.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return result
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response, 200
     
     try:
         data = request.json
@@ -546,7 +546,16 @@ def process_video():
         # Process video
         result = processor.process_video(video_source, folder_name, position, is_url)
         
-        response = jsonify({'success': True, 'data': result})
+        # Flatten common keys for iOS client compatibility
+        if isinstance(result, dict):
+            video_url = result.get('video_url') or result.get('url')
+            thumbnail_url = result.get('thumbnail_url') or result.get('thumbnail')
+            if video_url or thumbnail_url:
+                response = jsonify({'success': True, 'video_url': video_url, 'thumbnail_url': thumbnail_url, 'data': result})
+            else:
+                response = jsonify({'success': True, 'data': result})
+        else:
+            response = jsonify({'success': True, 'data': result})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
         
@@ -4292,12 +4301,12 @@ def list_adgroups():
         campaign_id = data.get('campaignId')
         
         if not customer_id or not campaign_id:
-            result = jsonify({
+            response = jsonify({
                 'success': False,
                 'error': 'Faltan parámetros requeridos: customerId, campaignId'
-            }), 400
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         client = get_client_from_request()
         ga_service = client.get_service("GoogleAdsService")
@@ -4331,14 +4340,13 @@ def list_adgroups():
         
         print(f"✅ Encontrados {len(ad_groups)} grupos de anuncios")
         
-        result = jsonify({
+        response = jsonify({
             'success': True,
             'adGroups': ad_groups,
             'count': len(ad_groups)
-        }), 200
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
         
     except GoogleAdsException as ex:
         print(f"❌ Google Ads API Error: {ex}")
@@ -4347,24 +4355,22 @@ def list_adgroups():
             for error in ex.failure.errors:
                 errors.append(error.message)
         
-        result = jsonify({
+        response = jsonify({
             'success': False,
             'error': 'Google Ads API Error',
             'errors': errors
-        }), 500
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
-        result = jsonify({
+        response = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 # ============================================================================
 # CAMPAIGN CREATION ENDPOINTS
