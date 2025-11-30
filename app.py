@@ -648,12 +648,16 @@ def save_custom_template():
     try:
         data = request.json
         
+        # Log para debugging
+        logger.info(f"📝 Recibiendo solicitud para guardar template: {data.get('name', 'Sin nombre')}")
+        
         # Validar campos requeridos
         required_fields = ['name', 'content', 'businessType', 'targetAudience', 
                           'tone', 'callToAction', 'colorScheme', 'sections', 'keywords']
         
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
+            logger.warning(f"⚠️ Campos faltantes: {missing_fields}")
             result = jsonify({
                 'success': False,
                 'error': f'Campos requeridos faltantes: {", ".join(missing_fields)}'
@@ -662,7 +666,9 @@ def save_custom_template():
             return result
         
         # Guardar template
+        logger.info(f"💾 Guardando template en el sistema de archivos...")
         result_data = custom_template_manager.save_template(data)
+        logger.info(f"✅ Template guardado exitosamente: {result_data.get('template', {}).get('id', 'unknown')}")
         
         result = jsonify(result_data), 200
         result[0].headers.add('Access-Control-Allow-Origin', '*')
