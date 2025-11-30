@@ -25,6 +25,7 @@ from landing_generator import LandingPageGenerator
 from video_processor import VideoProcessor
 from web_cloner import WebCloner, WebClonerConfig
 from github_cloner_uploader import GitHubClonerUploader
+from custom_template_manager import CustomTemplateManager
 
 import logging
 logger = logging.getLogger(__name__)
@@ -32,6 +33,9 @@ logger = logging.getLogger(__name__)
 # Imports para sistema de automatización en background
 from automation_models import init_db, create_job, get_job, update_job, get_user_jobs, get_job_logs
 from automation_worker import get_worker
+
+# Initialize Custom Template Manager
+custom_template_manager = CustomTemplateManager()
 
 # Cargar variables de entorno
 # Solo cargar desde .env en desarrollo, no en producción (Render.com)
@@ -624,6 +628,213 @@ def get_template_preview(template_name):
         result = jsonify({'success': False, 'error': str(e)}), 500
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
+
+# ============================================
+# CUSTOM TEMPLATES ENDPOINTS
+# ============================================
+
+@app.route('/api/custom-templates', methods=['POST', 'OPTIONS'])
+def save_custom_template():
+    """Guarda un template personalizado creado con IA"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        
+        # Validar campos requeridos
+        required_fields = ['name', 'content', 'businessType', 'targetAudience', 
+                          'tone', 'callToAction', 'colorScheme', 'sections', 'keywords']
+        
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            result = jsonify({
+                'success': False,
+                'error': f'Campos requeridos faltantes: {", ".join(missing_fields)}'
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        # Guardar template
+        result_data = custom_template_manager.save_template(data)
+        
+        result = jsonify(result_data), 200
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error saving custom template: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': f'Error al guardar template: {str(e)}'
+        }), 500
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/custom-templates', methods=['GET'])
+def get_custom_templates():
+    """Obtiene todos los templates personalizados"""
+    try:
+        templates = custom_template_manager.get_all_templates()
+        
+        result = jsonify({
+            'success': True,
+            'templates': templates,
+            'count': len(templates)
+        }), 200
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting custom templates: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': f'Error al obtener templates: {str(e)}'
+        }), 500
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/custom-templates/<template_id>', methods=['GET'])
+def get_custom_template_by_id(template_id):
+    """Obtiene un template personalizado por ID"""
+    try:
+        template = custom_template_manager.get_template_by_id(template_id)
+        
+        if template:
+            result = jsonify({
+                'success': True,
+                'template': template
+            }), 200
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        else:
+            result = jsonify({
+                'success': False,
+                'error': 'Template no encontrado'
+            }), 404
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+            
+    except Exception as e:
+        logger.error(f"Error getting custom template: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': f'Error al obtener template: {str(e)}'
+        }), 500
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/custom-templates/search', methods=['POST', 'OPTIONS'])
+def search_custom_templates_by_keywords():
+    """Busca templates por palabras clave"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        keywords = data.get('keywords', [])
+        
+        if not keywords:
+            result = jsonify({
+                'success': False,
+                'error': 'Se requiere al menos una palabra clave'
+            }), 400
+            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        templates = custom_template_manager.get_templates_by_keywords(keywords)
+        
+        result = jsonify({
+            'success': True,
+            'templates': templates,
+            'count': len(templates)
+        }), 200
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error searching custom templates: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': f'Error al buscar templates: {str(e)}'
+        }), 500
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/custom-templates/<template_id>', methods=['DELETE', 'OPTIONS'])
+def delete_custom_template(template_id):
+    """Elimina un template personalizado"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'DELETE, OPTIONS')
+        return response
+    
+    try:
+        result_data = custom_template_manager.delete_template(template_id)
+        
+        status_code = 200 if result_data['success'] else 404
+        result = jsonify(result_data), status_code
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error deleting custom template: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': f'Error al eliminar template: {str(e)}'
+        }), 500
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/custom-templates/<template_id>', methods=['PUT', 'OPTIONS'])
+def update_custom_template(template_id):
+    """Actualiza un template personalizado"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'PUT, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        result_data = custom_template_manager.update_template(template_id, data)
+        
+        status_code = 200 if result_data['success'] else 404
+        result = jsonify(result_data), status_code
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error updating custom template: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': f'Error al actualizar template: {str(e)}'
+        }), 500
+        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+# ============================================
+# END CUSTOM TEMPLATES ENDPOINTS
+# ============================================
 
 @app.route('/api/create-ad', methods=['POST', 'OPTIONS'])
 def create_ad():
