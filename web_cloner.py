@@ -207,6 +207,9 @@ class ContentProcessor:
             if style_tag.string:
                 css_urls = self._extract_urls_from_css(style_tag.string, base_url)
                 resource_urls.extend([('css_asset', url, None) for url in css_urls])
+        
+        # Neutralize all non-WhatsApp links (replace with #)
+        self._neutralize_links(soup)
                 
         # Apply content replacements
         html_str = str(soup)
@@ -248,6 +251,42 @@ class ContentProcessor:
                 urls.append(full_url)
         return urls
         
+    def _neutralize_links(self, soup: BeautifulSoup) -> None:
+        """Replace all non-WhatsApp links with # to prevent navigation away from landing page"""
+        
+        whatsapp_domains = [
+            'wa.me',
+            'api.whatsapp.com',
+            'whatsapp://',
+            'web.whatsapp.com',
+            'walink.com',
+            'chat.whatsapp.com'
+        ]
+        
+        neutralized_count = 0
+        preserved_count = 0
+        
+        # Process all <a> tags with href attribute
+        for link in soup.find_all('a', href=True):
+            href = link['href'].strip()
+            
+            # Skip empty hrefs and anchors
+            if not href or href == '#':
+                continue
+            
+            # Check if it's a WhatsApp link
+            is_whatsapp = any(domain in href.lower() for domain in whatsapp_domains)
+            
+            if is_whatsapp:
+                preserved_count += 1
+                logger.debug(f"Preserved WhatsApp link: {href[:60]}")
+            else:
+                link['href'] = '#'
+                neutralized_count += 1
+                logger.debug(f"Neutralized link: {href[:60]}")
+        
+        logger.info(f"Link neutralization: {neutralized_count} neutralized, {preserved_count} WhatsApp links preserved")
+    
     def _apply_replacements(self, content: str) -> str:
         """Apply WhatsApp, phone, and GTM replacements"""
         
@@ -567,22 +606,24 @@ def clone_website(
 if __name__ == "__main__":
     # Test cloning
     import sys
+    import argparse
     
-    if len(sys.argv) < 2:
-        print("Usage: python web_cloner.py <url> [whatsapp] [phone] [gtm_id]")
-        sys.exit(1)
-        
-    url = sys.argv[1]
-    whatsapp = sys.argv[2] if len(sys.argv) > 2 else None
-    phone = sys.argv[3] if len(sys.argv) > 3 else None
-    gtm_id = sys.argv[4] if len(sys.argv) > 4 else None
+    parser = argparse.ArgumentParser(description='Clone a website')
+    parser.add_argument('url', help='URL to clone')
+    parser.add_argument('site_name', nargs='?', default='cloned_site', help='Name for the cloned site directory')
+    parser.add_argument('--whatsapp', help='WhatsApp number to replace')
+    parser.add_argument('--phone', help='Phone number to replace')
+    parser.add_argument('--gtm-id', help='Google Tag Manager ID to replace')
+    parser.add_argument('--output-dir', default='./cloned_output', help='Output directory')
+    
+    args = parser.parse_args()
     
     result = clone_website(
-        url=url,
-        whatsapp=whatsapp,
-        phone=phone,
-        gtm_id=gtm_id,
-        output_dir='./cloned_output'
+        url=args.url,
+        whatsapp=args.whatsapp,
+        phone=args.phone,
+        gtm_id=args.gtm_id,
+        output_dir=args.output_dir
     )
     
     print("\n" + "="*50)
@@ -593,3 +634,4 @@ if __name__ == "__main__":
     print(f"Resources: {result.get('resources_count', 0)}")
     print(f"HTML Size: {result.get('html_size', 0)} bytes")
     print("="*50)
+
