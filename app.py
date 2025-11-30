@@ -21,6 +21,7 @@ import re
 # Import Landing Page Generator
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from landing_generator import LandingPageGenerator
+from video_processor import VideoProcessor
 
 import logging
 logger = logging.getLogger(__name__)
@@ -380,6 +381,7 @@ def build_landing():
         webhook_url = data.get('webhookUrl') or data.get('webhook_url')
         selected_template = data.get('selectedTemplate') or data.get('selected_template')
         user_images = data.get('userImages') or data.get('user_images')
+        user_videos = data.get('userVideos') or data.get('user_videos')
         paragraph_template = data.get('paragraphTemplate') or data.get('paragraph_template')
         optimize_images_with_ai = data.get('optimizeImagesWithAI') or data.get('optimize_images_with_ai', False)
         selected_color_palette = data.get('selectedColorPalette') or data.get('selected_color_palette', 'mystical')
@@ -389,7 +391,7 @@ def build_landing():
             result[0].headers.add('Access-Control-Allow-Origin', '*')
             return result
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
-        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette)
+        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, user_videos=user_videos, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette)
         result = jsonify({'success': True, 'url': out['url'], 'alias': out['alias']}), 200
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result
@@ -496,6 +498,48 @@ def extract_contact_info():
         
     except Exception as e:
         logger.error(f"Error extracting contact info: {e}")
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+@app.route('/api/video/process', methods=['POST', 'OPTIONS'])
+def process_video():
+    """Process video upload or URL for landing pages"""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response, 200
+    
+    try:
+        data = request.json
+        video_source = data.get('videoSource')  # Base64 or URL
+        folder_name = data.get('folderName')
+        position = data.get('position', 'hero')  # hero, middle, testimonials
+        is_url = data.get('isUrl', False)
+        
+        if not video_source or not folder_name:
+            response = jsonify({'success': False, 'error': 'Missing videoSource or folderName'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+        
+        # Initialize video processor
+        github_owner = os.getenv("GITHUB_REPO_OWNER")
+        github_repo = os.getenv("GITHUB_REPO_NAME", "monorepo-landings")
+        github_token = os.getenv("GITHUB_TOKEN")
+        
+        processor = VideoProcessor(github_owner, github_repo, github_token)
+        
+        # Process video
+        result = processor.process_video(video_source, folder_name, position, is_url)
+        
+        response = jsonify({'success': True, 'data': result})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error processing video: {e}")
         response = jsonify({'success': False, 'error': str(e)})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500

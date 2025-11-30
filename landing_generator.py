@@ -1018,6 +1018,19 @@ class LandingPageGenerator:
                 url = img.get("url", "")
                 if pos and url:
                     img_context[f"user_image_{pos}"] = url
+        
+        # Process user videos
+        user_videos = config.get("user_videos", [])
+        video_context = {}
+        if user_videos:
+            for video in user_videos:
+                pos = video.get("position", "").lower()
+                video_url = video.get("video_url", "")
+                thumbnail_url = video.get("thumbnail_url", "")
+                if pos and video_url:
+                    video_context[f"user_video_{pos}"] = video_url
+                    if thumbnail_url:
+                        video_context[f"user_video_{pos}_thumbnail"] = thumbnail_url
 
         try:
             # Shuffle additional CTAs for variety
@@ -1041,8 +1054,10 @@ class LandingPageGenerator:
                 gtm_id=config["gtm_id"],
                 primary_keyword=config.get("primary_keyword", ""),
                 user_images=user_images,  # Pass the full list for templates that need it
+                user_videos=user_videos,  # Pass the full list for templates that need it
                 color_palette=color_palette,  # Add color palette to template context
-                **img_context
+                **img_context,
+                **video_context
             )
         except Exception as e:
             raise RuntimeError(f"Template rendering failed: {str(e)}")
@@ -2281,7 +2296,7 @@ class LandingPageGenerator:
             logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
             return 0
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical") -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, user_videos: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical") -> Dict[str, Any]:
         """
         Execute the complete landing page generation pipeline.
 
@@ -2484,13 +2499,16 @@ class LandingPageGenerator:
             # Step 3: Prepare configuration
             config = {
                 "whatsapp_number": whatsapp_number,
-                "phone_number": phone_number,
+                "phone_number": phone_number or whatsapp_number,
+                "webhook_url": webhook_url or "",
                 "gtm_id": gtm_id,
-                "webhook_url": webhook_url,
                 "primary_keyword": ctx.primary_keyword,
-                "folder_name": folder_name,
                 "selected_template": selected_template,
-                "user_images": user_images
+                "user_images": user_images or [],
+                "user_images": user_images or [],
+                "user_videos": user_videos or [],
+                "folder_name": folder_name,
+                "selected_template": selected_template
             }
 
             # Step 4: Render HTML

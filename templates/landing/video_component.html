@@ -1,0 +1,181 @@
+{# Video Component Macro for Landing Pages #}
+{% macro render_video(video_url, thumbnail_url, position='hero', custom_class='') %}
+{% if video_url %}
+<div class="landing-video-container {{ position }}-video {{ custom_class }}" data-position="{{ position }}">
+    <div class="video-wrapper">
+        <video 
+            id="video-{{ position }}"
+            class="landing-video"
+            preload="metadata"
+            playsinline
+            {% if thumbnail_url %}poster="{{ thumbnail_url }}"{% endif %}
+        >
+            <source src="{{ video_url }}" type="video/mp4">
+            Tu navegador no soporta la reproducción de video.
+        </video>
+        
+        {# Custom Play Button #}
+        <button 
+            class="video-play-btn"
+            onclick="playVideo('video-{{ position }}')"
+            aria-label="Reproducir video"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
+                <path d="M8 5v14l11-7z"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<style>
+.landing-video-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    margin: 2rem auto;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio by default */
+    background: #000;
+}
+
+.landing-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.video-play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 0, 0, 0.9);
+    border: 3px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.video-play-btn:hover {
+    background: rgba(255, 0, 0, 1);
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+}
+
+.video-play-btn svg {
+    margin-left: 4px; /* Center play icon visually */
+}
+
+.landing-video-container.playing .video-play-btn {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Position-specific styles */
+.hero-video {
+    max-width: 1200px;
+    margin-top: 3rem;
+}
+
+.middle-video {
+    max-width: 900px;
+}
+
+.testimonials-video {
+    max-width: 800px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .landing-video-container {
+        margin: 1.5rem auto;
+        border-radius: 12px;
+    }
+    
+    .video-play-btn {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .video-play-btn svg {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .hero-video,
+    .middle-video,
+    .testimonials-video {
+        max-width: 100%;
+    }
+}
+
+/* Vertical video support */
+@media (max-aspect-ratio: 1/1) {
+    .video-wrapper {
+        padding-bottom: 177.78%; /* 9:16 for vertical videos */
+    }
+}
+</style>
+
+<script>
+function playVideo(videoId) {
+    const video = document.getElementById(videoId);
+    const container = video.closest('.landing-video-container');
+    
+    if (video) {
+        video.play();
+        container.classList.add('playing');
+        
+        // Hide play button when video starts
+        video.addEventListener('play', function() {
+            container.classList.add('playing');
+        });
+        
+        // Show play button when video ends
+        video.addEventListener('ended', function() {
+            container.classList.remove('playing');
+        });
+        
+        // Show play button when video is paused
+        video.addEventListener('pause', function() {
+            if (!video.ended) {
+                container.classList.remove('playing');
+            }
+        });
+    }
+}
+
+// Auto-adjust aspect ratio based on video dimensions
+document.addEventListener('DOMContentLoaded', function() {
+    const videos = document.querySelectorAll('.landing-video');
+    
+    videos.forEach(video => {
+        video.addEventListener('loadedmetadata', function() {
+            const wrapper = this.closest('.video-wrapper');
+            const aspectRatio = (this.videoHeight / this.videoWidth) * 100;
+            
+            // Set padding-bottom to match video aspect ratio
+            wrapper.style.paddingBottom = aspectRatio + '%';
+        });
+    });
+});
+</script>
+{% endif %}
+{% endmacro %}
