@@ -400,16 +400,16 @@ def build_landing():
         
         if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
             result = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'}), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
         out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, user_videos=user_videos, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette)
         result = jsonify({'success': True, 'url': out['url'], 'alias': out['alias']}), 200
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
     except Exception as e:
         result = jsonify({'success': False, 'error': str(e)}), 500
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/landing/history', methods=['GET'])
@@ -598,11 +598,11 @@ def get_templates():
             'success': True,
             'templates': templates_info
         }), 200
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
     except Exception as e:
         result = jsonify({'success': False, 'error': str(e)}), 500
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/templates/preview/<template_name>', methods=['GET'])
@@ -619,7 +619,7 @@ def get_template_preview(template_name):
         ]
         if template_name not in valid_templates:
             result = jsonify({'success': False, 'error': 'Template not found'}), 404
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
 
         # Path to preview file
@@ -627,7 +627,7 @@ def get_template_preview(template_name):
 
         if not os.path.exists(preview_file):
             result = jsonify({'success': False, 'error': 'Preview not available'}), 404
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
 
         # Read and return the HTML content
@@ -641,7 +641,7 @@ def get_template_preview(template_name):
 
     except Exception as e:
         result = jsonify({'success': False, 'error': str(e)}), 500
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 # ============================================
@@ -677,7 +677,7 @@ def save_custom_template():
                 'success': False,
                 'error': f'Campos requeridos faltantes: {", ".join(missing_fields)}'
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         # Guardar template
@@ -686,7 +686,7 @@ def save_custom_template():
         logger.info(f"✅ Template guardado exitosamente: {result_data.get('template', {}).get('id', 'unknown')}")
         
         result = jsonify(result_data), 200
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -695,7 +695,7 @@ def save_custom_template():
             'success': False,
             'error': f'Error al guardar template: {str(e)}'
         }), 500
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/custom-templates', methods=['GET'])
@@ -709,7 +709,7 @@ def get_custom_templates():
             'templates': templates,
             'count': len(templates)
         }), 200
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -718,7 +718,7 @@ def get_custom_templates():
             'success': False,
             'error': f'Error al obtener templates: {str(e)}'
         }), 500
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/custom-templates/<template_id>', methods=['GET'])
@@ -732,14 +732,14 @@ def get_custom_template_by_id(template_id):
                 'success': True,
                 'template': template
             }), 200
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         else:
             result = jsonify({
                 'success': False,
                 'error': 'Template no encontrado'
             }), 404
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
             
     except Exception as e:
@@ -748,7 +748,7 @@ def get_custom_template_by_id(template_id):
             'success': False,
             'error': f'Error al obtener template: {str(e)}'
         }), 500
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/custom-templates/search', methods=['POST', 'OPTIONS'])
@@ -772,7 +772,7 @@ def search_custom_templates_by_keywords():
                 'success': False,
                 'error': 'Se requiere al menos una palabra clave'
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         templates = custom_template_manager.get_templates_by_keywords(keywords)
@@ -782,7 +782,7 @@ def search_custom_templates_by_keywords():
             'templates': templates,
             'count': len(templates)
         }), 200
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -791,7 +791,7 @@ def search_custom_templates_by_keywords():
             'success': False,
             'error': f'Error al buscar templates: {str(e)}'
         }), 500
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/custom-templates/<template_id>', methods=['DELETE', 'OPTIONS'])
@@ -811,7 +811,7 @@ def delete_custom_template(template_id):
         
         status_code = 200 if result_data['success'] else 404
         result = jsonify(result_data), status_code
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -820,7 +820,7 @@ def delete_custom_template(template_id):
             'success': False,
             'error': f'Error al eliminar template: {str(e)}'
         }), 500
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/custom-templates/<template_id>', methods=['PUT', 'OPTIONS'])
@@ -841,7 +841,7 @@ def update_custom_template(template_id):
         
         status_code = 200 if result_data['success'] else 404
         result = jsonify(result_data), status_code
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -850,7 +850,105 @@ def update_custom_template(template_id):
             'success': False,
             'error': f'Error al actualizar template: {str(e)}'
         }), 500
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+
+@app.route('/api/custom-templates/preview', methods=['POST', 'OPTIONS'])
+def generate_custom_template_preview():
+    """Genera una vista previa para un template personalizado"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.json
+        
+        # Validar campos requeridos
+        if 'templateContent' not in data:
+            result = jsonify({
+                'success': False,
+                'error': 'Se requiere el campo templateContent'
+            })
+            result.headers.add('Access-Control-Allow-Origin', '*')
+            return result, 400
+        
+        template_content = data['templateContent']
+        template_id = data.get('templateId', 'preview')
+        
+        # Crear directorio temporal si no existe
+        temp_dir = os.path.join('templates', 'temp_previews')
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Generar nombre de archivo único
+        import uuid
+        temp_filename = f"{template_id}_{uuid.uuid4().hex[:8]}_preview.html"
+        temp_filepath = os.path.join(temp_dir, temp_filename)
+        
+        # Guardar el contenido HTML
+        with open(temp_filepath, 'w', encoding='utf-8') as f:
+            f.write(template_content)
+        
+        # Generar URL para acceder al archivo
+        # Usar la URL base del request para construir la URL completa
+        base_url = request.url_root.rstrip('/')
+        preview_url = f"{base_url}/api/custom-templates/preview/{temp_filename}"
+        
+        logger.info(f"✅ Preview generado para template {template_id}: {preview_url}")
+        
+        result = jsonify({
+            'success': True,
+            'preview_url': preview_url,
+            'temp_file': temp_filename
+        })
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error generating custom template preview: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': f'Error al generar preview: {str(e)}'
+        })
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result, 500
+
+@app.route('/api/custom-templates/preview/<filename>', methods=['GET'])
+def serve_custom_template_preview(filename):
+    """Sirve un archivo de preview temporal"""
+    try:
+        # Validar que el archivo esté en el directorio temporal
+        temp_dir = os.path.join('templates', 'temp_previews')
+        filepath = os.path.join(temp_dir, filename)
+        
+        # Verificar que el archivo existe y está en el directorio correcto
+        if not os.path.exists(filepath) or not filepath.startswith(temp_dir):
+            result = jsonify({'success': False, 'error': 'Preview no encontrado'}), 404
+            result.headers.add('Access-Control-Allow-Origin', '*')
+            return result
+        
+        # Leer y servir el archivo HTML
+        with open(filepath, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # Limpiar archivo temporal después de servirlo (opcional, se puede hacer con un job programado)
+        # os.remove(filepath)
+        
+        response = Response(html_content, mimetype='text/html')
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error serving custom template preview: {str(e)}")
+        result = jsonify({
+            'success': False,
+            'error': f'Error al servir preview: {str(e)}'
+        }), 500
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 # ============================================
@@ -996,7 +1094,7 @@ def create_ad():
             "request_id": ex.request_id
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as ex:
@@ -1005,7 +1103,7 @@ def create_ad():
             "error": str(ex)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/demographics/get', methods=['POST', 'OPTIONS'])
@@ -1136,7 +1234,7 @@ def get_demographics():
             "errors": errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as ex:
@@ -1145,7 +1243,7 @@ def get_demographics():
             "message": str(ex)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/demographics/update', methods=['POST', 'OPTIONS'])
@@ -1355,7 +1453,7 @@ def update_demographics():
             "request_id": ex.request_id
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as ex:
@@ -1364,7 +1462,7 @@ def update_demographics():
             "message": str(ex)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/adgroup/create', methods=['POST', 'OPTIONS'])
@@ -1461,7 +1559,7 @@ def create_ad_group():
             "request_id": ex.request_id
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as ex:
@@ -1471,7 +1569,7 @@ def create_ad_group():
             "message": str(ex)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/keywords/add', methods=['POST', 'OPTIONS'])
@@ -1601,7 +1699,7 @@ def add_keywords():
             "request_id": ex.request_id
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as ex:
@@ -1611,7 +1709,7 @@ def add_keywords():
             "message": str(ex)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/demographics/stats', methods=['POST', 'OPTIONS'])
@@ -1640,7 +1738,7 @@ def get_demographic_stats():
                 "success": False,
                 "message": "Faltan customerId o adGroupId"
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         # Crear cliente
@@ -1855,7 +1953,7 @@ def get_demographic_stats():
             "error_details": error_details
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as ex:
@@ -1865,7 +1963,7 @@ def get_demographic_stats():
             "message": str(ex)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 
@@ -2027,7 +2125,7 @@ def get_campaign_analytics():
                 'error': 'Faltan parámetros requeridos',
                 'required': ['customer_id', 'campaign_id', 'start_date', 'end_date']
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         # Crear cliente
@@ -2223,7 +2321,7 @@ def get_campaign_analytics():
             'hourly_performance': hourly_performance
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -2240,7 +2338,7 @@ def get_campaign_analytics():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -2250,7 +2348,7 @@ def get_campaign_analytics():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 
@@ -2291,7 +2389,7 @@ def pause_keyword():
                 'error': 'Faltan parámetros requeridos',
                 'required': ['customer_id', 'ad_group_id', 'criterion_id']
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         # Crear cliente
@@ -2335,7 +2433,7 @@ def pause_keyword():
             'resource_name': response.results[0].resource_name
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -2352,7 +2450,7 @@ def pause_keyword():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -2362,7 +2460,7 @@ def pause_keyword():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
     return result
 
 
@@ -3750,7 +3848,7 @@ def pause_ad():
             'resource_name': response.results[0].resource_name
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -3767,7 +3865,7 @@ def pause_ad():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -3777,7 +3875,7 @@ def pause_ad():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/keyword/update-bid', methods=['POST', 'OPTIONS'])
@@ -3813,7 +3911,7 @@ def update_keyword_bid():
                 'error': 'Faltan parámetros requeridos',
                 'required': ['customer_id', 'ad_group_id', 'criterion_id', 'new_bid_micros']
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         # Crear cliente
@@ -3857,7 +3955,7 @@ def update_keyword_bid():
             'resource_name': response.results[0].resource_name
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -3874,7 +3972,7 @@ def update_keyword_bid():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -3884,7 +3982,7 @@ def update_keyword_bid():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 
@@ -3948,7 +4046,7 @@ def search_ads():
                 'success': False,
                 'error': 'Falta parámetro requerido: customerId'
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         # Crear cliente
@@ -4045,7 +4143,7 @@ def search_ads():
             'count': len(ads)
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -4062,7 +4160,7 @@ def search_ads():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -4072,7 +4170,7 @@ def search_ads():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 
@@ -4103,7 +4201,7 @@ def list_campaigns():
                 'success': False,
                 'error': 'Falta parámetro requerido: customerId'
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         client = get_client_from_request()
@@ -4143,7 +4241,7 @@ def list_campaigns():
             'count': len(campaigns)
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -4159,7 +4257,7 @@ def list_campaigns():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -4169,7 +4267,7 @@ def list_campaigns():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 
@@ -4201,7 +4299,7 @@ def list_adgroups():
                 'success': False,
                 'error': 'Faltan parámetros requeridos: customerId, campaignId'
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         client = get_client_from_request()
@@ -4242,7 +4340,7 @@ def list_adgroups():
             'count': len(ad_groups)
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -4258,7 +4356,7 @@ def list_adgroups():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -4268,7 +4366,7 @@ def list_adgroups():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 # ============================================================================
@@ -4297,7 +4395,7 @@ def create_campaign_budget():
                 'success': False,
                 'error': 'Faltan parámetros requeridos'
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         print(f"💰 Creando budget: {name} con ${amount_micros/1_000_000} COP")
@@ -4325,7 +4423,7 @@ def create_campaign_budget():
             'resourceName': resource_name
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -4341,7 +4439,7 @@ def create_campaign_budget():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -4351,7 +4449,7 @@ def create_campaign_budget():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/create-campaign', methods=['POST', 'OPTIONS'])
@@ -4377,7 +4475,7 @@ def create_campaign():
                 'success': False,
                 'error': 'Faltan parámetros requeridos'
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         print(f"🚀 Creando campaña: {name}")
@@ -4438,7 +4536,7 @@ def create_campaign():
             'campaignId': campaign_id
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -4454,7 +4552,7 @@ def create_campaign():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -4464,7 +4562,7 @@ def create_campaign():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/create-adgroup', methods=['POST', 'OPTIONS'])
@@ -4490,7 +4588,7 @@ def create_ad_group_copy():
                 'success': False,
                 'error': 'Faltan parámetros requeridos'
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         print(f"📂 Creando ad group: {name}")
@@ -4538,7 +4636,7 @@ def create_ad_group_copy():
             'adGroupId': ad_group_id
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -4554,7 +4652,7 @@ def create_ad_group_copy():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -4564,7 +4662,7 @@ def create_ad_group_copy():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/create-keyword', methods=['POST', 'OPTIONS'])
@@ -4591,7 +4689,7 @@ def create_keyword():
                 'success': False,
                 'error': 'Faltan parámetros requeridos'
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         print(f"🔑 Creando keyword: {keyword_text} ({match_type})")
@@ -4629,7 +4727,7 @@ def create_keyword():
             'resourceName': resource_name
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -4645,7 +4743,7 @@ def create_keyword():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -4655,7 +4753,7 @@ def create_keyword():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 # Agregar este endpoint al final de app.py antes de la última línea
@@ -4682,7 +4780,7 @@ def execute_query():
                 'success': False,
                 'error': 'customerId y query son requeridos'
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         print(f"📊 Ejecutando query para cuenta {customer_id}")
@@ -4801,7 +4899,7 @@ def execute_query():
             'count': len(results_list)
         }), 200
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except GoogleAdsException as ex:
@@ -4817,7 +4915,7 @@ def execute_query():
             'errors': errors
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -4830,7 +4928,7 @@ def execute_query():
             'error': str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 # Run server (after all routes are registered)
@@ -4908,7 +5006,7 @@ def get_keyword_ideas():
         import traceback
         traceback.print_exc()
         result = jsonify({'error': str(e)}), 500
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 @app.route('/api/trends', methods=['POST', 'OPTIONS'])
@@ -4990,7 +5088,7 @@ def get_google_trends():
         traceback.print_exc()
         
         result = jsonify({'success': False, 'error': str(e)}), 500
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 
@@ -5505,7 +5603,7 @@ def start_automation():
                 "error": f"Faltan campos requeridos: {', '.join(missing)}",
                 "required": required
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         # Validar rangos
@@ -5514,7 +5612,7 @@ def start_automation():
                 "success": False,
                 "error": "numberOfGroups debe estar entre 1 y 20"
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         if not (1 <= data['adsPerGroup'] <= 5):
@@ -5522,7 +5620,7 @@ def start_automation():
                 "success": False,
                 "error": "adsPerGroup debe estar entre 1 y 5"
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         # Extraer credenciales de headers (multi-tenant support)
@@ -5572,7 +5670,7 @@ def start_automation():
             "status": "queued"
         }), 202  # 202 Accepted
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
         
     except Exception as e:
@@ -5587,7 +5685,7 @@ def start_automation():
             "message": "Error iniciando automatización"
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 
@@ -5633,7 +5731,7 @@ def get_automation_status(job_id):
                 "error": "Job no encontrado",
                 "message": f"No existe un job con ID: {job_id}"
             }), 404
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         result = jsonify({
@@ -5652,7 +5750,7 @@ def get_automation_status(job_id):
             "error": str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 
@@ -5701,7 +5799,7 @@ def get_automation_history():
                 "success": False,
                 "error": "customerId es requerido"
             }), 400
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
         limit = data.get('limit', 50)
@@ -5726,7 +5824,7 @@ def get_automation_history():
             "error": str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 
@@ -5764,7 +5862,7 @@ def cancel_automation(job_id):
             }), 400
         
         if isinstance(result, tuple):
-            result[0].headers.add('Access-Control-Allow-Origin', '*')
+            result.headers.add('Access-Control-Allow-Origin', '*')
         else:
             result.headers.add('Access-Control-Allow-Origin', '*')
         
@@ -5776,7 +5874,7 @@ def cancel_automation(job_id):
             "error": str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 
@@ -5824,7 +5922,7 @@ def get_automation_logs(job_id):
             "error": str(e)
         }), 500
         
-        result[0].headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
 # ============================================================================
