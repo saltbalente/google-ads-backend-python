@@ -458,6 +458,48 @@ def update_landing():
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
+@app.route('/api/landing/extract-contact-info', methods=['POST', 'OPTIONS'])
+def extract_contact_info():
+    if request.method == 'OPTIONS':
+        result = jsonify({}), 200
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        result.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        result.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return result
+    
+    try:
+        data = request.json
+        customer_id = data.get('customerId') or data.get('customer_id')
+        ad_group_id = data.get('adGroupId') or data.get('ad_group_id')
+        
+        if not customer_id or not ad_group_id:
+            response = jsonify({'success': False, 'error': 'Missing customer_id or ad_group_id'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+            
+        gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
+        
+        # 1. Get Final URL
+        final_url = gen.get_ad_group_final_url(customer_id, ad_group_id)
+        
+        if not final_url:
+            response = jsonify({'success': False, 'error': 'No final URL found for this Ad Group'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 404
+            
+        # 2. Extract Info
+        info = gen.extract_contact_info(final_url)
+        
+        response = jsonify({'success': True, 'data': info, 'source_url': final_url})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error extracting contact info: {e}")
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
 @app.route('/api/health', methods=['GET'])
 def health():
     """Endpoint de salud"""

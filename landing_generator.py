@@ -1134,6 +1134,85 @@ class LandingPageGenerator:
 
         return template_info
 
+    def get_ad_group_final_url(self, customer_id: str, ad_group_id: str) -> Optional[str]:
+        """
+        Retrieves the final URL from the first available ad in the ad group.
+        """
+        try:
+            client = self._get_google_ads_client()
+            ga_service = client.get_service("GoogleAdsService")
+            
+            # Normalize IDs
+            customer_id = customer_id.replace("-", "")
+            
+            query = f"""
+                SELECT ad_group_ad.ad.final_urls
+                FROM ad_group_ad
+                WHERE ad_group.id = {ad_group_id}
+                  AND ad_group_ad.status != REMOVED
+                  AND ad_group_ad.ad.type = RESPONSIVE_SEARCH_AD
+                LIMIT 1
+            """
+
+            response = ga_service.search(customer_id=customer_id, query=query)
+            for row in response:
+                if row.ad_group_ad.ad.final_urls:
+                    return row.ad_group_ad.ad.final_urls[0]
+        except Exception as e:
+            logger.error(f"Error fetching final URL for ad group {ad_group_id}: {e}")
+        
+        return None
+
+    def extract_contact_info(self, url: str) -> Dict[str, Optional[str]]:
+        """
+        Scrapes the given URL to extract phone number, WhatsApp link, and timezone.
+        """
+        info = {
+            "phone": None,
+            "whatsapp": None,
+            "timezone": None
+        }
+        
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            html_content = response.text
+            
+            # Extract WhatsApp
+            # Look for wa.me or api.whatsapp.com
+            whatsapp_pattern = r'(https?://(?:wa\.me|api\.whatsapp\.com/send)\/?\??(?:phone=)?\+?(\d+))'
+            whatsapp_match = re.search(whatsapp_pattern, html_content)
+            if whatsapp_match:
+                info["whatsapp"] = whatsapp_match.group(2) # Extract just the number
+            
+            # Extract Phone
+            # Look for tel: links
+            tel_pattern = r'href=["\']tel:\+?([\d\s\-\(\)]+)["\']'
+            tel_match = re.search(tel_pattern, html_content)
+            if tel_match:
+                info["phone"] = re.sub(r'[^\d]', '', tel_match.group(1))
+            else:
+                # Fallback: Look for patterns like +57 300 123 4567
+                # This is a bit risky as it might match other numbers, but let's try a specific format often used
+                # Maybe just look for the whatsapp number if found?
+                if info["whatsapp"] and not info["phone"]:
+                     info["phone"] = info["whatsapp"]
+
+            # Extract Timezone
+            # Look for "GMT-X" or "UTC-X"
+            timezone_pattern = r'(GMT|UTC)([\+\-]\d{1,2})'
+            timezone_match = re.search(timezone_pattern, html_content, re.IGNORECASE)
+            if timezone_match:
+                info["timezone"] = f"GMT{timezone_match.group(2)}"
+            
+        except Exception as e:
+            logger.error(f"Error scraping URL {url}: {e}")
+            
+        return info
+
     @staticmethod
     def get_templates_static() -> Dict[str, Dict[str, str]]:
         """Static method to get template information without requiring full initialization."""
