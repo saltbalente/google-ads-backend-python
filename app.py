@@ -811,6 +811,83 @@ def transform_template_with_ai():
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
+@app.route('/api/templates/transform/patch', methods=['POST', 'OPTIONS'])
+def transform_template_with_ai_patch():
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response, 200
+
+    try:
+        data = request.json or {}
+        code = data.get('code')
+        instructions = data.get('instructions', '').strip()
+        provider = (data.get('provider') or 'openrouter').lower()
+        model = data.get('model')
+
+        if not code or not instructions:
+            response = jsonify({'success': False, 'error': 'Missing code or instructions'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+
+        system_prompt = (
+            'Eres un asistente que realiza ediciones mínimas en HTML/Jinja. '
+            'Modifica solo lo necesario según las instrucciones y devuelve el HTML final sin explicaciones.'
+        )
+        prompt_messages = [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': f'Instrucciones:\n{instructions}\n\nCódigo actual:\n```html\n{code}\n```'}
+        ]
+
+        transformed = None
+        error = None
+        if provider == 'openrouter':
+            transformed, error = call_openrouter_grok(prompt_messages, model)
+            if error and os.getenv('OPENAI_API_KEY'):
+                transformed, error = call_openai_transform(prompt_messages)
+        else:
+            transformed, error = call_openai_transform(prompt_messages, model)
+
+        if error:
+            def local_transform_html(code_text, instr):
+                l = instr.lower()
+                updated = code_text
+                if (('verde' in l) or ('green' in l)) and (('boton' in l) or ('botón' in l) or ('cta' in l) or ('button' in l)):
+                    css = "<style>button, .btn, .cta-button{background-color:#2ecc71 !important; border-color:#27ae60 !important; color:#fff !important;} .btn-primary{background-color:#2ecc71 !important; border-color:#27ae60 !important;} a.btn{background-color:#2ecc71 !important; border-color:#27ae60 !important; color:#fff !important;}</style>"
+                    if '<head>' in updated:
+                        updated = updated.replace('<head>', '<head>' + css, 1)
+                    else:
+                        updated = css + updated
+                return updated if updated != code_text else None
+
+            local = local_transform_html(code, instructions)
+            if local:
+                import difflib
+                diff = '\n'.join(difflib.unified_diff(code.splitlines(), local.splitlines(), fromfile='original', tofile='modified', lineterm=''))
+                response = jsonify({'success': True, 'code': local, 'diff': diff, 'fallback': True})
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 200
+            response = jsonify({'success': False, 'error': error})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 500
+
+        if transformed:
+            m = re.search(r"```(?:html)?\n([\s\S]*?)\n```", transformed)
+            if m:
+                transformed = m.group(1)
+
+        import difflib
+        diff = '\n'.join(difflib.unified_diff(code.splitlines(), (transformed or '').splitlines(), fromfile='original', tofile='modified', lineterm=''))
+        response = jsonify({'success': True, 'code': transformed, 'diff': diff})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
+    except Exception as e:
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
 # ============================================
 # CUSTOM TEMPLATES ENDPOINTS
 # ============================================
