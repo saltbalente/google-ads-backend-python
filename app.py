@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, render_template
 from google.ads.googleads.client import GoogleAdsClient
 from datetime import date, timedelta, datetime
 from google.ads.googleads.errors import GoogleAdsException
@@ -349,18 +349,8 @@ def get_client_from_request():
 
 @app.route('/', methods=['GET'])
 def index():
-    """Página de inicio básica"""
-    return jsonify({
-        'status': 'ok',
-        'message': 'Google Ads Backend API',
-        'version': '1.0',
-        'endpoints': [
-            '/api/landing/build',
-            '/api/landing/history', 
-            '/api/health',
-            '/api/templates'
-        ]
-    })
+    """Dashboard principal con herramientas"""
+    return render_template('dashboard.html')
 
 @app.route('/api/landing/build', methods=['POST', 'OPTIONS'])
 def build_landing():
@@ -5497,6 +5487,115 @@ def get_automation_logs(job_id):
 # ============================================================================
 # DIAGNOSTIC ENDPOINT
 # ============================================================================
+
+@app.route('/api/pinterest/convert', methods=['POST', 'OPTIONS'])
+def pinterest_convert():
+    """Convert Pinterest pin URL to direct image asset URL"""
+    if request.method == 'OPTIONS':
+        response = jsonify({'success': True})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.get_json()
+        pin_url = data.get('url', '').strip()
+        
+        if not pin_url:
+            return jsonify({
+                'success': False,
+                'error': 'URL no proporcionada'
+            }), 400
+        
+        # Extract pin ID from URL
+        # Formats: https://co.pinterest.com/pin/35606653299887146/
+        #          https://pinterest.com/pin/35606653299887146
+        #          https://www.pinterest.com/pin/35606653299887146/
+        pin_id_match = re.search(r'/pin/(\d+)', pin_url)
+        
+        if not pin_id_match:
+            return jsonify({
+                'success': False,
+                'error': 'URL de Pinterest inválida. Debe contener /pin/ID'
+            }), 400
+        
+        pin_id = pin_id_match.group(1)
+        
+        # Fetch the Pinterest page
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        response = requests.get(pin_url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        # Parse HTML to find image URL
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Try multiple methods to find the image
+        image_url = None
+        
+        # Method 1: Look for og:image meta tag
+        og_image = soup.find('meta', property='og:image')
+        if og_image and og_image.get('content'):
+            image_url = og_image['content']
+        
+        # Method 2: Look for image with specific patterns
+        if not image_url:
+            img_tags = soup.find_all('img')
+            for img in img_tags:
+                src = img.get('src', '')
+                if 'pinimg.com' in src and ('originals' in src or '1200x' in src or '736x' in src):
+                    image_url = src
+                    break
+        
+        # Method 3: Search in script tags for image data
+        if not image_url:
+            scripts = soup.find_all('script')
+            for script in scripts:
+                if script.string and 'pinimg.com' in script.string:
+                    # Find URLs in script
+                    urls = re.findall(r'https://i\.pinimg\.com/[^"\']+', script.string)
+                    for url in urls:
+                        if '1200x' in url or 'originals' in url or '736x' in url:
+                            image_url = url
+                            break
+                if image_url:
+                    break
+        
+        if not image_url:
+            return jsonify({
+                'success': False,
+                'error': 'No se pudo extraer la URL de la imagen del pin'
+            }), 404
+        
+        # Ensure we get the highest quality version
+        # Replace resolution patterns with 1200x for best quality
+        image_url = re.sub(r'/\d+x/', '/1200x/', image_url)
+        
+        result = jsonify({
+            'success': True,
+            'pin_id': pin_id,
+            'pin_url': pin_url,
+            'image_url': image_url
+        })
+        
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except requests.RequestException as e:
+        logger.error(f"Error fetching Pinterest URL: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Error al obtener la página de Pinterest: {str(e)}'
+        }), 500
+    except Exception as e:
+        logger.error(f"Error in pinterest_convert: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Error interno: {str(e)}'
+        }), 500
 
 @app.route('/api/diagnostic', methods=['GET'])
 def diagnostic():
