@@ -826,16 +826,24 @@ def transform_template_with_ai_patch():
         instructions = data.get('instructions', '').strip()
         provider = (data.get('provider') or 'openrouter').lower()
         model = data.get('model')
+        scope = (data.get('scope') or 'general').lower()
 
         if not code or not instructions:
             response = jsonify({'success': False, 'error': 'Missing code or instructions'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
 
-        system_prompt = (
-            'Eres un asistente que realiza ediciones mínimas en HTML/Jinja. '
-            'Modifica solo lo necesario según las instrucciones y devuelve el HTML final sin explicaciones.'
-        )
+        base_prompt = 'Eres un asistente que realiza ediciones mínimas en HTML/Jinja. Modifica solo lo necesario según las instrucciones y devuelve el HTML final sin explicaciones.'
+        scope_directive = ''
+        if scope == 'css':
+            scope_directive = ' Limita los cambios únicamente a estilos CSS (en style tags o clases), no reestructures HTML.'
+        elif scope == 'html':
+            scope_directive = ' Limita los cambios únicamente a estructura HTML y atributos, sin modificar scripts o estilos.'
+        elif scope == 'copy':
+            scope_directive = ' Limita los cambios a texto visible (copywriting), no cambies estructura ni estilos.'
+        elif scope == 'js':
+            scope_directive = ' Limita los cambios a scripts JavaScript sin afectar HTML/CSS.'
+        system_prompt = base_prompt + scope_directive
         prompt_messages = [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': f'Instrucciones:\n{instructions}\n\nCódigo actual:\n```html\n{code}\n```'}
