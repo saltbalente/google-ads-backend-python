@@ -1166,12 +1166,12 @@ class LandingPageGenerator:
 
     def extract_contact_info(self, url: str) -> Dict[str, Optional[str]]:
         """
-        Scrapes the given URL to extract phone number, WhatsApp link, and timezone.
+        Scrapes the given URL to extract phone number, WhatsApp link, and GTM ID.
         """
         info = {
             "phone": None,
             "whatsapp": None,
-            "timezone": None
+            "gtm_id": None
         }
         
         try:
@@ -1202,12 +1202,12 @@ class LandingPageGenerator:
                 if info["whatsapp"] and not info["phone"]:
                      info["phone"] = info["whatsapp"]
 
-            # Extract Timezone
-            # Look for "GMT-X" or "UTC-X"
-            timezone_pattern = r'(GMT|UTC)([\+\-]\d{1,2})'
-            timezone_match = re.search(timezone_pattern, html_content, re.IGNORECASE)
-            if timezone_match:
-                info["timezone"] = f"GMT{timezone_match.group(2)}"
+            # Extract GTM ID
+            # Look for GTM-XXXXXXXX pattern in scripts, comments, or data attributes
+            gtm_pattern = r'GTM-[A-Z0-9]{8}'
+            gtm_match = re.search(gtm_pattern, html_content, re.IGNORECASE)
+            if gtm_match:
+                info["gtm_id"] = gtm_match.group(0).upper()  # Ensure uppercase format
             
         except Exception as e:
             logger.error(f"Error scraping URL {url}: {e}")
