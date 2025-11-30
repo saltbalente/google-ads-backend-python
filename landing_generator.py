@@ -1144,6 +1144,7 @@ class LandingPageGenerator:
             
             # Normalize IDs
             customer_id = customer_id.replace("-", "")
+            ad_group_id = ad_group_id.replace("-", "")
             
             query = f"""
                 SELECT ad_group_ad.ad.final_urls
