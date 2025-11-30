@@ -26,7 +26,7 @@ max_requests_jitter = 50
 # - Image optimization can take 15-20s per image
 # - 6 images × 20s = 120s minimum
 # - Adding 3-minute buffer for API delays
-# Professional Plan: Can handle longer timeouts safely
+# Professional Plan: Can handle longer timeouts safely with autoscaling
 # Increased to match client timeout (600s) for consistency
 timeout = 600  # 10 minutes (increased from 300s)
 graceful_timeout = 120

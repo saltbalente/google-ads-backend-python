@@ -214,35 +214,80 @@ def update_landing_metadata(folder_name, whatsapp_number=None, phone_number=None
     html_content = base64.b64decode(html_data['content']).decode('utf-8')
     sha = html_data['sha']
     
-    soup = BeautifulSoup(html_content, 'html.parser')
+    # CRITICAL: Use regex replacement on raw HTML to ensure ALL occurrences are updated
+    # This is more reliable than BeautifulSoup for this use case
+    original_html = html_content
+    updates_made = []
     
-    # Update WhatsApp
+    # Update ALL WhatsApp numbers - Replace in BOTH href attributes AND display text
     if whatsapp_number:
-        whatsapp_link = soup.find('a', href=lambda x: x and 'wa.me' in x)
-        if whatsapp_link:
-            whatsapp_link['href'] = f"https://wa.me/{whatsapp_number}"
+        # Clean the number (remove any non-numeric characters except +)
+        clean_whatsapp = re.sub(r'[^\d+]', '', whatsapp_number)
+        
+        # Pattern 1: wa.me/ links (captures any number format)
+        whatsapp_pattern1 = r'(https?://wa\.me/)[\d+]+'
+        matches1 = len(re.findall(whatsapp_pattern1, html_content))
+        html_content = re.sub(whatsapp_pattern1, rf'\1{clean_whatsapp}', html_content)
+        
+        # Pattern 2: api.whatsapp.com links
+        whatsapp_pattern2 = r'(https?://api\.whatsapp\.com/send\?phone=)[\d+]+'
+        matches2 = len(re.findall(whatsapp_pattern2, html_content))
+        html_content = re.sub(whatsapp_pattern2, rf'\1{clean_whatsapp}', html_content)
+        
+        # Pattern 3: Display text like "WhatsApp: +1234567890"
+        whatsapp_pattern3 = r'(WhatsApp[:\s]+)\+?[\d\s\-\(\)]+(?=<|$|\s)'
+        matches3 = len(re.findall(whatsapp_pattern3, html_content, re.IGNORECASE))
+        html_content = re.sub(whatsapp_pattern3, rf'\1{whatsapp_number}', html_content, flags=re.IGNORECASE)
+        
+        total_whatsapp = matches1 + matches2 + matches3
+        updates_made.append(f"WhatsApp: {total_whatsapp} occurrences updated")
+        logger.info(f"✅ Updated {total_whatsapp} WhatsApp occurrences to {whatsapp_number}")
     
-    # Update Phone
+    # Update ALL Phone numbers - Replace in BOTH tel: links AND display text
     if phone_number:
-        phone_link = soup.find('a', href=lambda x: x and x.startswith('tel:'))
-        if phone_link:
-            phone_link['href'] = f"tel:{phone_number}"
+        # Clean the number
+        clean_phone = re.sub(r'[^\d+]', '', phone_number)
+        
+        # Pattern 1: tel: links
+        tel_pattern1 = r'(tel:)\+?[\d\s\-\(\)]+'
+        matches1 = len(re.findall(tel_pattern1, html_content))
+        html_content = re.sub(tel_pattern1, rf'\1{clean_phone}', html_content)
+        
+        # Pattern 2: Display text like "Teléfono: +1234567890" or "Tel: +1234567890"
+        tel_pattern2 = r'(Tel[ée]fono[:\s]+|Tel[:\s]+)\+?[\d\s\-\(\)]+(?=<|$|\s)'
+        matches2 = len(re.findall(tel_pattern2, html_content, re.IGNORECASE))
+        html_content = re.sub(tel_pattern2, rf'\1{phone_number}', html_content, flags=re.IGNORECASE)
+        
+        # Pattern 3: Phone in contact sections (more generic)
+        tel_pattern3 = r'(Llamar[:\s]+|Llámanos[:\s]+)\+?[\d\s\-\(\)]+(?=<|$|\s)'
+        matches3 = len(re.findall(tel_pattern3, html_content, re.IGNORECASE))
+        html_content = re.sub(tel_pattern3, rf'\1{phone_number}', html_content, flags=re.IGNORECASE)
+        
+        total_phone = matches1 + matches2 + matches3
+        updates_made.append(f"Phone: {total_phone} occurrences updated")
+        logger.info(f"✅ Updated {total_phone} phone occurrences to {phone_number}")
     
-    # Update GTM
+    # Update ALL GTM IDs - In scripts, noscripts, and iframes
     if gtm_id:
-        gtm_script = soup.find('script', string=lambda x: x and 'GTM-' in x)
-        if gtm_script:
-            # Replace the GTM ID in the script content
-            script_content = gtm_script.string
-            new_content = re.sub(r'GTM-[A-Z0-9]+', gtm_id, script_content)
-            gtm_script.string = new_content
+        # Pattern: All GTM-XXXXXXX occurrences
+        gtm_pattern = r'GTM-[A-Z0-9]+'
+        matches = len(re.findall(gtm_pattern, html_content))
+        html_content = re.sub(gtm_pattern, gtm_id, html_content)
+        
+        updates_made.append(f"GTM: {matches} occurrences updated")
+        logger.info(f"✅ Updated {matches} GTM occurrences to {gtm_id}")
     
-    updated_html = str(soup)
+    # Verify that changes were actually made
+    if html_content == original_html:
+        logger.warning(f"⚠️ No changes detected in HTML for {folder_name}")
+        return {"success": True, "message": "No changes needed", "updates": updates_made}
+    
+    logger.info(f"📝 Changes summary for {folder_name}: {', '.join(updates_made)}")
     
     # Commit back
     commit_data = {
-        "message": f"Update metadata for {folder_name}",
-        "content": base64.b64encode(updated_html.encode('utf-8')).decode('utf-8'),
+        "message": f"Update metadata for {folder_name}: {', '.join(updates_made)}",
+        "content": base64.b64encode(html_content.encode('utf-8')).decode('utf-8'),
         "sha": sha
     }
     
@@ -251,7 +296,11 @@ def update_landing_metadata(folder_name, whatsapp_number=None, phone_number=None
     if update_resp.status_code not in [200, 201]:
         raise ValueError(f"Failed to update: {update_resp.text}")
     
-    return {"success": True, "commit": update_resp.json()['commit']['sha']}
+    return {
+        "success": True, 
+        "commit": update_resp.json()['commit']['sha'],
+        "updates": updates_made
+    }
 
 @app.errorhandler(Exception)
 def handle_unexpected_error(e):
@@ -330,13 +379,14 @@ def build_landing():
         user_images = data.get('userImages') or data.get('user_images')
         paragraph_template = data.get('paragraphTemplate') or data.get('paragraph_template')
         optimize_images_with_ai = data.get('optimizeImagesWithAI') or data.get('optimize_images_with_ai', False)
+        selected_color_palette = data.get('selectedColorPalette') or data.get('selected_color_palette', 'mystical')
         
         if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
             result = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'}), 400
             result[0].headers.add('Access-Control-Allow-Origin', '*')
             return result
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
-        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai)
+        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette)
         result = jsonify({'success': True, 'url': out['url'], 'alias': out['alias']}), 200
         result[0].headers.add('Access-Control-Allow-Origin', '*')
         return result

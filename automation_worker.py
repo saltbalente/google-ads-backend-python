@@ -386,83 +386,113 @@ class AutomationWorker:
         return resource_name.split('/')[-1]  # Extraer ID
     
     def _add_keywords_to_group(self, client, customer_id: str, ad_group_id: str, keywords: List[str]) -> int:
-        """Agrega keywords a un ad group y retorna el número agregado"""
+        """Agrega keywords a un ad group usando batches optimizados para mayor velocidad"""
         if not keywords:
             return 0
-        
+
+        import concurrent.futures
+        import time
+
         ad_group_criterion_service = client.get_service("AdGroupCriterionService")
         ad_group_service = client.get_service("AdGroupService")
-        
-        # ESTRATEGIA: Intentar agregar todas juntas, si falla por políticas, agregar una por una
+
+        # CONFIGURACIÓN OPTIMIZADA PARA VELOCIDAD
+        BATCH_SIZE = 50  # Keywords por batch (Google Ads permite hasta ~1000, pero 50 es más seguro)
+        MAX_WORKERS = 3  # Procesamiento paralelo limitado para evitar rate limits
+
         successful_keywords = 0
         failed_keywords = []
-        
-        try:
-            # Intentar agregar todas las keywords en un solo batch
-            operations = []
-            for keyword_text in keywords:
-                operation = client.get_type("AdGroupCriterionOperation")
-                criterion = operation.create
-                
-                criterion.ad_group = ad_group_service.ad_group_path(customer_id, ad_group_id)
-                criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-                criterion.keyword.text = keyword_text
-                criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
-                
-                operations.append(operation)
-            
-            response = ad_group_criterion_service.mutate_ad_group_criteria(
-                customer_id=customer_id,
-                operations=operations
-            )
-            
-            successful_keywords = len(response.results)
-            return successful_keywords
-            
-        except Exception as e:
-            error_str = str(e)
-            
-            # Si el error es por políticas, intentar agregar keywords una por una
-            if 'POLICY_ERROR' in error_str or 'POLICY_VIOLATION' in error_str or 'policy_violation_error' in error_str:
-                print(f"⚠️ Error de políticas detectado. Intentando agregar keywords individualmente...")
-                
-                for keyword_text in keywords:
-                    try:
-                        operation = client.get_type("AdGroupCriterionOperation")
-                        criterion = operation.create
-                        
-                        criterion.ad_group = ad_group_service.ad_group_path(customer_id, ad_group_id)
-                        criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
-                        criterion.keyword.text = keyword_text
-                        criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
-                        
-                        response = ad_group_criterion_service.mutate_ad_group_criteria(
-                            customer_id=customer_id,
-                            operations=[operation]
-                        )
-                        
-                        successful_keywords += 1
-                        
-                    except Exception as kw_error:
-                        kw_error_str = str(kw_error)
-                        failed_keywords.append(keyword_text)
-                        
-                        # Log más limpio del error
-                        if 'POLICY_ERROR' in kw_error_str:
-                            print(f"❌ Keyword rechazada por políticas: '{keyword_text}'")
-                        else:
-                            print(f"❌ Keyword rechazada: '{keyword_text}' - {kw_error_str[:100]}")
-                
-                if failed_keywords:
-                    print(f"📊 Resumen: {successful_keywords}/{len(keywords)} keywords agregadas, {len(failed_keywords)} rechazadas por políticas")
-                
-                return successful_keywords
-            else:
-                # Error diferente, propagar
-                print(f"❌ Error inesperado agregando keywords: {error_str[:200]}")
-                raise
-        
-        return 0
+
+        def process_batch(batch_keywords):
+            """Procesa un batch de keywords y retorna (exitosas, fallidas)"""
+            batch_successful = 0
+            batch_failed = []
+
+            try:
+                # Crear operaciones para el batch
+                operations = []
+                for keyword_text in batch_keywords:
+                    operation = client.get_type("AdGroupCriterionOperation")
+                    criterion = operation.create
+
+                    criterion.ad_group = ad_group_service.ad_group_path(customer_id, ad_group_id)
+                    criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+                    criterion.keyword.text = keyword_text
+                    criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
+
+                    operations.append(operation)
+
+                # Enviar batch completo
+                response = ad_group_criterion_service.mutate_ad_group_criteria(
+                    customer_id=customer_id,
+                    operations=operations
+                )
+
+                batch_successful = len(response.results)
+                return batch_successful, []
+
+            except Exception as e:
+                error_str = str(e)
+
+                # Si es error de políticas, intentar individualmente (pero solo para este batch)
+                if 'POLICY_ERROR' in error_str or 'POLICY_VIOLATION' in error_str:
+                    print(f"⚠️ Error de políticas en batch. Procesando individualmente...")
+
+                    for keyword_text in batch_keywords:
+                        try:
+                            operation = client.get_type("AdGroupCriterionOperation")
+                            criterion = operation.create
+
+                            criterion.ad_group = ad_group_service.ad_group_path(customer_id, ad_group_id)
+                            criterion.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+                            criterion.keyword.text = keyword_text
+                            criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
+
+                            response = ad_group_criterion_service.mutate_ad_group_criteria(
+                                customer_id=customer_id,
+                                operations=[operation]
+                            )
+
+                            batch_successful += 1
+
+                        except Exception as kw_error:
+                            batch_failed.append(keyword_text)
+                            if 'POLICY_ERROR' in str(kw_error):
+                                print(f"❌ Keyword rechazada por políticas: '{keyword_text}'")
+                            else:
+                                print(f"❌ Keyword rechazada: '{keyword_text}' - {str(kw_error)[:100]}")
+
+                    return batch_successful, batch_failed
+                else:
+                    # Error diferente, marcar todo el batch como fallido
+                    print(f"❌ Error en batch completo: {error_str[:200]}")
+                    return 0, batch_keywords
+
+        # DIVIDIR EN BATCHES
+        batches = [keywords[i:i + BATCH_SIZE] for i in range(0, len(keywords), BATCH_SIZE)]
+        print(f"🚀 Procesando {len(keywords)} keywords en {len(batches)} batches de {BATCH_SIZE} (máx {MAX_WORKERS} en paralelo)")
+
+        # PROCESAR BATCHES EN PARALELO
+        start_time = time.time()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # Enviar todos los batches
+            future_to_batch = {executor.submit(process_batch, batch): batch for batch in batches}
+
+            # Recolectar resultados
+            for future in concurrent.futures.as_completed(future_to_batch):
+                batch_successful, batch_failed = future.result()
+                successful_keywords += batch_successful
+                failed_keywords.extend(batch_failed)
+
+        elapsed_time = time.time() - start_time
+
+        # LOGGING FINAL
+        if failed_keywords:
+            print(f"📊 Completado: {successful_keywords}/{len(keywords)} keywords agregadas en {elapsed_time:.1f}s, {len(failed_keywords)} rechazadas por políticas")
+        else:
+            print(f"✅ Todas las keywords agregadas: {successful_keywords}/{len(keywords)} en {elapsed_time:.1f}s")
+
+        return successful_keywords
     
     def _get_final_url(self, client, customer_id: str, campaign_id: str, config: Dict) -> str:
         """

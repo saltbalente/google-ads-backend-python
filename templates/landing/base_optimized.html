@@ -51,6 +51,13 @@
             sans: ['Inter', 'sans-serif']
           },
           colors: {
+            primary: '{{ color_palette.primary }}',
+            secondary: '{{ color_palette.secondary }}',
+            accent: '{{ color_palette.accent }}',
+            background: '{{ color_palette.background }}',
+            surface: '{{ color_palette.surface }}',
+            text: '{{ color_palette.text }}',
+            textSecondary: '{{ color_palette.textSecondary }}',
             mystic: {
               50: '#faf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 300: '#d8b4fe',
               400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7e22ce',
@@ -163,21 +170,21 @@
   </style>
 </head>
 
-<body class="bg-slate-900 text-gray-100 font-sans antialiased overflow-x-hidden">
+<body class="bg-background text-text font-sans antialiased overflow-x-hidden">
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ gtm_id }}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   <!-- Barra de Navegación Flotante -->
   <nav class="fixed w-full z-50 transition-all duration-500 backdrop-blur-md" 
        x-data="{ scrolled: false, mobileMenu: false }" 
        @scroll.window="scrolled = (window.pageYOffset > 20)"
-       :class="scrolled ? 'bg-slate-900/95 shadow-xl shadow-mystic-900/20 py-3' : 'bg-transparent py-5'">
+       :class="scrolled ? 'bg-background/95 shadow-xl shadow-primary/20 py-3' : 'bg-transparent py-5'">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center">
         <!-- Logo Místico -->
         <div class="font-mystical text-2xl tracking-wider">
-          <span class="text-mystic-400">✦</span>
-          <span class="text-gold-400 mx-2">Místicos</span>
-          <span class="text-mystic-400">✦</span>
+          <span class="text-accent">✦</span>
+          <span class="text-secondary mx-2">Místicos</span>
+          <span class="text-accent">✦</span>
         </div>
 
         <!-- Botones de Contacto Desktop -->
@@ -289,7 +296,7 @@
         <!-- Teléfono CTA -->
         <a href="tel:{{ phone_number }}" 
            onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Hero Phone'})"
-           class="inline-flex items-center gap-3 px-8 py-4 bg-transparent border-2 border-mystic-400 hover:bg-mystic-900/50 text-mystic-200 hover:text-white text-lg font-bold rounded-xl transition-all duration-300 hover:scale-105">
+           class="inline-flex items-center gap-3 px-8 py-4 bg-transparent border-2 border-accent hover:bg-primary/50 text-secondary hover:text-text text-lg font-bold rounded-xl transition-all duration-300 hover:scale-105">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
           </svg>
@@ -381,7 +388,7 @@
 
   <!-- Optimized Paragraph Section -->
   {% if optimized_paragraph %}
-  <section class="py-16 bg-slate-900 relative overflow-hidden">
+  <section class="py-16 bg-background relative overflow-hidden">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="crystal-card p-8 md:p-12 rounded-3xl">
         <div class="prose prose-invert prose-lg max-w-none">
@@ -427,7 +434,7 @@
 
   <!-- Additional CTAs Section (Dynamic & Rotational) -->
   {% if additional_ctas %}
-  <section class="py-10 bg-slate-900">
+  <section class="py-10 bg-background">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       {% for cta in additional_ctas %}
       <div class="rounded-2xl overflow-hidden shadow-2xl border border-gold-500/30 relative group h-64">
@@ -540,7 +547,7 @@
   </section>
 
   <!-- Formulario de Contacto Rápido -->
-  <section class="py-20 bg-slate-900 relative overflow-hidden">
+  <section class="py-20 bg-background relative overflow-hidden">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="crystal-card p-8 md:p-12 rounded-3xl text-center">
         <h3 class="text-3xl md:text-4xl font-mystical font-bold text-white mb-4">
@@ -623,7 +630,7 @@
 
         <a href="tel:{{ phone_number }}" 
            onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Final Phone'})"
-           class="inline-flex items-center gap-3 px-10 py-5 bg-transparent border-2 border-gold-400 hover:bg-gold-900/30 text-gold-200 hover:text-white text-xl font-bold rounded-2xl transition-all duration-300 hover:scale-105">
+           class="inline-flex items-center gap-3 px-10 py-5 bg-transparent border-2 border-secondary hover:bg-secondary/30 text-secondary hover:text-text text-xl font-bold rounded-2xl transition-all duration-300 hover:scale-105">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
           </svg>

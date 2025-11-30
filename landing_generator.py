@@ -27,21 +27,53 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 DEFAULT_PUBLIC_DOMAIN = os.getenv("DEFAULT_PUBLIC_LANDING_DOMAIN", "consultadebrujosgratis.store")
 
-# Paragraph Templates
-PARAGRAPH_TEMPLATES = {
-    "curandero_services": """
-Nuestro curandero con más de 25 años de experiencia ofrece servicios profesionales de curación espiritual, 
-limpias energéticas y amarres de amor efectivos. Atención personalizada las 24 horas del día, los 7 días 
-de la semana. Cada consulta incluye diagnóstico espiritual completo y plan de acción personalizado. 
-Trabajamos con métodos tradicionales respaldados por generaciones de conocimiento ancestral.
-""".strip(),
-    
-    "consultoria_esoterica": """
-Ofrecemos consultoría esotérica profesional con lectura de cartas del tarot, interpretación de sueños 
-y orientación para el desarrollo espiritual. Nuestra metodología combina técnicas milenarias con un 
-enfoque moderno y personalizado. Sesiones disponibles en modalidad presencial y virtual. Contamos con 
-más de 15 años ayudando a personas a encontrar claridad, propósito y equilibrio en sus vidas.
-""".strip()
+# Color Palettes for Landing Pages
+COLOR_PALETTES = {
+    "mystical": {
+        "primary": "#8B5CF6",      # mystic-500
+        "secondary": "#F59E0B",    # gold-500
+        "accent": "#EC4899",       # pink-500
+        "background": "#0F172A",   # slate-900
+        "surface": "#1E293B",      # slate-800
+        "text": "#F8FAFC",         # slate-50
+        "textSecondary": "#94A3B8" # slate-400
+    },
+    "oceanic": {
+        "primary": "#06B6D4",      # cyan-500
+        "secondary": "#0891B2",    # cyan-600
+        "accent": "#0EA5E9",       # sky-500
+        "background": "#0C4A6E",   # sky-900
+        "surface": "#075985",      # sky-800
+        "text": "#F0FDFA",         # teal-50
+        "textSecondary": "#5EEAD4" # teal-300
+    },
+    "forest": {
+        "primary": "#16A34A",      # green-600
+        "secondary": "#15803D",    # green-700
+        "accent": "#65A30D",       # lime-600
+        "background": "#14532D",   # green-900
+        "surface": "#166534",      # green-800
+        "text": "#F0FDF4",         # green-50
+        "textSecondary": "#86EFAC" # green-300
+    },
+    "sunset": {
+        "primary": "#EA580C",      # orange-600
+        "secondary": "#DC2626",    # red-600
+        "accent": "#EC4899",       # pink-500
+        "background": "#7C2D12",   # orange-900
+        "surface": "#9A3412",      # orange-800
+        "text": "#FFF7ED",         # orange-50
+        "textSecondary": "#FED7AA" # orange-200
+    },
+    "cosmic": {
+        "primary": "#1E1B4B",      # indigo-950 - Azul cósmico profundo
+        "secondary": "#581C87",    # violet-900 - Púrpura espacial
+        "accent": "#C4B5FD",       # violet-300 - Plata cósmica
+        "background": "#0F0A19",   # Negro espacial
+        "surface": "#1F1633",      # Violeta muy oscuro
+        "text": "#F5F3FF",         # Indigo-50 - Blanco cósmico
+        "textSecondary": "#A5B4FC" # Indigo-300 - Azul claro cósmico
+    }
 }
 
 
@@ -927,8 +959,11 @@ class LandingPageGenerator:
         except Exception as e:
             raise RuntimeError(f"Error processing AI response data: {str(e)}")
 
-    def render(self, gen: GeneratedContent, config: Dict[str, Any]) -> str:
+    def render(self, gen: GeneratedContent, config: Dict[str, Any], selected_color_palette: str = "mystical") -> str:
         try:
+            # Get color palette
+            color_palette = COLOR_PALETTES.get(selected_color_palette, COLOR_PALETTES["mystical"])
+            
             # Initialize template_name variable
             template_name = None
             
@@ -1006,6 +1041,7 @@ class LandingPageGenerator:
                 gtm_id=config["gtm_id"],
                 primary_keyword=config.get("primary_keyword", ""),
                 user_images=user_images,  # Pass the full list for templates that need it
+                color_palette=color_palette,  # Add color palette to template context
                 **img_context
             )
         except Exception as e:
@@ -2165,7 +2201,7 @@ class LandingPageGenerator:
             logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
             return 0
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False) -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical") -> Dict[str, Any]:
         """
         Execute the complete landing page generation pipeline.
 
@@ -2185,6 +2221,7 @@ class LandingPageGenerator:
             user_images: Optional list of user provided images with position info
             paragraph_template: Optional paragraph template ID for AI optimization
             optimize_images_with_ai: If True, use Gemini to optimize images
+            selected_color_palette: Color palette for the landing page theme
         """
         start_time = time.time()
 
@@ -2378,7 +2415,7 @@ class LandingPageGenerator:
 
             # Step 4: Render HTML
             logger.info("🎨 Step 3: Rendering HTML template...")
-            html = self.render(gen, config)
+            html = self.render(gen, config, selected_color_palette)
             html_size = len(html.encode('utf-8'))
             logger.info(f"✅ HTML rendered successfully ({html_size} bytes)")
 
