@@ -703,7 +703,7 @@ def call_openrouter_grok(prompt_messages, model=None):
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json'
     }
-    resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
+    resp = requests.post(endpoint, json=payload, headers=headers, timeout=30)
     if resp.status_code != 200:
         return None, f'OpenRouter error {resp.status_code}: {resp.text}'
     data = resp.json()
@@ -727,7 +727,7 @@ def call_openai_transform(prompt_messages, model=None):
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json'
     }
-    resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
+    resp = requests.post(endpoint, json=payload, headers=headers, timeout=30)
     if resp.status_code != 200:
         return None, f'OpenAI error {resp.status_code}: {resp.text}'
     data = resp.json()
@@ -778,6 +778,22 @@ def transform_template_with_ai():
             transformed, error = call_openai_transform(prompt_messages, model)
 
         if error:
+            def local_transform_html(code_text, instr):
+                l = instr.lower()
+                updated = code_text
+                if (('verde' in l) or ('green' in l)) and (('boton' in l) or ('botón' in l) or ('cta' in l) or ('button' in l)):
+                    css = "<style>button, .btn, .cta-button{background-color:#2ecc71 !important; border-color:#27ae60 !important; color:#fff !important;} .btn-primary{background-color:#2ecc71 !important; border-color:#27ae60 !important;} a.btn{background-color:#2ecc71 !important; border-color:#27ae60 !important; color:#fff !important;}</style>"
+                    if '<head>' in updated:
+                        updated = updated.replace('<head>', '<head>' + css, 1)
+                    else:
+                        updated = css + updated
+                return updated if updated != code_text else None
+
+            local = local_transform_html(code, instructions)
+            if local:
+                response = jsonify({'success': True, 'code': local, 'fallback': True})
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 200
             response = jsonify({'success': False, 'error': error})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 500
