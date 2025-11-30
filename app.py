@@ -654,6 +654,148 @@ def get_template_preview(template_name):
         return response, 500
 
 # ============================================
+# TEMPLATES SOURCE & AI TRANSFORM ENDPOINTS
+# ============================================
+
+@app.route('/api/templates/source/<template_name>', methods=['GET'])
+def get_template_source(template_name):
+    try:
+        valid_templates = [
+            'base_optimized', 'base', 'mystical', 'romantic', 'prosperity', 'llama-gemela', 'llamado-del-alma',
+            'el-libro-prohibido', 'la-luz', 'amarre-eterno', 'tarot-akashico', 'brujeria-blanca',
+            'santeria-prosperidad', 'curanderismo-ancestral', 'brujeria-negra-venganza',
+            'ritual-amor-eterno', 'lectura-aura-sanacion', 'hechizos-abundancia',
+            'conexion-guias-espirituales', 'nocturnal', 'jose-amp'
+        ]
+        if template_name not in valid_templates:
+            response = jsonify({'success': False, 'error': 'Template not found'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 404
+
+        filename = os.path.join('templates', 'landing', f'{template_name}.html')
+        if not os.path.exists(filename):
+            response = jsonify({'success': False, 'error': 'Source file not available'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 404
+
+        with open(filename, 'r', encoding='utf-8') as f:
+            code = f.read()
+
+        response = jsonify({'success': True, 'template': template_name, 'code': code})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
+    except Exception as e:
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+def call_openrouter_grok(prompt_messages, model=None):
+    api_key = os.getenv('OPEN_ROUTER_API_KEY') or os.getenv('OPENROUTER_API_KEY')
+    if not api_key:
+        return None, 'OpenRouter API key not configured'
+    endpoint = 'https://api.openrouter.ai/v1/chat/completions'
+    payload = {
+        'model': model or 'xai/grok-2',
+        'messages': prompt_messages,
+        'temperature': 0.2
+    }
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json'
+    }
+    resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
+    if resp.status_code != 200:
+        return None, f'OpenRouter error {resp.status_code}: {resp.text}'
+    data = resp.json()
+    try:
+        content = data['choices'][0]['message']['content']
+        return content, None
+    except Exception:
+        return None, 'Invalid OpenRouter response structure'
+
+def call_openai_transform(prompt_messages, model=None):
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        return None, 'OpenAI API key not configured'
+    endpoint = 'https://api.openai.com/v1/chat/completions'
+    payload = {
+        'model': model or os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+        'messages': prompt_messages,
+        'temperature': 0.2
+    }
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json'
+    }
+    resp = requests.post(endpoint, json=payload, headers=headers, timeout=60)
+    if resp.status_code != 200:
+        return None, f'OpenAI error {resp.status_code}: {resp.text}'
+    data = resp.json()
+    try:
+        content = data['choices'][0]['message']['content']
+        return content, None
+    except Exception:
+        return None, 'Invalid OpenAI response structure'
+
+@app.route('/api/templates/transform', methods=['POST', 'OPTIONS'])
+def transform_template_with_ai():
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response, 200
+
+    try:
+        data = request.json or {}
+        code = data.get('code')
+        instructions = data.get('instructions', '').strip()
+        provider = (data.get('provider') or 'openrouter').lower()
+        model = data.get('model')
+
+        if not code or not instructions:
+            response = jsonify({'success': False, 'error': 'Missing code or instructions'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+
+        system_prompt = (
+            'Eres un asistente experto en edición de HTML/Jinja para landings de alta conversión. '
+            'Aplica únicamente las modificaciones solicitadas, conserva estructura y variables Jinja existentes, '
+            'no agregues comentarios, devuelve solo el HTML final sin explicaciones.'
+        )
+        prompt_messages = [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': f'Instrucciones:\n{instructions}\n\nCódigo actual:\n```html\n{code}\n```'}
+        ]
+
+        transformed = None
+        error = None
+        if provider == 'openrouter':
+            transformed, error = call_openrouter_grok(prompt_messages, model)
+            if error and os.getenv('OPENAI_API_KEY'):
+                transformed, error = call_openai_transform(prompt_messages)
+        else:
+            transformed, error = call_openai_transform(prompt_messages, model)
+
+        if error:
+            response = jsonify({'success': False, 'error': error})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 500
+
+        if transformed:
+            m = re.search(r"```(?:html)?\n([\s\S]*?)\n```", transformed)
+            if m:
+                transformed = m.group(1)
+
+        response = jsonify({'success': True, 'code': transformed})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
+    except Exception as e:
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+# ============================================
 # CUSTOM TEMPLATES ENDPOINTS
 # ============================================
 
