@@ -377,11 +377,25 @@ def build_landing():
         phone_number = data.get('phoneNumber') or data.get('phone_number')
         webhook_url = data.get('webhookUrl') or data.get('webhook_url')
         selected_template = data.get('selectedTemplate') or data.get('selected_template')
+        custom_template = data.get('customTemplate') or data.get('custom_template')
         user_images = data.get('userImages') or data.get('user_images')
         user_videos = data.get('userVideos') or data.get('user_videos')
         paragraph_template = data.get('paragraphTemplate') or data.get('paragraph_template')
         optimize_images_with_ai = data.get('optimizeImagesWithAI') or data.get('optimize_images_with_ai', False)
         selected_color_palette = data.get('selectedColorPalette') or data.get('selected_color_palette', 'mystical')
+        
+        # Si se proporciona un custom template, usarlo en lugar del selected_template
+        if custom_template:
+            # El custom template viene con un nombre, convertirlo a filename
+            template_name = custom_template.get('name', '')
+            if template_name:
+                # Sanitizar el nombre igual que en custom_template_manager
+                import re
+                sanitized = template_name.lower()
+                sanitized = re.sub(r'[^a-z0-9]+', '-', sanitized)
+                sanitized = sanitized.strip('-')[:50]
+                selected_template = f"{sanitized}.html"
+                logger.info(f"🎨 Using custom template: '{template_name}' -> '{selected_template}'")
         
         if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
             result = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'}), 400
