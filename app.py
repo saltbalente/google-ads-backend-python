@@ -1949,8 +1949,11 @@ def import_repository():
                 'error': 'GitHub token not configured on server'
             }), 500
         
+        # Get monorepo URL (default: saltbalente/monorepo-landings)
+        monorepo_url = os.getenv('MONOREPO_URL', 'https://github.com/saltbalente/monorepo-landings')
+        
         # Create importer instance
-        importer = RepositoryImporter(github_token=github_token)
+        importer = RepositoryImporter(github_token=github_token, monorepo_url=monorepo_url)
         
         # Import and modify repository
         result = importer.import_and_modify(

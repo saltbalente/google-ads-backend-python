@@ -15,14 +15,16 @@ import requests
 
 
 class RepositoryImporter:
-    def __init__(self, github_token: Optional[str] = None):
+    def __init__(self, github_token: Optional[str] = None, monorepo_url: Optional[str] = None):
         """
         Initialize the repository importer
         
         Args:
             github_token: GitHub personal access token (optional, for private repos)
+            monorepo_url: URL of the monorepo where landings will be added (e.g., https://github.com/user/monorepo-landings)
         """
         self.github_token = github_token or os.environ.get('GITHUB_TOKEN')
+        self.monorepo_url = monorepo_url or os.environ.get('MONOREPO_URL', 'https://github.com/saltbalente/monorepo-landings')
         self.temp_dir = None
         
     def import_and_modify(
@@ -34,17 +36,17 @@ class RepositoryImporter:
         gtm_id: str
     ) -> Dict[str, str]:
         """
-        Clone a repository, modify contact info, and create a new version
+        Clone a repository, modify contact info, and add to monorepo
         
         Args:
             repo_url: Full GitHub repository URL
-            new_repo_name: Name for the new repository (optional)
+            new_repo_name: Name for the landing directory (optional)
             whatsapp_number: New WhatsApp number
             phone_number: New phone number (optional)
             gtm_id: New Google Tag Manager ID
             
         Returns:
-            Dict with success status, url, and repo name
+            Dict with success status, url, and landing name
         """
         try:
             # Create temporary directory
@@ -53,11 +55,14 @@ class RepositoryImporter:
             # Extract repo info
             owner, repo_name = self._parse_github_url(repo_url)
             
-            # Determine new repo name
+            # Determine landing directory name
             if not new_repo_name:
                 new_repo_name = f"{repo_name}-modified"
             
-            # Clone repository
+            # Sanitize name for directory
+            landing_name = new_repo_name.lower().replace(' ', '-')
+            
+            # Clone source repository
             clone_path = self._clone_repository(repo_url, self.temp_dir)
             
             # Find and modify HTML files
@@ -68,14 +73,26 @@ class RepositoryImporter:
                 gtm_id
             )
             
-            # Create new repository on GitHub
-            new_repo_url = self._create_github_repo(new_repo_name, owner)
+            # Clone monorepo
+            monorepo_path = self._clone_monorepo()
             
-            # Push modified code to new repository
-            self._push_to_new_repo(clone_path, new_repo_url)
+            # Add landing to monorepo
+            self._add_landing_to_monorepo(clone_path, monorepo_path, landing_name)
+            
+            # Push to monorepo
+            monorepo_url = self._push_to_monorepo(monorepo_path, landing_name)
             
             # Cleanup
             self._cleanup()
+            
+            return {
+                'success': True,
+                'url': f"{monorepo_url}/tree/main/{landing_name}",
+                'repoName': landing_name,
+                'modifiedFiles': len(modified_files),
+                'files': modified_files,
+                'landingURL': f"https://saltbalente.github.io/monorepo-landings/{landing_name}/"
+            }
             
             return {
                 'success': True,
@@ -282,6 +299,94 @@ class RepositoryImporter:
         )
         
         return content
+    
+    def _clone_monorepo(self) -> str:
+        """Clone the monorepo where landings are stored"""
+        try:
+            monorepo_path = os.path.join(self.temp_dir, 'monorepo')
+            
+            # Add token to URL if available
+            clone_url = self.monorepo_url
+            if self.github_token and 'https://' in clone_url:
+                clone_url = clone_url.replace('https://', f'https://{self.github_token}@')
+            
+            result = subprocess.run(
+                ['git', 'clone', clone_url, monorepo_path],
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            
+            if result.returncode != 0:
+                raise Exception(f"Git clone monorepo failed: {result.stderr}")
+            
+            return monorepo_path
+            
+        except subprocess.TimeoutExpired:
+            raise Exception("Clone monorepo timeout")
+        except Exception as e:
+            raise Exception(f"Clone monorepo failed: {str(e)}")
+    
+    def _add_landing_to_monorepo(self, source_path: str, monorepo_path: str, landing_name: str):
+        """Copy landing files to monorepo as subdirectory"""
+        import shutil
+        
+        # Create landing directory in monorepo
+        landing_dir = os.path.join(monorepo_path, landing_name)
+        
+        # If directory exists, remove it first
+        if os.path.exists(landing_dir):
+            shutil.rmtree(landing_dir)
+        
+        # Copy all files from source to monorepo/landing_name
+        # Exclude .git directory
+        shutil.copytree(
+            source_path,
+            landing_dir,
+            ignore=shutil.ignore_patterns('.git', '.gitignore', '__pycache__')
+        )
+    
+    def _push_to_monorepo(self, monorepo_path: str, landing_name: str) -> str:
+        """Commit and push new landing to monorepo"""
+        try:
+            original_dir = os.getcwd()
+            os.chdir(monorepo_path)
+            
+            # Configure git
+            subprocess.run(['git', 'config', 'user.email', 'bot@example.com'], check=True)
+            subprocess.run(['git', 'config', 'user.name', 'Repository Importer Bot'], check=True)
+            
+            # Add new landing directory
+            subprocess.run(['git', 'add', landing_name], check=True)
+            
+            # Commit
+            subprocess.run(
+                ['git', 'commit', '-m', f'Add imported landing: {landing_name}'],
+                check=True
+            )
+            
+            # Push with token
+            push_url = self.monorepo_url
+            if self.github_token and 'https://' in push_url:
+                push_url = push_url.replace('https://', f'https://{self.github_token}@') + '.git'
+            else:
+                push_url = push_url + '.git'
+            
+            subprocess.run(
+                ['git', 'push', push_url, 'main'],
+                check=True,
+                timeout=120
+            )
+            
+            os.chdir(original_dir)
+            return self.monorepo_url
+            
+        except subprocess.CalledProcessError as e:
+            os.chdir(original_dir)
+            raise Exception(f"Git push to monorepo failed: {str(e)}")
+        except subprocess.TimeoutExpired:
+            os.chdir(original_dir)
+            raise Exception("Push to monorepo timeout")
     
     def _create_github_repo(self, repo_name: str, owner: str) -> str:
         """Create a new repository on GitHub"""
