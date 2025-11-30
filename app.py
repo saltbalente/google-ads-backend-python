@@ -5,6 +5,7 @@ from google.ads.googleads.errors import GoogleAdsException
 from google.protobuf.field_mask_pb2 import FieldMask
 from circuit_breaker import circuit_breaker_bp, start_circuit_breaker_scheduler
 from dotenv import load_dotenv
+from typing import Tuple, Optional
 import os
 from PIL import Image
 import base64
@@ -22,6 +23,8 @@ import re
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from landing_generator import LandingPageGenerator
 from video_processor import VideoProcessor
+from web_cloner import WebCloner, WebClonerConfig
+from github_cloner_uploader import GitHubClonerUploader
 
 import logging
 logger = logging.getLogger(__name__)
@@ -5635,3 +5638,321 @@ def diagnostic():
     
     result.headers.add('Access-Control-Allow-Origin', '*')
     return result
+
+
+# ============================================================================
+# WEB CLONER ENDPOINTS
+# ============================================================================
+
+# In-memory storage for cloning jobs (use Redis in production)
+cloning_jobs = {}
+from threading import Lock
+jobs_lock = Lock()
+
+
+def validate_url(url: str) -> Tuple[bool, Optional[str]]:
+    """Validate URL format and security"""
+    from urllib.parse import urlparse
+    
+    if not url or not isinstance(url, str):
+        return False, "URL is required"
+        
+    # Basic URL validation
+    try:
+        parsed = urlparse(url)
+        if not all([parsed.scheme, parsed.netloc]):
+            return False, "Invalid URL format"
+        if parsed.scheme not in ['http', 'https']:
+            return False, "Only HTTP/HTTPS URLs are allowed"
+    except Exception:
+        return False, "Invalid URL format"
+        
+    # Security: Block internal/private IPs
+    import socket
+    try:
+        hostname = parsed.netloc.split(':')[0]
+        ip = socket.gethostbyname(hostname)
+        
+        # Block localhost and private ranges
+        if ip.startswith(('127.', '0.', '10.', '172.', '192.168.')):
+            return False, "Cannot clone localhost or private network URLs"
+    except:
+        pass  # DNS resolution failed, but allow the request
+        
+    return True, None
+
+
+def sanitize_site_name(name: str) -> str:
+    """Sanitize site name for GitHub folder"""
+    import re
+    # Remove special characters, keep only alphanumeric, hyphens, underscores
+    name = re.sub(r'[^a-zA-Z0-9\-_]', '-', name)
+    # Remove multiple consecutive hyphens
+    name = re.sub(r'-+', '-', name)
+    # Trim and lowercase
+    name = name.strip('-').lower()[:50]  # Max 50 chars
+    return name or 'cloned-site'
+
+
+def clone_website_task(job_id: str, url: str, site_name: str, whatsapp: str, phone: str, gtm_id: str):
+    """Background task to clone website"""
+    
+    def update_status(status: str, progress: int, message: str, data: dict = None):
+        with jobs_lock:
+            cloning_jobs[job_id].update({
+                'status': status,
+                'progress': progress,
+                'message': message,
+                'updated_at': datetime.now().isoformat()
+            })
+            if data:
+                cloning_jobs[job_id].update(data)
+    
+    try:
+        update_status('cloning', 10, 'Downloading website resources...')
+        
+        # Initialize cloner
+        config = WebClonerConfig()
+        config.timeout = 30
+        config.max_retries = 3
+        cloner = WebCloner(config)
+        
+        # Clone website
+        update_status('cloning', 30, 'Processing HTML and assets...')
+        result = cloner.clone_website(
+            url=url,
+            whatsapp=whatsapp,
+            phone=phone,
+            gtm_id=gtm_id
+        )
+        
+        if not result.get('success'):
+            update_status('failed', 0, f"Failed to clone: {result.get('error', 'Unknown error')}")
+            return
+            
+        update_status('uploading', 60, 'Uploading to GitHub...')
+        
+        # Upload to GitHub
+        uploader = GitHubClonerUploader()
+        upload_result = uploader.upload_cloned_website(
+            site_name=site_name,
+            resources=cloner.get_resources(),
+            optimize_for_jsdelivr=True
+        )
+        
+        if not upload_result.get('success'):
+            update_status('failed', 0, f"Failed to upload: {upload_result.get('error', 'Unknown error')}")
+            return
+            
+        update_status('completed', 100, 'Website cloned successfully!', {
+            'github_url': upload_result.get('github_url'),
+            'jsdelivr_url': upload_result.get('jsdelivr_url'),
+            'raw_url': upload_result.get('raw_url'),
+            'files_uploaded': upload_result.get('uploaded_files'),
+            'total_files': upload_result.get('total_files')
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in clone_website_task: {str(e)}")
+        update_status('failed', 0, f"Error: {str(e)}")
+
+
+@app.route('/api/clone-website', methods=['POST', 'OPTIONS'])
+def clone_website_endpoint():
+    """Start website cloning process"""
+    
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        url = data.get('url', '').strip()
+        site_name = data.get('site_name', '').strip()
+        
+        if not url:
+            return jsonify({
+                'success': False,
+                'error': 'URL is required'
+            }), 400
+            
+        if not site_name:
+            return jsonify({
+                'success': False,
+                'error': 'Site name is required'
+            }), 400
+            
+        # Validate URL
+        is_valid, error_msg = validate_url(url)
+        if not is_valid:
+            return jsonify({
+                'success': False,
+                'error': error_msg
+            }), 400
+            
+        # Sanitize site name
+        site_name = sanitize_site_name(site_name)
+        
+        # Get optional parameters
+        whatsapp = data.get('whatsapp', '').strip()
+        phone = data.get('phone', '').strip()
+        gtm_id = data.get('gtm_id', '').strip()
+        
+        # Generate job ID
+        job_id = str(uuid.uuid4())
+        
+        # Create job entry
+        with jobs_lock:
+            cloning_jobs[job_id] = {
+                'job_id': job_id,
+                'url': url,
+                'site_name': site_name,
+                'status': 'queued',
+                'progress': 0,
+                'message': 'Job queued...',
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat()
+            }
+        
+        # Start background task
+        import threading
+        thread = threading.Thread(
+            target=clone_website_task,
+            args=(job_id, url, site_name, whatsapp, phone, gtm_id)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        response = jsonify({
+            'success': True,
+            'job_id': job_id,
+            'message': 'Cloning job started',
+            'status_url': f'/api/clone-status/{job_id}'
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in clone_website_endpoint: {str(e)}")
+        response = jsonify({
+            'success': False,
+            'error': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+
+@app.route('/api/clone-status/<job_id>', methods=['GET', 'OPTIONS'])
+def get_clone_status(job_id):
+    """Get status of a cloning job"""
+    
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        return response
+    
+    try:
+        with jobs_lock:
+            job = cloning_jobs.get(job_id)
+            
+        if not job:
+            return jsonify({
+                'success': False,
+                'error': 'Job not found'
+            }), 404
+            
+        response = jsonify({
+            'success': True,
+            'job': job
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in get_clone_status: {str(e)}")
+        response = jsonify({
+            'success': False,
+            'error': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+
+@app.route('/api/cloned-sites', methods=['GET', 'OPTIONS'])
+def list_cloned_sites():
+    """List all cloned websites"""
+    
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        return response
+    
+    try:
+        uploader = GitHubClonerUploader()
+        sites = uploader.list_cloned_sites()
+        
+        response = jsonify({
+            'success': True,
+            'sites': sites,
+            'count': len(sites)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in list_cloned_sites: {str(e)}")
+        response = jsonify({
+            'success': False,
+            'error': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+
+@app.route('/api/cloned-sites/<site_name>', methods=['DELETE', 'OPTIONS'])
+def delete_cloned_site(site_name):
+    """Delete a cloned website"""
+    
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'DELETE, OPTIONS')
+        return response
+    
+    try:
+        uploader = GitHubClonerUploader()
+        success = uploader.delete_cloned_site(site_name)
+        
+        if success:
+            response = jsonify({
+                'success': True,
+                'message': f'Site {site_name} deleted successfully'
+            })
+        else:
+            response = jsonify({
+                'success': False,
+                'error': 'Failed to delete site'
+            }), 500
+            
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in delete_cloned_site: {str(e)}")
+        response = jsonify({
+            'success': False,
+            'error': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
