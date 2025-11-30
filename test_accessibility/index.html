@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sitio con Problemas de Accesibilidad</title>
+    <style>
+        .white-on-white {
+            color: white;
+            background-color: white;
+        }
+        .black-on-black {
+            color: black;
+            background-color: black;
+        }
+        .invisible-text {
+            color: #f5f5f5;
+            background-color: #f5f5f5;
+        }
+        .low-opacity {
+            color: black;
+            opacity: 0.1;
+        }
+        .transparent-bg {
+            color: white;
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body style="background-color: white; color: white;">
+    <h1 style="color: white; background-color: white;">Texto Blanco sobre Fondo Blanco</h1>
+    <p class="white-on-white">Este párrafo tiene texto blanco sobre fondo blanco y no se ve.</p>
+    <div class="black-on-black">
+        <h2>Texto Negro sobre Fondo Negro</h2>
+        <p>Este texto tampoco se ve porque es negro sobre negro.</p>
+    </div>
+    <p class="invisible-text">Texto gris claro sobre fondo gris claro.</p>
+    <p class="low-opacity">Texto con opacidad muy baja.</p>
+    <div style="color: #fafafa; background-color: #fafafa;">
+        <p>Texto muy claro sobre fondo muy claro.</p>
+    </div>
+    <p class="transparent-bg">Texto blanco sobre fondo transparente.</p>
+    <p style="color: white;">Texto blanco sin especificar fondo.</p>
+    <div style="background-color: black;">
+        <p style="color: black;">Texto negro sobre fondo negro.</p>
+    </div>
+</body>
+</html>

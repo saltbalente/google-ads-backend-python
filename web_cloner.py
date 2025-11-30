@@ -20,9 +20,379 @@ from bs4 import BeautifulSoup, Comment
 from PIL import Image
 from io import BytesIO
 
+# Importar librerías de accesibilidad
+try:
+    from axe_selenium_python import Axe
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    import webcolors
+    import colour
+    ACCESSIBILITY_LIBS_AVAILABLE = True
+except ImportError as e:
+    ACCESSIBILITY_LIBS_AVAILABLE = False
+    # Logger no está disponible aún en este punto
+    print(f"Advertencia: Librerías de accesibilidad no disponibles: {e}. Usando análisis básico.")
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+class AccessibilityAnalyzer:
+    """
+    Analizador avanzado de accesibilidad usando librerías profesionales
+    """
+    
+    def __init__(self):
+        self.libs_available = ACCESSIBILITY_LIBS_AVAILABLE
+        self.driver = None
+        
+    def analyze_website(self, url: str) -> Dict[str, Any]:
+        """
+        Realiza un análisis completo de accesibilidad del sitio web
+        Returns: Dict con resultados detallados del análisis
+        """
+        if not self.libs_available:
+            logger.warning("Librerías de accesibilidad no disponibles, usando análisis básico")
+            return self._basic_analysis(url)
+        
+        results = {
+            'overall_score': 0,
+            'contrast_issues': [],
+            'accessibility_violations': [],
+            'color_contrast_pairs': [],
+            'recommendations': [],
+            'severity_breakdown': {'critical': 0, 'serious': 0, 'moderate': 0, 'minor': 0}
+        }
+        
+        try:
+            # Configurar Selenium con Chrome headless
+            chrome_options = Options()
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument('--disable-gpu')
+            chrome_options.add_argument('--window-size=1920,1080')
+            
+            self.driver = webdriver.Chrome(options=chrome_options)
+            self.driver.get(url)
+            
+            # Esperar a que cargue la página
+            time.sleep(3)
+            
+            # Análisis con axe-core
+            axe = Axe(self.driver)
+            axe.inject()
+            
+            # Ejecutar análisis completo
+            results_axe = axe.run()
+            
+            # Procesar resultados
+            results['accessibility_violations'] = results_axe.get('violations', [])
+            results['severity_breakdown'] = self._count_severities(results['accessibility_violations'])
+            
+            # Análisis específico de contraste
+            contrast_issues = self._analyze_color_contrast()
+            results['contrast_issues'] = contrast_issues
+            
+            # Calcular puntuación general
+            results['overall_score'] = self._calculate_accessibility_score(results)
+            
+            # Generar recomendaciones
+            results['recommendations'] = self._generate_recommendations(results)
+            
+        except Exception as e:
+            logger.error(f"Error en análisis de accesibilidad avanzado: {e}")
+            return self._basic_analysis(url)
+        finally:
+            if self.driver:
+                self.driver.quit()
+                
+        return results
+    
+    def _analyze_color_contrast(self) -> List[Dict[str, Any]]:
+        """
+        Analiza específicamente problemas de contraste de color
+        """
+        contrast_issues = []
+        
+        if not self.driver:
+            return contrast_issues
+        
+        try:
+            # Obtener todos los elementos con texto
+            elements_with_text = self.driver.find_elements(By.XPATH, "//*[text()[normalize-space()]]")
+            
+            for element in elements_with_text:
+                try:
+                    # Obtener estilos computados
+                    text_color = self.driver.execute_script("""
+                        var element = arguments[0];
+                        var style = window.getComputedStyle(element);
+                        return {
+                            color: style.color,
+                            backgroundColor: style.backgroundColor,
+                            fontSize: style.fontSize,
+                            fontWeight: style.fontWeight
+                        };
+                    """, element)
+                    
+                    # Analizar contraste
+                    contrast_ratio = self._calculate_contrast_ratio(text_color['color'], text_color['backgroundColor'])
+                    
+                    # Determinar si es un problema según WCAG
+                    is_problem = self._is_contrast_problem(contrast_ratio, text_color['fontSize'], text_color['fontWeight'])
+                    
+                    if is_problem:
+                        contrast_issues.append({
+                            'element': element.get_attribute('outerHTML')[:100] + '...',
+                            'text_color': text_color['color'],
+                            'background_color': text_color['backgroundColor'],
+                            'contrast_ratio': contrast_ratio,
+                            'font_size': text_color['fontSize'],
+                            'font_weight': text_color['fontWeight'],
+                            'severity': 'critical' if contrast_ratio < 3 else 'serious'
+                        })
+                        
+                except Exception as e:
+                    logger.debug(f"Error analizando elemento: {e}")
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"Error en análisis de contraste: {e}")
+            
+        return contrast_issues
+    
+    def _calculate_contrast_ratio(self, color1: str, color2: str) -> float:
+        """
+        Calcula la relación de contraste entre dos colores
+        """
+        try:
+            # Convertir colores a RGB
+            rgb1 = self._color_to_rgb(color1)
+            rgb2 = self._color_to_rgb(color2)
+            
+            # Calcular luminancia relativa
+            lum1 = self._relative_luminance(rgb1)
+            lum2 = self._relative_luminance(rgb2)
+            
+            # Calcular ratio de contraste
+            lighter = max(lum1, lum2)
+            darker = min(lum1, lum2)
+            
+            return (lighter + 0.05) / (darker + 0.05)
+            
+        except Exception as e:
+            logger.debug(f"Error calculando contraste: {e}")
+            return 1.0
+    
+    def _color_to_rgb(self, color: str) -> Tuple[int, int, int]:
+        """
+        Convierte una especificación de color CSS a RGB
+        """
+        try:
+            # Remover espacios
+            color = color.strip()
+            
+            # Color transparente
+            if color == 'transparent' or color == 'rgba(0, 0, 0, 0)':
+                return (255, 255, 255)  # Asumir fondo blanco
+            
+            # RGB/RGBA
+            if color.startswith('rgb'):
+                match = re.match(r'rgba?\((\d+),\s*(\d+),\s*(\d+)', color)
+                if match:
+                    return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+            
+            # Hex
+            if color.startswith('#'):
+                return webcolors.hex_to_rgb(color)
+            
+            # Nombre de color
+            try:
+                return webcolors.name_to_rgb(color)
+            except ValueError:
+                pass
+            
+            # Default: negro
+            return (0, 0, 0)
+            
+        except Exception as e:
+            logger.debug(f"Error convirtiendo color {color}: {e}")
+            return (0, 0, 0)
+    
+    def _relative_luminance(self, rgb: Tuple[int, int, int]) -> float:
+        """
+        Calcula la luminancia relativa según WCAG
+        """
+        r, g, b = rgb
+        
+        # Convertir a valores lineales
+        rs = r / 255.0
+        gs = g / 255.0
+        bs = b / 255.0
+        
+        # Aplicar función de transferencia
+        if rs <= 0.03928:
+            rs = rs / 12.92
+        else:
+            rs = ((rs + 0.055) / 1.055) ** 2.4
+            
+        if gs <= 0.03928:
+            gs = gs / 12.92
+        else:
+            gs = ((gs + 0.055) / 1.055) ** 2.4
+            
+        if bs <= 0.03928:
+            bs = bs / 12.92
+        else:
+            bs = ((bs + 0.055) / 1.055) ** 2.4
+        
+        # Calcular luminancia
+        return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs
+    
+    def _is_contrast_problem(self, ratio: float, font_size: str, font_weight: str) -> bool:
+        """
+        Determina si un ratio de contraste es problemático según WCAG
+        """
+        try:
+            # Parsear font-size
+            size_match = re.match(r'(\d+(?:\.\d+)?)px', font_size)
+            if not size_match:
+                return ratio < 4.5  # Default threshold
+            
+            size_px = float(size_match.group(1))
+            
+            # Parsear font-weight
+            is_bold = False
+            if font_weight:
+                try:
+                    weight = int(font_weight)
+                    is_bold = weight >= 700
+                except ValueError:
+                    is_bold = 'bold' in font_weight.lower()
+            
+            # Thresholds según WCAG 2.1
+            if size_px >= 18 or (size_px >= 14 and is_bold):
+                # Large text
+                return ratio < 3.0
+            else:
+                # Normal text
+                return ratio < 4.5
+                
+        except Exception as e:
+            logger.debug(f"Error evaluando contraste: {e}")
+            return ratio < 4.5
+    
+    def _count_severities(self, violations: List[Dict]) -> Dict[str, int]:
+        """
+        Cuenta violaciones por severidad
+        """
+        breakdown = {'critical': 0, 'serious': 0, 'moderate': 0, 'minor': 0}
+        
+        for violation in violations:
+            impact = violation.get('impact', 'minor')
+            if impact in breakdown:
+                breakdown[impact] += 1
+                
+        return breakdown
+    
+    def _calculate_accessibility_score(self, results: Dict) -> float:
+        """
+        Calcula una puntuación general de accesibilidad (0-100)
+        """
+        violations = results.get('accessibility_violations', [])
+        contrast_issues = results.get('contrast_issues', [])
+        
+        # Penalizaciones por tipo de problema
+        penalty = 0
+        
+        # Violaciones de axe-core
+        for violation in violations:
+            impact = violation.get('impact', 'minor')
+            nodes_affected = len(violation.get('nodes', []))
+            
+            if impact == 'critical':
+                penalty += nodes_affected * 10
+            elif impact == 'serious':
+                penalty += nodes_affected * 5
+            elif impact == 'moderate':
+                penalty += nodes_affected * 2
+            else:  # minor
+                penalty += nodes_affected * 1
+        
+        # Problemas de contraste
+        for issue in contrast_issues:
+            if issue.get('severity') == 'critical':
+                penalty += 8
+            else:
+                penalty += 4
+        
+        # Calcular score (máximo 100, mínimo 0)
+        score = max(0, 100 - penalty)
+        
+        return round(score, 1)
+    
+    def _generate_recommendations(self, results: Dict) -> List[str]:
+        """
+        Genera recomendaciones basadas en los resultados del análisis
+        """
+        recommendations = []
+        
+        violations = results.get('accessibility_violations', [])
+        contrast_issues = results.get('contrast_issues', [])
+        score = results.get('overall_score', 0)
+        
+        # Recomendaciones basadas en score
+        if score < 50:
+            recommendations.append("Accesibilidad crítica: El sitio tiene múltiples problemas graves que afectan la usabilidad")
+        elif score < 70:
+            recommendations.append("Accesibilidad mejorable: Revisar problemas de contraste y navegación")
+        elif score < 90:
+            recommendations.append("Accesibilidad buena: Solo ajustes menores necesarios")
+        else:
+            recommendations.append("Accesibilidad excelente: El sitio cumple con estándares altos")
+        
+        # Recomendaciones específicas
+        if contrast_issues:
+            recommendations.append(f"Corregir {len(contrast_issues)} problemas de contraste de color")
+        
+        # Contar tipos de violaciones
+        violation_types = {}
+        for violation in violations:
+            rule_id = violation.get('id', 'unknown')
+            violation_types[rule_id] = violation_types.get(rule_id, 0) + 1
+        
+        # Recomendaciones por tipo de problema común
+        if 'color-contrast' in violation_types:
+            recommendations.append("Mejorar el contraste entre texto y fondo")
+        
+        if 'image-alt' in violation_types:
+            recommendations.append("Añadir texto alternativo a las imágenes")
+            
+        if 'link-name' in violation_types:
+            recommendations.append("Mejorar la accesibilidad de los enlaces")
+        
+        if 'heading-order' in violation_types:
+            recommendations.append("Corregir la jerarquía de encabezados")
+        
+        return recommendations
+    
+    def _basic_analysis(self, url: str) -> Dict[str, Any]:
+        """
+        Análisis básico cuando las librerías avanzadas no están disponibles
+        """
+        logger.info("Realizando análisis básico de accesibilidad")
+        
+        return {
+            'overall_score': 50.0,  # Score neutral
+            'contrast_issues': [],
+            'accessibility_violations': [],
+            'color_contrast_pairs': [],
+            'recommendations': ['Instalar librerías de accesibilidad avanzadas para análisis completo'],
+            'severity_breakdown': {'critical': 0, 'serious': 0, 'moderate': 0, 'minor': 0}
+        }
 
 
 class WebClonerConfig:
@@ -78,10 +448,15 @@ class ResourceDownloader:
             try:
                 logger.debug(f"Downloading {url} (attempt {attempt + 1}/{self.config.max_retries})")
                 
+                # Use longer timeout for larger files
+                timeout = self.config.timeout
+                if any(domain in url for domain in ['googletagmanager.com', 'googleapis.com', 'gstatic.com']):
+                    timeout = 60  # Longer timeout for Google services
+                
                 response = self.session.get(
                     url,
                     headers=headers,
-                    timeout=self.config.timeout,
+                    timeout=timeout,
                     stream=True,
                     allow_redirects=True
                 )
@@ -99,16 +474,27 @@ class ResourceDownloader:
                     logger.warning(f"File too large: {url} ({content_length} bytes)")
                     return None
                 
-                # Download content
+                # Download content with progress indication for large files
                 content = b''
                 total_size = 0
+                start_time = time.time()
+                
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         content += chunk
                         total_size += len(chunk)
+                        
+                        # Check size limit during download
                         if total_size > self.config.max_file_size:
                             logger.warning(f"File size exceeded during download: {url}")
                             return None
+                        
+                        # Log progress for large files
+                        if total_size > 1024 * 1024:  # > 1MB
+                            elapsed = time.time() - start_time
+                            if elapsed > 5:  # Log every 5 seconds for large files
+                                logger.info(f"Downloading {url}: {total_size/1024/1024:.1f}MB...")
+                                start_time = time.time()
                 
                 content_type = response.headers.get('content-type', 'application/octet-stream')
                 self.downloaded_urls.add(url)
@@ -335,6 +721,9 @@ class ContentProcessor:
         
         # Inject universal CSS styles for consistent rendering
         self._inject_universal_css(soup)
+        
+        # Analyze and fix accessibility issues (contrast problems, etc.)
+        self._analyze_and_fix_accessibility(soup, base_url)
                 
         # Apply content replacements
         html_str = str(soup)
@@ -1230,7 +1619,7 @@ nav a:hover {
 header {
     background-color: #fff;
     border-bottom: 1px solid #ddd;
-    padding: 2rem 0;
+     
 }
 
 footer {
@@ -1440,6 +1829,797 @@ button:focus, input:focus, textarea:focus, select:focus, a:focus {
         
         logger.info("Injected universal CSS styles for consistent rendering")
     
+    def _analyze_and_fix_accessibility(self, soup: BeautifulSoup, original_url: str = None) -> None:
+        """
+        FORCE AGGRESSIVE DARK MODE on ALL websites for maximum visibility
+        No analysis needed - just apply universal dark theme corrections
+        """
+        logger.info("🔍 Aplicando MODO OSCURO AGRESIVO universal...")
+
+        # NO ANALYSIS NEEDED - FORCE DARK MODE ON ALL SITES
+        logger.info("Forzando modo oscuro agresivo en todo el sitio")
+
+        # Aplicar correcciones universales de modo oscuro
+        self._apply_universal_dark_mode(soup)
+
+        # Agregar CSS de accesibilidad adaptativo (modo oscuro)
+        self._inject_adaptive_accessibility_css(soup, {})
+
+        logger.info("✅ Modo oscuro agresivo aplicado - máxima visibilidad garantizada")
+
+    def _apply_universal_dark_mode(self, soup: BeautifulSoup) -> None:
+        """
+        Aplica correcciones universales de modo oscuro a TODOS los elementos
+        """
+        # Forzar modo oscuro en elementos específicos con estilos inline
+        elements_modified = 0
+
+        # Procesar todos los elementos con estilos inline
+        for element in soup.find_all(style=True):
+            style = element.get('style', '')
+            if style:
+                # Forzar color blanco en texto
+                if 'color:' in style:
+                    # Reemplazar cualquier color de texto por blanco
+                    import re
+                    style = re.sub(r'color:\s*[^;]+', 'color: #ffffff', style)
+                    element['style'] = style
+                    elements_modified += 1
+
+                # Forzar fondo negro
+                if 'background:' in style or 'background-color:' in style:
+                    # Reemplazar cualquier fondo por negro
+                    style = re.sub(r'background-color:\s*[^;]+', 'background-color: #000000', style)
+                    style = re.sub(r'background:\s*[^;]+', 'background: #000000', style)
+                    element['style'] = style
+                    elements_modified += 1
+
+        # Agregar clases CSS para forzar modo oscuro
+        body = soup.find('body')
+        if body:
+            current_class = body.get('class', [])
+            if isinstance(current_class, str):
+                current_class = [current_class]
+            current_class.append('force-dark-mode')
+            body['class'] = current_class
+
+        logger.info(f"Aplicadas {elements_modified} modificaciones de modo oscuro en estilos inline")
+    
+    def _apply_minimal_fixes(self, soup: BeautifulSoup, contrast_issues: List[Dict]) -> None:
+        """
+        Aplica correcciones mínimas solo para problemas críticos reales
+        """
+        fixes_applied = 0
+        
+        for issue in contrast_issues:
+            if issue.get('severity') == 'critical':
+                # Solo corregir problemas críticos
+                self._fix_critical_contrast_issue(soup, issue)
+                fixes_applied += 1
+        
+        logger.info(f"Aplicadas {fixes_applied} correcciones mínimas")
+    
+    def _apply_selective_fixes(self, soup: BeautifulSoup, contrast_issues: List[Dict], violations: List[Dict]) -> None:
+        """
+        Aplica correcciones selectivas basadas en problemas específicos
+        """
+        fixes_applied = 0
+        
+        # Corregir problemas de contraste
+        for issue in contrast_issues:
+            self._fix_contrast_issue_selective(soup, issue)
+            fixes_applied += 1
+        
+        # Corregir violaciones comunes
+        for violation in violations:
+            if violation.get('id') == 'color-contrast':
+                self._fix_color_contrast_violation(soup, violation)
+                fixes_applied += 1
+        
+        logger.info(f"Aplicadas {fixes_applied} correcciones selectivas")
+    
+    def _apply_comprehensive_fixes(self, soup: BeautifulSoup, contrast_issues: List[Dict], violations: List[Dict]) -> None:
+        """
+        Aplica correcciones completas para sitios con accesibilidad pobre
+        """
+        fixes_applied = 0
+        
+        # Corregir todos los problemas de contraste
+        for issue in contrast_issues:
+            self._fix_contrast_issue_comprehensive(soup, issue)
+            fixes_applied += 1
+        
+        # Corregir violaciones críticas
+        critical_violations = [v for v in violations if v.get('impact') in ['critical', 'serious']]
+        for violation in critical_violations:
+            self._fix_critical_violation(soup, violation)
+            fixes_applied += 1
+        
+        logger.info(f"Aplicadas {fixes_applied} correcciones completas")
+    
+    def _fix_critical_contrast_issue(self, soup: BeautifulSoup, issue: Dict) -> None:
+        """
+        Corrige problemas críticos de contraste de manera mínima
+        """
+        # Buscar elementos similares en el HTML y aplicar corrección específica
+        text_color = issue.get('text_color', '')
+        bg_color = issue.get('background_color', '')
+        
+        # Crear selector específico para este problema
+        selector = self._create_specific_selector(text_color, bg_color)
+        if selector:
+            # Agregar CSS específico para este problema
+            style_tag = soup.find('style')
+            if not style_tag:
+                style_tag = soup.new_tag('style')
+                soup.head.append(style_tag)
+            
+            fix_css = f"{selector} {{ color: #333 !important; background-color: #fff !important; }}"
+            if style_tag.string:
+                style_tag.string += f"\n{fix_css}"
+            else:
+                style_tag.string = fix_css
+    
+    def _fix_contrast_issue_selective(self, soup: BeautifulSoup, issue: Dict) -> None:
+        """
+        Corrige problemas de contraste de manera selectiva
+        """
+        # Aplicar corrección basada en el tipo específico de problema
+        severity = issue.get('severity', 'moderate')
+        contrast_ratio = issue.get('contrast_ratio', 1.0)
+        
+        if severity == 'critical' or contrast_ratio < 3.0:
+            self._fix_critical_contrast_issue(soup, issue)
+        elif contrast_ratio < 4.5:
+            # Corrección moderada
+            self._apply_moderate_contrast_fix(soup, issue)
+    
+    def _fix_contrast_issue_comprehensive(self, soup: BeautifulSoup, issue: Dict) -> None:
+        """
+        Corrige problemas de contraste de manera completa
+        """
+        # Aplicar la corrección más agresiva necesaria
+        self._fix_critical_contrast_issue(soup, issue)
+        
+        # También aplicar correcciones relacionadas
+        self._fix_related_contrast_issues(soup, issue)
+    
+    def _fix_color_contrast_violation(self, soup: BeautifulSoup, violation: Dict) -> None:
+        """
+        Corrige violaciones específicas de contraste de axe-core
+        """
+        nodes = violation.get('nodes', [])
+        
+        for node in nodes:
+            target = node.get('target', [])
+            if target:
+                # Crear selector CSS para el elemento específico
+                selector = self._create_css_selector_from_target(target)
+                if selector:
+                    self._add_css_fix(soup, selector, "color: #333 !important; background-color: #fff !important;")
+    
+    def _fix_critical_violation(self, soup: BeautifulSoup, violation: Dict) -> None:
+        """
+        Corrige violaciones críticas de accesibilidad
+        """
+        violation_id = violation.get('id', '')
+        nodes = violation.get('nodes', [])
+        
+        if violation_id == 'color-contrast':
+            self._fix_color_contrast_violation(soup, violation)
+        elif violation_id == 'image-alt':
+            self._fix_missing_alt_text(soup, nodes)
+        elif violation_id == 'link-name':
+            self._fix_link_accessibility(soup, nodes)
+    
+    def _fix_missing_alt_text(self, soup: BeautifulSoup, nodes: List[Dict]) -> None:
+        """
+        Añade texto alternativo a imágenes faltantes
+        """
+        for node in nodes:
+            target = node.get('target', [])
+            if target:
+                try:
+                    # Encontrar la imagen en el soup
+                    selector = self._create_css_selector_from_target(target)
+                    if selector and selector.startswith('img'):
+                        # Buscar imágenes sin alt
+                        images = soup.find_all('img', alt='')
+                        for img in images:
+                            if not img.get('alt'):
+                                img['alt'] = 'Imagen'
+                except:
+                    pass
+    
+    def _fix_link_accessibility(self, soup: BeautifulSoup, nodes: List[Dict]) -> None:
+        """
+        Mejora la accesibilidad de enlaces
+        """
+        for node in nodes:
+            target = node.get('target', [])
+            if target:
+                try:
+                    # Buscar enlaces sin texto accesible
+                    links = soup.find_all('a')
+                    for link in links:
+                        if not link.get_text(strip=True) and not link.get('aria-label'):
+                            link['aria-label'] = 'Enlace'
+                except:
+                    pass
+    
+    def _create_specific_selector(self, text_color: str, bg_color: str) -> str:
+        """
+        Crea un selector CSS específico para un problema de contraste
+        """
+        # Crear atributos de estilo para matching específico
+        conditions = []
+        
+        if text_color:
+            conditions.append(f'[style*="color: {text_color}"]')
+        if bg_color and bg_color != 'transparent':
+            conditions.append(f'[style*="background: {bg_color}"]')
+        
+        if conditions:
+            return ''.join(conditions)
+        
+        return ''
+    
+    def _create_css_selector_from_target(self, target: List[str]) -> str:
+        """
+        Crea un selector CSS desde un target de axe-core
+        """
+        if not target:
+            return ''
+        
+        # El target usualmente viene como CSS selector
+        selector = target[0] if isinstance(target, list) else str(target)
+        
+        # Limpiar y simplificar el selector
+        selector = selector.replace('html > body ', '').replace('html body ', '')
+        
+        return selector
+    
+    def _add_css_fix(self, soup: BeautifulSoup, selector: str, css_rules: str) -> None:
+        """
+        Añade una regla CSS de corrección al documento
+        """
+        style_tag = soup.find('style')
+        if not style_tag:
+            style_tag = soup.new_tag('style')
+            soup.head.append(style_tag)
+        
+        fix_css = f"{selector} {{ {css_rules} }}"
+        if style_tag.string:
+            style_tag.string += f"\n{fix_css}"
+        else:
+            style_tag.string = fix_css
+    
+    def _apply_moderate_contrast_fix(self, soup: BeautifulSoup, issue: Dict) -> None:
+        """
+        Aplica corrección moderada de contraste
+        """
+        # Solo ajustar colores ligeramente para mejorar contraste
+        selector = self._create_specific_selector(
+            issue.get('text_color', ''), 
+            issue.get('background_color', '')
+        )
+        
+        if selector:
+            # Corrección moderada: ajustar a colores con mejor contraste
+            self._add_css_fix(soup, selector, "color: #222 !important; background-color: #f8f8f8 !important;")
+    
+    def _fix_related_contrast_issues(self, soup: BeautifulSoup, issue: Dict) -> None:
+        """
+        Corrige problemas de contraste relacionados
+        """
+        # Buscar elementos similares que puedan tener el mismo problema
+        text_color = issue.get('text_color', '')
+        if text_color:
+            # Corregir otros elementos con el mismo color de texto problemático
+            similar_selector = f'[style*="color: {text_color}"]'
+            self._add_css_fix(soup, similar_selector, "color: #333 !important;")
+    
+    def _inject_adaptive_accessibility_css(self, soup: BeautifulSoup, report: Dict) -> None:
+        """
+        Inject AGGRESSIVE DARK MODE CSS - Always applied for maximum visibility
+        """
+        dark_mode_css = """
+/* ===== AGGRESSIVE DARK MODE - ALWAYS APPLIED ===== */
+/* This CSS forces dark mode on ALL websites regardless of original design */
+
+/* Universal dark mode application */
+.force-dark-mode,
+.force-dark-mode *,
+.force-dark-mode *::before,
+.force-dark-mode *::after {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    background: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+/* Specific overrides for common problematic elements */
+.force-dark-mode .text-white,
+.force-dark-mode .text-light,
+.force-dark-mode .text-muted {
+    color: #ffffff !important;
+}
+
+.force-dark-mode .bg-white,
+.force-dark-mode .bg-light,
+.force-dark-mode .bg-transparent {
+    background-color: #000000 !important;
+}
+
+.force-dark-mode .bg-dark,
+.force-dark-mode .bg-black {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
+
+.force-dark-mode .text-dark,
+.force-dark-mode .text-black {
+    color: #ffffff !important;
+}
+
+/* Form elements in dark mode */
+.force-dark-mode input,
+.force-dark-mode textarea,
+.force-dark-mode select {
+    color: #ffffff !important;
+    background-color: #333333 !important;
+    border-color: #ffffff !important;
+}
+
+.force-dark-mode input::placeholder,
+.force-dark-mode textarea::placeholder {
+    color: #cccccc !important;
+}
+
+/* Links in dark mode */
+.force-dark-mode a,
+.force-dark-mode a:link,
+.force-dark-mode a:visited,
+.force-dark-mode a:hover,
+.force-dark-mode a:active {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+/* Tables in dark mode */
+.force-dark-mode table,
+.force-dark-mode th,
+.force-dark-mode td {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+.force-dark-mode th {
+    background-color: #333333 !important;
+}
+
+/* Cards in dark mode */
+.force-dark-mode .card,
+.force-dark-mode .card-header,
+.force-dark-mode .card-body,
+.force-dark-mode .card-footer {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+.force-dark-mode .card-header {
+    background-color: #333333 !important;
+}
+
+/* Navigation in dark mode */
+.force-dark-mode nav,
+.force-dark-mode .navbar,
+.force-dark-mode .menu {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+/* Elementor specific dark mode */
+.force-dark-mode .elementor-section,
+.force-dark-mode .elementor-container,
+.force-dark-mode .elementor-column,
+.force-dark-mode .elementor-widget,
+.force-dark-mode .elementor-text-editor {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+.force-dark-mode .elementor-heading-title {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+/* WordPress specific dark mode */
+.force-dark-mode .site-header,
+.force-dark-mode .site-footer,
+.force-dark-mode .site-main,
+.force-dark-mode .entry-content,
+.force-dark-mode .widget,
+.force-dark-mode .sidebar {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+/* Focus and selection in dark mode */
+.force-dark-mode *:focus {
+    outline-color: #ffffff !important;
+    border-color: #ffffff !important;
+}
+
+.force-dark-mode ::selection {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+/* ===== END AGGRESSIVE DARK MODE ===== */
+"""
+
+        # Añadir el CSS al documento
+        style_tag = soup.find('style')
+        if not style_tag:
+            style_tag = soup.new_tag('style')
+            if soup.head:
+                soup.head.append(style_tag)
+
+        if style_tag and style_tag.string:
+            style_tag.string += f"\n{dark_mode_css}"
+        else:
+            if style_tag:
+                style_tag.string = dark_mode_css
+    
+    def _detect_contrast_problem(self, element) -> bool:
+        """
+        Detect if an element has potential contrast problems
+        Returns True if the element likely has invisible text
+        """
+        # Check for common patterns that cause invisible text
+        style = element.get('style', '').lower()
+        classes = element.get('class', [])
+        if isinstance(classes, str):
+            classes = [classes]
+        classes_str = ' '.join(classes).lower()
+        
+        # Check for problematic color combinations
+        problematic_patterns = [
+            # White text on white background
+            ('color.*white', 'background.*white'),
+            ('color.*#fff', 'background.*#fff'),
+            ('color.*#ffffff', 'background.*#ffffff'),
+            # Black text on black background
+            ('color.*black', 'background.*black'),
+            ('color.*#000', 'background.*#000'),
+            ('color.*#000000', 'background.*#000000'),
+            # Very light colors
+            ('color.*#f', 'background.*#f'),  # Light grays
+            # Transparent backgrounds with light text
+            ('background.*transparent', 'color.*white'),
+            ('background.*rgba.*0\)', 'color.*white'),
+        ]
+        
+        for text_pattern, bg_pattern in problematic_patterns:
+            if re.search(text_pattern, style) and re.search(bg_pattern, style):
+                return True
+        
+        # Check for CSS classes that commonly cause issues
+        problematic_classes = [
+            'invisible', 'hidden', 'transparent', 'opacity-0',
+            'text-transparent', 'bg-transparent'
+        ]
+        
+        for cls in problematic_classes:
+            if cls in classes_str:
+                return True
+        
+        # Check for very low opacity text
+        opacity_matches = re.findall(r'opacity:\s*0?\.([0-9]+)', style)
+        for opacity in opacity_matches:
+            if int(opacity) < 3:  # Less than 0.3 opacity
+                return True
+        
+        return False
+    
+    def _fix_contrast_issues(self, style: str, element=None) -> str:
+        """
+        Fix contrast issues in CSS style string
+        """
+        original_style = style
+        style_lower = style.lower()
+        
+        # Fix white text on white background
+        if ('color:' in style_lower and 'white' in style_lower and 
+            'background:' in style_lower and 'white' in style_lower):
+            style = re.sub(r'color:\s*white[^;]*', 'color: #333', style, flags=re.IGNORECASE)
+            style = re.sub(r'background:\s*white[^;]*', 'background: #fff', style, flags=re.IGNORECASE)
+        
+        # Fix black text on black background
+        if ('color:' in style_lower and ('black' in style_lower or '#000' in style_lower) and 
+            'background:' in style_lower and ('black' in style_lower or '#000' in style_lower)):
+            style = re.sub(r'color:\s*black[^;]*', 'color: #333', style, flags=re.IGNORECASE)
+            style = re.sub(r'background:\s*black[^;]*', 'background: #fff', style, flags=re.IGNORECASE)
+        
+        # Fix very low opacity
+        opacity_matches = re.finditer(r'opacity:\s*0?\.([0-9]+)', style)
+        for match in opacity_matches:
+            opacity_value = match.group(1)
+            if int(opacity_value) < 3:  # Less than 0.3 opacity
+                style = style.replace(match.group(0), 'opacity: 1')
+        
+        # Ensure minimum contrast for text elements
+        if element and element.get_text(strip=True):
+            # If element has text but no color specified, ensure dark text
+            if 'color:' not in style_lower:
+                if style and not style.endswith(';'):
+                    style += '; '
+                style += 'color: #333;'
+            
+            # If element has text but no background, ensure white background
+            if 'background:' not in style_lower and 'background-color:' not in style_lower:
+                if style and not style.endswith(';'):
+                    style += '; '
+                style += 'background-color: #fff;'
+        
+        return style
+    
+    def _inject_accessibility_fixes(self, soup: BeautifulSoup) -> None:
+        """
+        Inject AGGRESSIVE DARK MODE CSS to force all websites into dark theme
+        This ensures maximum visibility and contrast for all text elements
+        """
+        dark_mode_css = """
+/* ===== AGGRESSIVE DARK MODE - FORCED VISIBILITY ===== */
+/* This CSS forces ALL websites into dark mode for maximum readability */
+
+/* FORCE DARK BACKGROUND ON ENTIRE PAGE */
+html, body {
+    background-color: #000000 !important;
+    background: #000000 !important;
+    color: #ffffff !important;
+}
+
+/* FORCE ALL TEXT TO BE WHITE */
+* {
+    color: #ffffff !important;
+}
+
+/* FORCE ALL ELEMENTS TO HAVE DARK BACKGROUNDS */
+*, *::before, *::after {
+    background-color: #000000 !important;
+    background: #000000 !important;
+}
+
+/* SPECIFIC ELEMENT OVERRIDES FOR MAXIMUM CONTRAST */
+h1, h2, h3, h4, h5, h6 {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+p, span, div, section, article, header, footer, nav, aside, main {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+a, a:link, a:visited, a:hover, a:active, a:focus {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+    text-decoration-color: #ffffff !important;
+}
+
+/* FORM ELEMENTS */
+input, textarea, select, button {
+    color: #ffffff !important;
+    background-color: #333333 !important;
+    border-color: #ffffff !important;
+}
+
+input::placeholder, textarea::placeholder {
+    color: #cccccc !important;
+}
+
+input:focus, textarea:focus, select:focus {
+    color: #ffffff !important;
+    background-color: #444444 !important;
+    border-color: #ffffff !important;
+    outline-color: #ffffff !important;
+}
+
+/* TABLES */
+table, th, td {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+th {
+    background-color: #333333 !important;
+}
+
+/* CARDS AND CONTAINERS */
+.card, .card-header, .card-body, .card-footer {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+.card-header {
+    background-color: #333333 !important;
+}
+
+/* NAVIGATION */
+nav, .navbar, .menu, .navigation {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+nav a, .navbar a, .menu a {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+/* SPECIFIC FRAMEWORK OVERRIDES */
+.elementor-section, .elementor-container, .elementor-column, .elementor-widget {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+.elementor-text-editor, .wp-block-paragraph, .entry-content p {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+.elementor-heading-title, .elementor-widget-heading h1, .elementor-widget-heading h2,
+.elementor-widget-heading h3, .elementor-widget-heading h4, .elementor-widget-heading h5,
+.elementor-widget-heading h6 {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+/* WORDPRESS SPECIFIC */
+.site-header, .site-footer, .site-main, .entry-content, .post-content {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+.widget, .sidebar, .wp-block-group {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+/* BOOTSTRAP AND COMMON CLASSES */
+.text-white, .text-light, .text-muted {
+    color: #ffffff !important;
+}
+
+.bg-white, .bg-light, .bg-transparent {
+    background-color: #000000 !important;
+}
+
+.bg-dark, .bg-black {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
+
+.text-dark, .text-black {
+    color: #ffffff !important;
+}
+
+.border, .border-light, .border-white {
+    border-color: #ffffff !important;
+}
+
+/* MODALS AND OVERLAYS */
+.modal, .modal-content, .modal-header, .modal-body, .modal-footer,
+.overlay, .popup, .lightbox {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.9) !important;
+}
+
+/* IMAGES - ENSURE THEY DON'T BREAK CONTRAST */
+img {
+    opacity: 1 !important;
+    filter: brightness(1.2) contrast(1.1) !important;
+}
+
+/* CODE AND PRE ELEMENTS */
+code, pre, .code, .pre {
+    color: #ffffff !important;
+    background-color: #333333 !important;
+    border-color: #ffffff !important;
+}
+
+/* BLOCKQUOTES */
+blockquote {
+    color: #ffffff !important;
+    background-color: #333333 !important;
+    border-color: #ffffff !important;
+}
+
+/* LISTS */
+ul, ol, li {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+/* FOCUS AND SELECTION */
+*:focus, *:focus-visible {
+    outline-color: #ffffff !important;
+    border-color: #ffffff !important;
+}
+
+::selection {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+::-moz-selection {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+/* SPECIFIC PROBLEMATIC ELEMENTS */
+[style*="color:"], [style*="background:"] {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+[style*="opacity: 0"], [style*="opacity: 0."] {
+    opacity: 1 !important;
+}
+
+/* ANIMATIONS AND TRANSITIONS */
+.animated, .fadeIn, .slideInUp, .zoomIn, .elementor-invisible {
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: #ffffff !important;
+    background-color: #000000 !important;
+}
+
+/* VIDEO AND MEDIA */
+video, iframe, embed, object {
+    border-color: #ffffff !important;
+}
+
+/* PRINT STYLES - FORCE DARK EVEN WHEN PRINTING */
+@media print {
+    * {
+        color: #000000 !important;
+        background: #ffffff !important;
+    }
+}
+
+/* ===== END AGGRESSIVE DARK MODE ===== */
+"""
+        
+        # Find existing style tag with universal CSS and append dark mode fixes
+        style_tag = soup.find('style', string=lambda s: s and 'UNIVERSAL CSS RESET' in s)
+        if style_tag and style_tag.string:
+            style_tag.string += '\n\n' + dark_mode_css
+            logger.info("Injected AGGRESSIVE DARK MODE CSS for maximum visibility")
+        else:
+            # If no universal CSS found, create new style tag
+            dark_mode_style = soup.new_tag('style')
+            dark_mode_style.string = dark_mode_css
+            
+            head = soup.find('head')
+            if head:
+                head.append(dark_mode_style)
+                logger.info("Created separate AGGRESSIVE DARK MODE CSS style tag")
+    
     def process_css(self, css_content: str, base_url: str) -> Tuple[str, List[str]]:
         """
         Process CSS content to extract URLs and fix Elementor issues
@@ -1612,57 +2792,76 @@ class WebCloner:
         # Download resources
         logger.info(f"📦 Downloading {len(resource_list)} resources...")
         downloaded_count = 0
+        failed_count = 0
         
         for resource_type, resource_url, element in resource_list:
-            # Skip if already downloaded
-            resource_name = self._get_resource_name(resource_url)
-            if resource_name in self.resources:
-                continue
-                
-            # Download resource
-            resource_result = self.downloader.download(resource_url, referer=url)
-            if not resource_result:
-                continue
-                
-            resource_content, resource_content_type = resource_result
-            
-            # Process CSS files to extract nested resources
-            if resource_type == 'css' and 'css' in resource_content_type.lower():
-                try:
-                    css_str = resource_content.decode('utf-8', errors='ignore')
-                    processed_css, nested_resources = self.processor.process_css(css_str, resource_url)
-                    resource_content = processed_css.encode('utf-8')
+            try:
+                # Skip if already downloaded
+                resource_name = self._get_resource_name(resource_url)
+                if resource_name in self.resources:
+                    continue
                     
-                    # Add nested resources to download queue
-                    for nested_url in nested_resources:
-                        nested_name = self._get_resource_name(nested_url)
-                        if nested_name not in self.resources:
-                            nested_result = self.downloader.download(nested_url, referer=resource_url)
-                            if nested_result:
-                                nested_content, nested_type = nested_result
-                                self.resources[nested_name] = {
-                                    'content': nested_content,
-                                    'type': nested_type,
-                                    'url': nested_url
-                                }
-                except Exception as e:
-                    logger.warning(f"Failed to process CSS: {str(e)}")
-            
-            # Optimize images if enabled
-            if resource_type == 'img' and self.config.optimize_images:
-                if any(img_type in resource_content_type.lower() for img_type in ['image/jpeg', 'image/png', 'image/jpg']):
-                    resource_content = self.processor.optimize_image(resource_content, self.config.max_image_size)
-            
-            # Store resource
-            self.resources[resource_name] = {
-                'content': resource_content,
-                'type': resource_content_type,
-                'url': resource_url
-            }
-            
-            downloaded_count += 1
-            
-        logger.info(f"✅ Downloaded {downloaded_count} resources successfully")
+                # Download resource with error handling
+                resource_result = self.downloader.download(resource_url, referer=url)
+                if not resource_result:
+                    failed_count += 1
+                    logger.warning(f"❌ Failed to download: {resource_url}")
+                    continue
+                    
+                resource_content, resource_content_type = resource_result
+                
+                # Process CSS files to extract nested resources
+                if resource_type == 'css' and 'css' in resource_content_type.lower():
+                    try:
+                        css_str = resource_content.decode('utf-8', errors='ignore')
+                        processed_css, nested_resources = self.processor.process_css(css_str, resource_url)
+                        resource_content = processed_css.encode('utf-8')
+                        
+                        # Add nested resources to download queue
+                        for nested_url in nested_resources:
+                            try:
+                                nested_name = self._get_resource_name(nested_url)
+                                if nested_name not in self.resources:
+                                    nested_result = self.downloader.download(nested_url, referer=resource_url)
+                                    if nested_result:
+                                        nested_content, nested_type = nested_result
+                                        self.resources[nested_name] = {
+                                            'content': nested_content,
+                                            'type': nested_type,
+                                            'url': nested_url
+                                        }
+                            except Exception as e:
+                                logger.warning(f"Failed to download nested resource {nested_url}: {str(e)}")
+                                failed_count += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to process CSS {resource_url}: {str(e)}")
+                
+                # Optimize images if enabled
+                if resource_type == 'img' and self.config.optimize_images:
+                    if any(img_type in resource_content_type.lower() for img_type in ['image/jpeg', 'image/png', 'image/jpg']):
+                        try:
+                            resource_content = self.processor.optimize_image(resource_content, self.config.max_image_size)
+                        except Exception as e:
+                            logger.warning(f"Failed to optimize image {resource_url}: {str(e)}")
+                
+                # Store resource
+                self.resources[resource_name] = {
+                    'content': resource_content,
+                    'type': resource_content_type,
+                    'url': resource_url
+                }
+                
+                downloaded_count += 1
+                
+            except KeyboardInterrupt:
+                logger.warning("Download interrupted by user")
+                break
+            except Exception as e:
+                failed_count += 1
+                logger.warning(f"Unexpected error downloading {resource_url}: {str(e)}")
+                continue
+        
+        logger.info(f"✅ Downloaded {downloaded_count} resources successfully, {failed_count} failed")
         
         # Save to disk if output_dir specified
         saved_output_dir = None
