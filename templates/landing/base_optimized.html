@@ -1,14 +1,18 @@
 <!doctype html>
 <html lang="es" class="scroll-smooth">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ seo_title }}</title>
-  
+
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon.svg">
-  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon-32x32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml"
+    href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32"
+    href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180"
+    href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/apple-touch-icon.png">
 
   <!-- SEO Optimizado -->
   <meta name="description" content="{{ seo_description }}" />
@@ -16,7 +20,7 @@
   <meta property="og:title" content="{{ seo_title }}" />
   <meta property="og:description" content="{{ seo_description }}" />
   <meta property="og:type" content="website" />
-  
+
   <!-- Schema.org para SEO Local -->
   <script type="application/ld+json">
   {
@@ -37,7 +41,9 @@
   <!-- Fuentes Místicas -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -103,11 +109,14 @@
 
   <!-- GTM -->
   <script>
-    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','{{ gtm_id }}');
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || []; w[l].push({
+          'gtm.start':
+            new Date().getTime(), event: 'gtm.js'
+        }); var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+            'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+      })(window, document, 'script', 'dataLayer', '{{ gtm_id }}');
   </script>
 
   <style>
@@ -115,9 +124,9 @@
     .mystic-gradient {
       background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #581c87 100%);
     }
-    
+
     .particle-bg {
-      background-image: 
+      background-image:
         radial-gradient(circle at 20% 80%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
         radial-gradient(circle at 80% 20%, rgba(234, 179, 8, 0.15) 0%, transparent 50%);
     }
@@ -148,8 +157,13 @@
 
     /* Animación de escritura mística */
     @keyframes mystic-write {
-      from { width: 0; }
-      to { width: 100%; }
+      from {
+        width: 0;
+      }
+
+      to {
+        width: 100%;
+      }
     }
 
     .mystic-text {
@@ -160,8 +174,17 @@
 
     /* Botón pulsante de WhatsApp */
     @keyframes pulse-wa {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7); }
-      50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(37, 211, 102, 0); }
+
+      0%,
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+      }
+
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(37, 211, 102, 0);
+      }
     }
 
     .wa-pulse {
@@ -171,13 +194,13 @@
 </head>
 
 <body class="bg-background text-text font-sans antialiased overflow-x-hidden">
-  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ gtm_id }}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ gtm_id }}" height="0" width="0"
+      style="display:none;visibility:hidden"></iframe></noscript>
 
   <!-- Barra de Navegación Flotante -->
-  <nav class="fixed w-full z-50 transition-all duration-500 backdrop-blur-md" 
-       x-data="{ scrolled: false, mobileMenu: false }" 
-       @scroll.window="scrolled = (window.pageYOffset > 20)"
-       :class="scrolled ? 'bg-background/95 shadow-xl shadow-primary/20 py-3' : 'bg-transparent py-5'">
+  <nav class="fixed w-full z-50 transition-all duration-500 backdrop-blur-md"
+    x-data="{ scrolled: false, mobileMenu: false }" @scroll.window="scrolled = (window.pageYOffset > 20)"
+    :class="scrolled ? 'bg-background/95 shadow-xl shadow-primary/20 py-3' : 'bg-transparent py-5'">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center">
         <!-- Logo Místico -->
@@ -190,19 +213,21 @@
         <!-- Botones de Contacto Desktop -->
         <div class="hidden md:flex items-center gap-4">
           <!-- Botón de Teléfono -->
-          <a href="tel:{{ phone_number }}" 
-             class="flex items-center gap-2 px-4 py-2 rounded-lg border border-mystic-500/30 text-mystic-300 hover:bg-mystic-500/10 transition-all duration-300">
+          <a href="tel:{{ phone_number }}"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg border border-mystic-500/30 text-mystic-300 hover:bg-mystic-500/10 transition-all duration-300">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
             </svg>
             <span class="font-medium">{{ phone_number }}</span>
           </a>
 
           <!-- Botón de WhatsApp -->
-          <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}" 
-             class="flex items-center gap-2 px-5 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white font-semibold shadow-lg shadow-green-900/50 transition-all duration-300 hover:scale-105">
+          <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}"
+            class="flex items-center gap-2 px-5 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white font-semibold shadow-lg shadow-green-900/50 transition-all duration-300 hover:scale-105">
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+              <path
+                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
             </svg>
             WhatsApp
           </a>
@@ -211,22 +236,26 @@
         <!-- Menú Mobile Toggle -->
         <button @click="mobileMenu = !mobileMenu" class="md:hidden text-mystic-300 p-2">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
       </div>
 
       <!-- Menú Mobile -->
       <div x-show="mobileMenu" x-transition class="md:hidden mt-4 pb-4 space-y-3">
-        <a href="tel:{{ phone_number }}" class="flex items-center gap-2 px-4 py-3 rounded-lg border border-mystic-500/30 text-mystic-300">
+        <a href="tel:{{ phone_number }}"
+          class="flex items-center gap-2 px-4 py-3 rounded-lg border border-mystic-500/30 text-mystic-300">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
           </svg>
           {{ phone_number }}
         </a>
-        <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}" class="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-600 text-white font-semibold justify-center">
+        <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}"
+          class="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-600 text-white font-semibold justify-center">
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+            <path
+              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
           </svg>
           Contactar por WhatsApp
         </a>
@@ -235,7 +264,8 @@
   </nav>
 
   <!-- Hero Section -->
-  <section class="relative min-h-screen flex items-center justify-center mystic-gradient particle-bg overflow-hidden pt-20">
+  <section
+    class="relative min-h-screen flex items-center justify-center mystic-gradient particle-bg overflow-hidden pt-20">
     <!-- Background Image (Optional) -->
     {% if user_image_hero_bg %}
     <div class="absolute inset-0 z-0">
@@ -247,80 +277,107 @@
     <!-- Elementos flotantes decorativos -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
       <div class="absolute top-20 left-10 w-2 h-2 bg-mystic-400 rounded-full animate-float opacity-60"></div>
-      <div class="absolute top-40 right-20 w-3 h-3 bg-gold-400 rounded-full animate-float opacity-40" style="animation-delay: 1s"></div>
-      <div class="absolute bottom-32 left-1/4 w-2 h-2 bg-mystic-300 rounded-full animate-float opacity-50" style="animation-delay: 2s"></div>
-      <div class="absolute top-1/3 right-1/3 w-4 h-4 bg-gold-300 rounded-full animate-float opacity-30" style="animation-delay: 1.5s"></div>
+      <div class="absolute top-40 right-20 w-3 h-3 bg-gold-400 rounded-full animate-float opacity-40"
+        style="animation-delay: 1s"></div>
+      <div class="absolute bottom-32 left-1/4 w-2 h-2 bg-mystic-300 rounded-full animate-float opacity-50"
+        style="animation-delay: 2s"></div>
+      <div class="absolute top-1/3 right-1/3 w-4 h-4 bg-gold-300 rounded-full animate-float opacity-30"
+        style="animation-delay: 1.5s"></div>
     </div>
 
     <!-- Gradientes de luz -->
     <div class="absolute top-0 left-1/4 w-96 h-96 bg-mystic-600/30 rounded-full blur-3xl animate-pulse-glow"></div>
-    <div class="absolute bottom-0 right-1/4 w-80 h-80 bg-gold-500/20 rounded-full blur-3xl animate-pulse-glow" style="animation-delay: 1.5s"></div>
+    <div class="absolute bottom-0 right-1/4 w-80 h-80 bg-gold-500/20 rounded-full blur-3xl animate-pulse-glow"
+      style="animation-delay: 1.5s"></div>
 
     <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
       <!-- Badge de confianza -->
-      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-mystic-900/50 border border-mystic-500/30 backdrop-blur-sm mb-8 animate-fade-in">
+      <div
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-mystic-900/50 border border-mystic-500/30 backdrop-blur-sm mb-8 animate-fade-in">
         <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-        <span class="text-sm font-medium text-mystic-200">✨ Disponible 24/7 • +{{ social_proof|length * 100 }} Consultas Exitosas</span>
+        <span class="text-sm font-medium text-mystic-200">✨ Disponible 24/7 • +{{ social_proof|length * 100 }} Consultas
+          Exitosas</span>
       </div>
 
       <!-- Título Principal -->
-      <h1 class="text-4xl md:text-6xl lg:text-7xl font-mystical font-bold text-white mb-6 leading-tight tracking-wide" style="animation: fade-in 1s ease-out 0.3s both">
+      <h1 class="text-4xl md:text-6xl lg:text-7xl font-mystical font-bold text-white mb-6 leading-tight tracking-wide"
+        style="animation: fade-in 1s ease-out 0.3s both">
         {{ headline_h1 }}
       </h1>
 
       <!-- Subtítulo -->
-      <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed font-elegant" style="animation: fade-in 1s ease-out 0.6s both">
+      <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed font-elegant"
+        style="animation: fade-in 1s ease-out 0.6s both">
         {{ subheadline }}
       </p>
 
-      <!-- Imagen Hero (si existe) -->
-      {% if user_image_top %}
-      <div class="mb-10 max-w-3xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-mystic-500/20" style="animation: fade-in 1s ease-out 0.9s both">
+      <!-- Hero Content (Video o Imagen) -->
+      {% if user_video_hero %}
+      <div class="mb-10 max-w-3xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-mystic-500/20"
+        style="animation: fade-in 1s ease-out 0.9s both">
+        <video controls autoplay muted loop playsinline class="w-full h-auto object-cover"
+          poster="{{ user_video_hero_thumbnail }}">
+          <source src="{{ user_video_hero }}" type="video/mp4">
+          Tu navegador no soporta el elemento de video.
+        </video>
+      </div>
+      {% elif user_image_top %}
+      <div class="mb-10 max-w-3xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-mystic-500/20"
+        style="animation: fade-in 1s ease-out 0.9s both">
         <img src="{{ user_image_top }}" alt="Imagen destacada" class="w-full h-auto object-cover" loading="eager">
       </div>
       {% endif %}
 
       <!-- CTAs Principales -->
-      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8" style="animation: fade-in 1s ease-out 1.2s both">
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8"
+        style="animation: fade-in 1s ease-out 1.2s both">
         <!-- WhatsApp CTA -->
-        <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}" 
-           onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Hero WhatsApp'})"
-           class="group relative inline-flex items-center gap-3 px-8 py-4 bg-green-600 hover:bg-green-500 text-white text-lg font-bold rounded-xl shadow-2xl shadow-green-900/50 transition-all duration-300 hover:scale-105 overflow-hidden">
-          <span class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+        <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}"
+          onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Hero WhatsApp'})"
+          class="group relative inline-flex items-center gap-3 px-8 py-4 bg-green-600 hover:bg-green-500 text-white text-lg font-bold rounded-xl shadow-2xl shadow-green-900/50 transition-all duration-300 hover:scale-105 overflow-hidden">
+          <span
+            class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
           <svg class="w-7 h-7 relative z-10" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+            <path
+              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
           </svg>
           <span class="relative z-10">{{ cta_text }}</span>
         </a>
 
         <!-- Teléfono CTA -->
-        <a href="tel:{{ phone_number }}" 
-           onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Hero Phone'})"
-           class="inline-flex items-center gap-3 px-8 py-4 bg-transparent border-2 border-accent hover:bg-primary/50 text-secondary hover:text-text text-lg font-bold rounded-xl transition-all duration-300 hover:scale-105">
+        <a href="tel:{{ phone_number }}"
+          onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Hero Phone'})"
+          class="inline-flex items-center gap-3 px-8 py-4 bg-transparent border-2 border-accent hover:bg-primary/50 text-secondary hover:text-text text-lg font-bold rounded-xl transition-all duration-300 hover:scale-105">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
           </svg>
           Llamar Ahora
         </a>
       </div>
 
       <!-- Indicadores de confianza -->
-      <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-400" style="animation: fade-in 1s ease-out 1.5s both">
+      <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-400"
+        style="animation: fade-in 1s ease-out 1.5s both">
         <div class="flex items-center gap-2">
           <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            <path fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clip-rule="evenodd" />
           </svg>
           <span>Respuesta inmediata</span>
         </div>
         <div class="flex items-center gap-2">
           <svg class="w-5 h-5 text-gold-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+            <path
+              d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
           <span>Valoración 4.9/5</span>
         </div>
         <div class="flex items-center gap-2">
           <svg class="w-5 h-5 text-mystic-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
           <span>100% Confidencial</span>
         </div>
@@ -332,8 +389,10 @@
   <section class="py-20 bg-slate-800 relative overflow-hidden">
     <!-- Decoración de fondo -->
     <div class="absolute inset-0 opacity-5">
-      <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-mystic-500 to-transparent"></div>
-      <div class="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gold-500 to-transparent"></div>
+      <div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-mystic-500 to-transparent">
+      </div>
+      <div class="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gold-500 to-transparent">
+      </div>
     </div>
 
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -353,10 +412,14 @@
       <div class="grid lg:grid-cols-2 gap-12 items-center">
         <div class="grid sm:grid-cols-2 gap-6">
           {% for benefit in benefits %}
-          <div class="group crystal-card p-6 rounded-xl hover:border-mystic-400/40 transition-all duration-500 hover:-translate-y-2">
-            <div class="w-14 h-14 rounded-lg bg-gradient-to-br from-mystic-600 to-mystic-800 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
+          <div
+            class="group crystal-card p-6 rounded-xl hover:border-mystic-400/40 transition-all duration-500 hover:-translate-y-2">
+            <div
+              class="w-14 h-14 rounded-lg bg-gradient-to-br from-mystic-600 to-mystic-800 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
               <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                <path fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd" />
               </svg>
             </div>
             <p class="text-gray-300 text-center leading-relaxed">{{ benefit }}</p>
@@ -370,11 +433,15 @@
       {% else %}
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {% for benefit in benefits %}
-        <div class="group crystal-card p-6 rounded-xl hover:border-mystic-400/40 transition-all duration-500 hover:-translate-y-2">
+        <div
+          class="group crystal-card p-6 rounded-xl hover:border-mystic-400/40 transition-all duration-500 hover:-translate-y-2">
           <!-- Ícono -->
-          <div class="w-14 h-14 rounded-lg bg-gradient-to-br from-mystic-600 to-mystic-800 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
+          <div
+            class="w-14 h-14 rounded-lg bg-gradient-to-br from-mystic-600 to-mystic-800 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
             <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              <path fill-rule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clip-rule="evenodd" />
             </svg>
           </div>
           <!-- Texto -->
@@ -394,19 +461,25 @@
         <div class="prose prose-invert prose-lg max-w-none">
           <div class="text-gray-300 leading-relaxed space-y-4 whitespace-pre-line">{{ optimized_paragraph }}</div>
         </div>
-        
+
         <!-- CTA integrado -->
         <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}" 
-             onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Paragraph WhatsApp'})"
-             class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition-all hover:scale-105">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+          <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}"
+            onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Paragraph WhatsApp'})"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition-all hover:scale-105">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+            </svg>
             Consulta Profesional
           </a>
-          <a href="tel:{{ phone_number }}" 
-             onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Paragraph Phone'})"
-             class="inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-mystic-400 hover:bg-mystic-900/50 text-mystic-200 hover:text-white font-bold rounded-xl transition-all hover:scale-105">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          <a href="tel:{{ phone_number }}"
+            onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Paragraph Phone'})"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 border-2 border-mystic-400 hover:bg-mystic-900/50 text-mystic-200 hover:text-white font-bold rounded-xl transition-all hover:scale-105">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
             Llamar Ahora
           </a>
         </div>
@@ -420,10 +493,12 @@
   <section class="py-10 bg-mystic-900/50">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="rounded-2xl overflow-hidden shadow-2xl border border-gold-500/30 relative group">
-        <img src="{{ user_image_promo }}" alt="Promoción Especial" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+        <img src="{{ user_image_promo }}" alt="Promoción Especial"
+          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-8">
           <div class="text-white">
-            <span class="bg-gold-500 text-black text-xs font-bold px-3 py-1 rounded-full mb-2 inline-block">OFERTA LIMITADA</span>
+            <span class="bg-gold-500 text-black text-xs font-bold px-3 py-1 rounded-full mb-2 inline-block">OFERTA
+              LIMITADA</span>
             <h3 class="text-2xl font-mystical font-bold">Consulta Especial Hoy</h3>
           </div>
         </div>
@@ -442,37 +517,44 @@
         {% set cta_index = loop.index %}
         {% set cta_image = None %}
         {% if cta_index == 1 and user_image_cta1 %}
-          {% set cta_image = user_image_cta1 %}
+        {% set cta_image = user_image_cta1 %}
         {% elif cta_index == 2 and user_image_cta2 %}
-          {% set cta_image = user_image_cta2 %}
+        {% set cta_image = user_image_cta2 %}
         {% elif cta_index == 3 and user_image_cta3 %}
-          {% set cta_image = user_image_cta3 %}
+        {% set cta_image = user_image_cta3 %}
         {% elif cta_index == 4 and user_image_cta4 %}
-          {% set cta_image = user_image_cta4 %}
+        {% set cta_image = user_image_cta4 %}
         {% endif %}
-        
+
         {% if cta_image %}
-        <img src="{{ cta_image }}" alt="{{ cta.headline }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-60">
+        <img src="{{ cta_image }}" alt="{{ cta.headline }}"
+          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-60">
         {% elif user_image_promo %}
-        <img src="{{ user_image_promo }}" alt="{{ cta.headline }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-60">
+        <img src="{{ user_image_promo }}" alt="{{ cta.headline }}"
+          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-60">
         {% elif user_image_hero_bg %}
-        <img src="{{ user_image_hero_bg }}" alt="{{ cta.headline }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-60">
+        <img src="{{ user_image_hero_bg }}" alt="{{ cta.headline }}"
+          class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-60">
         {% else %}
         <div class="w-full h-full bg-gradient-to-r from-mystic-900 to-slate-900"></div>
         {% endif %}
-        
+
         <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex items-end p-8">
           <div class="text-white w-full">
             <div class="flex flex-col md:flex-row justify-between items-end gap-4">
               <div>
-                <span class="bg-gold-500 text-black text-xs font-bold px-3 py-1 rounded-full mb-2 inline-block">{{ cta.tag }}</span>
+                <span class="bg-gold-500 text-black text-xs font-bold px-3 py-1 rounded-full mb-2 inline-block">{{
+                  cta.tag }}</span>
                 <h3 class="text-2xl md:text-3xl font-mystical font-bold mb-2">{{ cta.headline }}</h3>
                 <p class="text-gray-300 text-sm md:text-base max-w-xl">{{ cta.description }}</p>
               </div>
-              <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}?text=Me%20interesa:%20{{ cta.headline }}" 
-                 onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Additional CTA {{ loop.index }}'});"
-                 class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition-all hover:scale-105 whitespace-nowrap">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+              <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}?text=Me%20interesa:%20{{ cta.headline }}"
+                onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Additional CTA {{ loop.index }}'});"
+                class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition-all hover:scale-105 whitespace-nowrap">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path
+                    d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                </svg>
                 Consultar
               </a>
             </div>
@@ -493,12 +575,13 @@
         <h2 class="text-3xl md:text-5xl font-mystical font-bold text-white mb-4">
           Experiencias Reales
         </h2>
-        
+
         <!-- Rating stars -->
         <div class="flex justify-center gap-1 mb-3">
           {% for i in range(5) %}
           <svg class="w-6 h-6 text-gold-400 fill-current" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+            <path
+              d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
           {% endfor %}
         </div>
@@ -512,16 +595,19 @@
         {% for testimonial in social_proof %}
         <div class="crystal-card p-8 rounded-2xl hover:border-mystic-400/40 transition-all duration-500 group relative">
           <!-- Comillas decorativas -->
-          <div class="absolute top-6 right-6 text-mystic-500/20 text-5xl font-serif group-hover:text-mystic-400/30 transition-colors">"</div>
-          
+          <div
+            class="absolute top-6 right-6 text-mystic-500/20 text-5xl font-serif group-hover:text-mystic-400/30 transition-colors">
+            "</div>
+
           <!-- Contenido -->
           <p class="text-gray-300 italic leading-relaxed mb-6 relative z-10 font-elegant">
             "{{ testimonial }}"
           </p>
-          
+
           <!-- Usuario -->
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-mystic-500 to-gold-500 flex items-center justify-center text-white font-bold text-lg">
+            <div
+              class="w-12 h-12 rounded-full bg-gradient-to-br from-mystic-500 to-gold-500 flex items-center justify-center text-white font-bold text-lg">
               ✨
             </div>
             <div>
@@ -551,6 +637,16 @@
         <img src="{{ user_image_middle }}" alt="Imagen central" class="w-full h-auto object-cover" loading="lazy">
       </div>
       {% endif %}
+
+      <!-- Contenido Testimonios (Video) -->
+      {% if user_video_testimonials %}
+      <div class="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-2xl border border-mystic-500/20 mt-8">
+        <video controls class="w-full h-auto" poster="{{ user_video_testimonials_thumbnail }}">
+          <source src="{{ user_video_testimonials }}" type="video/mp4">
+          Tu navegador no soporta el elemento de video.
+        </video>
+      </div>
+      {% endif %}
     </div>
   </section>
 
@@ -568,32 +664,36 @@
         <!-- Opciones de contacto mejoradas -->
         <div class="space-y-4 max-w-md mx-auto">
           <!-- WhatsApp -->
-          <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}?text=Hola,%20vi%20tu%20página%20sobre%20{{ primary_keyword }}%20y%20me%20gustaría%20una%20consulta" 
-             onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Form WhatsApp'})"
-             class="group flex items-center justify-between w-full px-6 py-4 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg shadow-green-900/30">
+          <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}?text=Hola,%20vi%20tu%20página%20sobre%20{{ primary_keyword }}%20y%20me%20gustaría%20una%20consulta"
+            onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Form WhatsApp'})"
+            class="group flex items-center justify-between w-full px-6 py-4 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105 shadow-lg shadow-green-900/30">
             <div class="flex items-center gap-3">
               <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                <path
+                  d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
               </svg>
               <span>Consulta por WhatsApp</span>
             </div>
-            <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none"
+              stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </a>
 
           <!-- Teléfono -->
-          <a href="tel:{{ phone_number }}" 
-             onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Form Phone'})"
-             class="group flex items-center justify-between w-full px-6 py-4 crystal-card hover:border-mystic-400/40 text-mystic-200 font-semibold rounded-xl transition-all duration-300 hover:scale-105">
+          <a href="tel:{{ phone_number }}"
+            onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Form Phone'})"
+            class="group flex items-center justify-between w-full px-6 py-4 crystal-card hover:border-mystic-400/40 text-mystic-200 font-semibold rounded-xl transition-all duration-300 hover:scale-105">
             <div class="flex items-center gap-3">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
               <span>Llamar {{ phone_number }}</span>
             </div>
-            <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none"
+              stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </a>
         </div>
@@ -601,7 +701,9 @@
         <!-- Mensaje de urgencia sutil -->
         <div class="mt-8 flex items-center justify-center gap-2 text-sm text-gray-500">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+            <path fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+              clip-rule="evenodd" />
           </svg>
           <span>Atendemos consultas urgentes las 24 horas</span>
         </div>
@@ -613,34 +715,38 @@
   <section class="py-20 mystic-gradient particle-bg relative overflow-hidden">
     <!-- Efectos de luz -->
     <div class="absolute inset-0">
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-mystic-500/20 rounded-full blur-3xl animate-pulse-glow"></div>
+      <div
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-mystic-500/20 rounded-full blur-3xl animate-pulse-glow">
+      </div>
     </div>
 
     <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
       <h2 class="text-4xl md:text-6xl font-mystical font-bold text-white mb-6 leading-tight">
         Tu Destino Te Está Llamando
       </h2>
-      
+
       <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-2xl mx-auto font-elegant leading-relaxed">
         No dejes que las dudas controlen tu vida. Las respuestas que buscas están más cerca de lo que imaginas.
       </p>
 
       <!-- CTAs finales -->
       <div class="flex flex-col sm:flex-row gap-4 justify-center mb-10">
-        <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}" 
-           onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Final WhatsApp'})"
-           class="inline-flex items-center gap-3 px-10 py-5 bg-green-600 hover:bg-green-500 text-white text-xl font-bold rounded-2xl shadow-2xl shadow-green-900/50 transition-all duration-300 hover:scale-105 wa-pulse">
+        <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}"
+          onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Final WhatsApp'})"
+          class="inline-flex items-center gap-3 px-10 py-5 bg-green-600 hover:bg-green-500 text-white text-xl font-bold rounded-2xl shadow-2xl shadow-green-900/50 transition-all duration-300 hover:scale-105 wa-pulse">
           <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+            <path
+              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
           </svg>
           Iniciar Consulta Ahora
         </a>
 
-        <a href="tel:{{ phone_number }}" 
-           onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Final Phone'})"
-           class="inline-flex items-center gap-3 px-10 py-5 bg-transparent border-2 border-secondary hover:bg-secondary/30 text-secondary hover:text-text text-xl font-bold rounded-2xl transition-all duration-300 hover:scale-105">
+        <a href="tel:{{ phone_number }}"
+          onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Final Phone'})"
+          class="inline-flex items-center gap-3 px-10 py-5 bg-transparent border-2 border-secondary hover:bg-secondary/30 text-secondary hover:text-text text-xl font-bold rounded-2xl transition-all duration-300 hover:scale-105">
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
           </svg>
           Llamar Directamente
         </a>
@@ -649,7 +755,7 @@
       <!-- Cita mística -->
       <div class="crystal-card p-6 md:p-8 rounded-2xl max-w-2xl mx-auto">
         <p class="text-mystic-200 italic text-lg md:text-xl font-elegant leading-relaxed">
-          "El universo nunca te envía desafíos sin proporcionarte las herramientas para superarlos. 
+          "El universo nunca te envía desafíos sin proporcionarte las herramientas para superarlos.
           Deja que la sabiduría ancestral ilumine tu camino."
         </p>
         <div class="mt-6 flex justify-center gap-2">
@@ -684,7 +790,8 @@
             {{ phone_number }}
           </a>
           <span class="text-mystic-900">•</span>
-          <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}" class="hover:text-green-400 transition-colors">
+          <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}"
+            class="hover:text-green-400 transition-colors">
             WhatsApp
           </a>
         </div>
@@ -708,30 +815,31 @@
   </footer>
 
   <!-- Botón Flotante de WhatsApp (Móvil) -->
-  <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}" 
-     onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Floating WhatsApp'})"
-     class="fixed bottom-6 right-6 z-50 flex items-center justify-center w-16 h-16 bg-green-600 hover:bg-green-500 text-white rounded-full shadow-2xl shadow-green-900/50 transition-all duration-300 hover:scale-110 lg:hidden wa-pulse"
-     aria-label="Contactar por WhatsApp">
+  <a href="https://wa.me/{{ whatsapp_number | replace('+', '') }}"
+    onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'Floating WhatsApp'})"
+    class="fixed bottom-6 right-6 z-50 flex items-center justify-center w-16 h-16 bg-green-600 hover:bg-green-500 text-white rounded-full shadow-2xl shadow-green-900/50 transition-all duration-300 hover:scale-110 lg:hidden wa-pulse"
+    aria-label="Contactar por WhatsApp">
     <svg class="w-9 h-9" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+      <path
+        d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
     </svg>
   </a>
 
   <!-- Scripts adicionales -->
   <script>
     // Tracking de eventos para analytics
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       // Track scroll depth
-      let scrollTracked = {25: false, 50: false, 75: false, 100: false};
-      
-      window.addEventListener('scroll', function() {
+      let scrollTracked = { 25: false, 50: false, 75: false, 100: false };
+
+      window.addEventListener('scroll', function () {
         let scrollPercent = (window.scrollY + window.innerHeight) / document.documentElement.scrollHeight * 100;
-        
+
         for (let threshold in scrollTracked) {
           if (scrollPercent >= threshold && !scrollTracked[threshold]) {
             scrollTracked[threshold] = true;
             if (typeof gtag !== 'undefined') {
-              gtag('event', 'scroll', {'event_category': 'Engagement', 'event_label': threshold + '%'});
+              gtag('event', 'scroll', { 'event_category': 'Engagement', 'event_label': threshold + '%' });
             }
           }
         }
@@ -739,15 +847,16 @@
 
       // Track time on page
       let timeOnPage = 0;
-      setInterval(function() {
+      setInterval(function () {
         timeOnPage += 10;
         if (timeOnPage === 30 || timeOnPage === 60 || timeOnPage === 120) {
           if (typeof gtag !== 'undefined') {
-            gtag('event', 'time_on_page', {'event_category': 'Engagement', 'event_label': timeOnPage + 's'});
+            gtag('event', 'time_on_page', { 'event_category': 'Engagement', 'event_label': timeOnPage + 's' });
           }
         }
       }, 10000);
     });
   </script>
 </body>
+
 </html>
