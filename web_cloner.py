@@ -454,13 +454,35 @@ class WebCloner:
         logger.info(f"✅ Downloaded {downloaded_count} resources successfully")
         
         # Save to disk if output_dir specified
+        saved_output_dir = None
         if output_dir:
             self._save_to_disk(output_dir)
+            saved_output_dir = output_dir
+        
+        # Calculate resources by type
+        resources_by_type = {}
+        for name, data in self.resources.items():
+            ext = Path(name).suffix.lower()
+            if ext in ['.css']:
+                res_type = 'CSS'
+            elif ext in ['.js']:
+                res_type = 'JavaScript'
+            elif ext in ['.woff', '.woff2', '.ttf', '.eot', '.otf']:
+                res_type = 'Fonts'
+            elif ext in ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp']:
+                res_type = 'Images'
+            else:
+                res_type = 'Other'
+            
+            resources_by_type[res_type] = resources_by_type.get(res_type, 0) + 1
         
         return {
             'success': True,
             'url': url,
-            'resources_count': len(self.resources),
+            'output_dir': saved_output_dir,
+            'html_file': str(Path(saved_output_dir) / 'index.html') if saved_output_dir else None,
+            'total_resources': len(self.resources),
+            'resources_by_type': resources_by_type,
             'resources': {name: {'size': len(data['content']), 'type': data['type']} 
                          for name, data in self.resources.items()},
             'html_size': len(processed_html)

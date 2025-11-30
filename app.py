@@ -5721,39 +5721,58 @@ def clone_website_task(job_id: str, url: str, site_name: str, whatsapp: str, pho
         update_status('cloning', 30, 'Processing HTML and assets...')
         result = cloner.clone_website(
             url=url,
-            whatsapp=whatsapp,
-            phone=phone,
-            gtm_id=gtm_id
+            whatsapp=whatsapp or None,
+            phone=phone or None,
+            gtm_id=gtm_id or None
         )
         
-        if not result.get('success'):
-            update_status('failed', 0, f"Failed to clone: {result.get('error', 'Unknown error')}")
+        # Validate result structure
+        if not isinstance(result, dict):
+            update_status('failed', 0, 'Invalid response from cloner')
             return
             
-        update_status('uploading', 60, 'Uploading to GitHub...')
+        if not result.get('success', False):
+            error_msg = result.get('error', 'Unknown error during cloning')
+            update_status('failed', 0, f"Failed to clone: {error_msg}")
+            return
+        
+        # Validate resources were downloaded
+        resources = cloner.get_resources()
+        if not resources or len(resources) == 0:
+            update_status('failed', 0, 'No resources were downloaded')
+            return
+            
+        update_status('uploading', 60, f'Uploading {len(resources)} files to GitHub...')
         
         # Upload to GitHub
         uploader = GitHubClonerUploader()
         upload_result = uploader.upload_cloned_website(
             site_name=site_name,
-            resources=cloner.get_resources(),
+            resources=resources,
             optimize_for_jsdelivr=True
         )
         
         if not upload_result.get('success'):
-            update_status('failed', 0, f"Failed to upload: {upload_result.get('error', 'Unknown error')}")
+            error_msg = upload_result.get('error', 'Unknown error during upload')
+            update_status('failed', 0, f"Failed to upload: {error_msg}")
             return
             
+        # Success!
         update_status('completed', 100, 'Website cloned successfully!', {
             'github_url': upload_result.get('github_url'),
             'jsdelivr_url': upload_result.get('jsdelivr_url'),
             'raw_url': upload_result.get('raw_url'),
-            'files_uploaded': upload_result.get('uploaded_files'),
-            'total_files': upload_result.get('total_files')
+            'files_uploaded': upload_result.get('uploaded_files', 0),
+            'total_files': upload_result.get('total_files', len(resources)),
+            'total_resources': len(resources),
+            'resources_by_type': result.get('resources_by_type', {})
         })
         
     except Exception as e:
         logger.error(f"Error in clone_website_task: {str(e)}")
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"Traceback: {error_trace}")
         update_status('failed', 0, f"Error: {str(e)}")
 
 
