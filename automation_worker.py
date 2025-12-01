@@ -778,26 +778,44 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
             return result
         
         # Fallback: Si no hay proveedor configurado o falla
+        # Crear título base truncado inteligentemente
+        base_keyword = keywords[0]
+        base_keyword_title = base_keyword.title()
+        
+        # Truncar keyword base para diferentes longitudes
+        def truncate_smart(text, max_len):
+            if len(text) <= max_len:
+                return text
+            truncated = text[:max_len]
+            last_space = truncated.rfind(' ')
+            if last_space > 0:
+                return truncated[:last_space].strip()
+            return truncated.strip()
+        
+        short_kw = truncate_smart(base_keyword_title, 15)
+        medium_kw = truncate_smart(base_keyword_title, 18)
+        long_kw = truncate_smart(base_keyword_title, 20)
+        
         return {
             'headlines': [
-                f'{keywords[0][:20]} Profesionales',
+                f'{long_kw} Profesionales',
                 'Consulta Gratuita Hoy',
                 'Resultados Garantizados',
                 'Expertos Certificados',
                 'Atención 24/7 Disponible',
-                f'{keywords[0][:15]} Efectivos',
+                f'{short_kw} Efectivos',
                 'Primera Consulta Gratis',
-                'Años de Experiencia',
-                'Casos Resueltos Miles',
-                'Confianza y Calidad',
-                f'{keywords[0][:18]} Reales',
-                'Resultados en 24 Horas',
+                'Años De Experiencia',
+                'Miles De Casos Resueltos',
+                'Confianza Y Calidad',
+                f'{medium_kw} Reales',
+                'Resultados En 24 Horas',
                 'No Pague Si No Funciona',
                 'Satisfacción Garantizada',
                 'Pruébalo Sin Riesgo'
             ][:15],
             'descriptions': [
-                f'Encuentra los mejores {keywords[0][:40]}. Atención personalizada y resultados comprobados.',
+                f'Encuentra los mejores {truncate_smart(base_keyword, 40)}. Atención personalizada y resultados comprobados.',
                 'Consulta gratis con expertos certificados. Miles de casos exitosos nos respaldan.',
                 'Resultados garantizados o te devolvemos tu dinero. Comienza hoy mismo sin riesgo.',
                 'Disponible 24/7 para ayudarte. Confidencialidad y profesionalismo asegurados.'
@@ -828,10 +846,22 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
         print(f"🎯 Encontrados {len(title_matches)} títulos con regex")
         for match in title_matches:
             cleaned = match.strip()
+            
+            # Capitalizar cada palabra (Title Case)
+            cleaned = cleaned.title()
+            
             # Truncar a 30 caracteres si excede
             if len(cleaned) > 30:
                 print(f"⚠️ Título muy largo ({len(cleaned)} chars): '{cleaned}' -> truncando")
-                cleaned = cleaned[:30].strip()
+                # Truncar de forma inteligente: cortar en el último espacio antes de 30 chars
+                truncated = cleaned[:30]
+                last_space = truncated.rfind(' ')
+                if last_space > 0:  # Si hay un espacio, cortar ahí
+                    cleaned = truncated[:last_space].strip()
+                else:  # Si no hay espacios, cortar directo
+                    cleaned = truncated.strip()
+                print(f"   Truncado: {cleaned}")
+            
             if cleaned:
                 headlines.append(cleaned)
         
@@ -840,10 +870,24 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
         print(f"📝 Encontradas {len(desc_matches)} descripciones con regex")
         for match in desc_matches:
             cleaned = match.strip()
+            
+            # Capitalizar primera letra de cada oración
+            # Dividir por puntos y capitalizar cada oración
+            sentences = cleaned.split('. ')
+            cleaned = '. '.join([s.capitalize() for s in sentences if s])
+            
             # Truncar a 90 caracteres si excede
             if len(cleaned) > 90:
                 print(f"⚠️ Descripción muy larga ({len(cleaned)} chars) -> truncando")
-                cleaned = cleaned[:90].strip()
+                # Truncar de forma inteligente: cortar en el último espacio antes de 90 chars
+                truncated = cleaned[:90]
+                last_space = truncated.rfind(' ')
+                if last_space > 0:  # Si hay un espacio, cortar ahí
+                    cleaned = truncated[:last_space].strip()
+                else:  # Si no hay espacios, cortar directo
+                    cleaned = truncated.strip()
+                print(f"   Truncado: {cleaned}")
+            
             if cleaned:
                 descriptions.append(cleaned)
         
