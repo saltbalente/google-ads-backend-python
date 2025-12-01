@@ -2067,16 +2067,92 @@ def save_custom_template():
         result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
+def sync_templates_from_github() -> list:
+    """
+    Sincroniza templates desde GitHub.
+    Lee los archivos de templates/landing/ en GitHub y los devuelve.
+    """
+    github_token = os.getenv("GITHUB_TOKEN")
+    github_owner = os.getenv("GITHUB_REPO_OWNER", "saltbalente")
+    github_repo = "google-ads-backend-python"
+    
+    if not github_token:
+        return []
+    
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    
+    templates = []
+    
+    # Listar archivos en templates/landing/
+    list_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/templates/landing"
+    list_resp = requests.get(list_url, headers=headers)
+    
+    if list_resp.status_code != 200:
+        logger.warning(f"No se pudo listar templates de GitHub: {list_resp.status_code}")
+        return []
+    
+    files = list_resp.json()
+    
+    for file_info in files:
+        if file_info.get('name', '').endswith('.html'):
+            filename = file_info['name']
+            template_id = filename.replace('.html', '')
+            
+            # Obtener contenido del archivo
+            content_resp = requests.get(file_info['download_url'])
+            if content_resp.status_code == 200:
+                content = content_resp.text
+                
+                # Extraer nombre del template del contenido o usar el ID
+                name = template_id.replace('-', ' ').title()
+                
+                templates.append({
+                    'id': template_id,
+                    'name': name,
+                    'filename': filename,
+                    'content': content,
+                    'githubLandingPath': f"templates/landing/{filename}",
+                    'githubPreviewPath': f"templates/previews/{template_id}_preview.html",
+                    'source': 'github'
+                })
+    
+    return templates
+
 @app.route('/api/custom-templates', methods=['GET'])
 def get_custom_templates():
-    """Obtiene todos los templates personalizados"""
+    """Obtiene todos los templates personalizados (local + GitHub)"""
     try:
-        templates = custom_template_manager.get_all_templates()
+        # Templates locales
+        local_templates = custom_template_manager.get_all_templates()
+        
+        # Templates de GitHub
+        github_templates = sync_templates_from_github()
+        
+        # Combinar, evitando duplicados (priorizar GitHub)
+        all_templates = []
+        local_ids = set()
+        
+        # Primero agregar los de GitHub
+        for gt in github_templates:
+            all_templates.append(gt)
+            local_ids.add(gt['id'])
+        
+        # Luego agregar locales que no estén en GitHub
+        for lt in local_templates:
+            if lt.get('baseFilename') not in local_ids and lt.get('filename', '').replace('.html', '') not in local_ids:
+                all_templates.append(lt)
         
         response = jsonify({
             'success': True,
-            'templates': templates,
-            'count': len(templates)
+            'templates': all_templates,
+            'count': len(all_templates),
+            'sources': {
+                'github': len(github_templates),
+                'local': len(local_templates)
+            }
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 200
