@@ -689,7 +689,7 @@ def get_template_source(template_name):
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
-def call_openrouter_grok(prompt_messages, model=None):
+def call_openrouter_grok(prompt_messages, model=None, timeout=60):
     api_key = os.getenv('OPEN_ROUTER_API_KEY') or os.getenv('OPENROUTER_API_KEY')
     if not api_key:
         return None, 'OpenRouter API key not configured'
@@ -713,7 +713,7 @@ def call_openrouter_grok(prompt_messages, model=None):
         'X-Title': 'Google Ads Backend'  # Opcional pero recomendado
     }
     try:
-        resp = requests.post(endpoint, json=payload, headers=headers, timeout=30)
+        resp = requests.post(endpoint, json=payload, headers=headers, timeout=timeout)
         if resp.status_code != 200:
             return None, f'OpenRouter error {resp.status_code}: {resp.text}'
         data = resp.json()
@@ -725,38 +725,51 @@ def call_openrouter_grok(prompt_messages, model=None):
     except requests.exceptions.ConnectionError as e:
         return None, f'OpenRouter connection failed (network issue): {str(e)}'
     except requests.exceptions.Timeout:
-        return None, 'OpenRouter request timeout (30s)'
+        return None, f'OpenRouter request timeout ({timeout}s)'
     except Exception as e:
         return None, f'OpenRouter unexpected error: {str(e)}'
 
-def call_openai_transform(prompt_messages, model=None):
+def call_openai_transform(prompt_messages, model=None, timeout=60):
+    """
+    Llama a OpenAI para transformación de código.
+    
+    Args:
+        prompt_messages: Mensajes del chat
+        model: Modelo a usar (default: gpt-4o-mini)
+        timeout: Timeout en segundos (default: 60s para templates grandes)
+    """
     api_key = os.getenv('OPENAI_API_KEY')
     if not api_key:
         return None, 'OpenAI API key not configured'
     endpoint = 'https://api.openai.com/v1/chat/completions'
+    
+    # Usar modelo más rápido para transformaciones
+    default_model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
+    
     payload = {
-        'model': model or os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+        'model': model or default_model,
         'messages': prompt_messages,
-        'temperature': 0.2
+        'temperature': 0.2,
+        'max_tokens': 16000  # Suficiente para templates grandes
     }
     headers = {
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json'
     }
     try:
-        resp = requests.post(endpoint, json=payload, headers=headers, timeout=30)
+        resp = requests.post(endpoint, json=payload, headers=headers, timeout=timeout)
         if resp.status_code != 200:
-            return None, f'OpenAI error {resp.status_code}: {resp.text}'
+            return None, f'OpenAI error {resp.status_code}: {resp.text[:200]}'
         data = resp.json()
         try:
             content = data['choices'][0]['message']['content']
             return content, None
-        except Exception:
-            return None, 'Invalid OpenAI response structure'
+        except Exception as e:
+            return None, f'Invalid OpenAI response structure: {str(e)}'
     except requests.exceptions.ConnectionError as e:
         return None, f'OpenAI connection failed (network issue): {str(e)}'
     except requests.exceptions.Timeout:
-        return None, 'OpenAI request timeout'
+        return None, f'OpenAI request timeout ({timeout}s) - template may be too large'
     except Exception as e:
         return None, f'OpenAI unexpected error: {str(e)}'
 
@@ -780,6 +793,15 @@ def transform_template_with_ai():
             response = jsonify({'success': False, 'error': 'Missing code or instructions'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
+        
+        # Timeout dinámico basado en tamaño del template
+        code_length = len(code)
+        if code_length > 20000:
+            ai_timeout = 90  # Templates grandes (>20KB)
+        elif code_length > 10000:
+            ai_timeout = 60  # Templates medianos (>10KB)
+        else:
+            ai_timeout = 30  # Templates pequeños
 
         system_prompt = (
             'Eres un asistente experto en edición de HTML/Jinja para landings de alta conversión. '
@@ -794,11 +816,11 @@ def transform_template_with_ai():
         transformed = None
         error = None
         if provider == 'openrouter':
-            transformed, error = call_openrouter_grok(prompt_messages, model)
+            transformed, error = call_openrouter_grok(prompt_messages, model, timeout=ai_timeout)
             if error and os.getenv('OPENAI_API_KEY'):
-                transformed, error = call_openai_transform(prompt_messages)
+                transformed, error = call_openai_transform(prompt_messages, timeout=ai_timeout)
         else:
-            transformed, error = call_openai_transform(prompt_messages, model)
+            transformed, error = call_openai_transform(prompt_messages, model, timeout=ai_timeout)
 
         if error:
             def local_transform_html(code_text, instr):
@@ -859,6 +881,17 @@ def transform_template_with_ai_patch():
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
 
+        # Detectar si el template es grande y ajustar timeout
+        code_length = len(code)
+        if code_length > 20000:
+            ai_timeout = 90  # 1.5 minutos para templates muy grandes
+            logger.info(f"⚡ Large template detected ({code_length} chars), using extended timeout: {ai_timeout}s")
+        elif code_length > 10000:
+            ai_timeout = 60  # 1 minuto para templates medianos
+            logger.info(f"⚡ Medium template detected ({code_length} chars), using timeout: {ai_timeout}s")
+        else:
+            ai_timeout = 30  # 30 segundos para templates pequeños
+        
         base_prompt = 'Eres un asistente que realiza ediciones mínimas en HTML/Jinja. Modifica solo lo necesario según las instrucciones y devuelve el HTML final sin explicaciones.'
         scope_directive = ''
         if scope == 'css':
@@ -881,21 +914,21 @@ def transform_template_with_ai_patch():
         
         try:
             if provider == 'openrouter':
-                logger.info(f"🔄 Calling OpenRouter with model: {model or 'xai/grok-2'}")
-                transformed, error = call_openrouter_grok(prompt_messages, model)
+                logger.info(f"🔄 Calling OpenRouter with model: {model or 'xai/grok-2'} (timeout: {ai_timeout}s)")
+                transformed, error = call_openrouter_grok(prompt_messages, model, timeout=ai_timeout)
                 if error:
                     logger.warning(f"⚠️ OpenRouter failed: {error}")
                     # Auto fallback a OpenAI si hay problemas de red o API key disponible
                     if os.getenv('OPENAI_API_KEY'):
-                        logger.info(f"🔄 Auto-falling back to OpenAI")
+                        logger.info(f"🔄 Auto-falling back to OpenAI (timeout: {ai_timeout}s)")
                         openai_tried = True
-                        transformed, error = call_openai_transform(prompt_messages)
+                        transformed, error = call_openai_transform(prompt_messages, timeout=ai_timeout)
                         if not error:
                             logger.info(f"✅ OpenAI fallback successful")
             else:
-                logger.info(f"🔄 Calling OpenAI with model: {model or os.getenv('OPENAI_MODEL', 'gpt-4o-mini')}")
+                logger.info(f"🔄 Calling OpenAI with model: {model or os.getenv('OPENAI_MODEL', 'gpt-4o-mini')} (timeout: {ai_timeout}s)")
                 openai_tried = True
-                transformed, error = call_openai_transform(prompt_messages, model)
+                transformed, error = call_openai_transform(prompt_messages, model, timeout=ai_timeout)
         except Exception as ai_error:
             logger.error(f"❌ AI provider error: {str(ai_error)}")
             error = f"AI provider error: {str(ai_error)}"
@@ -903,8 +936,8 @@ def transform_template_with_ai_patch():
             # Último intento: probar con OpenAI si no se intentó aún
             if not openai_tried and os.getenv('OPENAI_API_KEY'):
                 try:
-                    logger.info(f"🔄 Final fallback attempt with OpenAI")
-                    transformed, error = call_openai_transform(prompt_messages)
+                    logger.info(f"🔄 Final fallback attempt with OpenAI (timeout: {ai_timeout}s)")
+                    transformed, error = call_openai_transform(prompt_messages, timeout=ai_timeout)
                     if not error:
                         logger.info(f"✅ Final OpenAI attempt successful")
                 except Exception as final_error:
