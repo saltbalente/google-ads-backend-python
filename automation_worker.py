@@ -13,8 +13,9 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Callable
 import traceback
+import random
 
 from automation_models import (
     update_job, add_log, get_job, Session, close_session
@@ -103,6 +104,157 @@ class AutomationWorker:
         """Cierra el worker pool"""
         self.executor.shutdown(wait=wait)
     
+    def _retry_with_backoff(
+        self, 
+        func: Callable, 
+        job_id: str,
+        operation_name: str,
+        max_retries: int = 3,
+        base_delay: float = 1.0,
+        max_delay: float = 30.0,
+        exponential_base: float = 2.0,
+        jitter: bool = True
+    ) -> Any:
+        """
+        Ejecuta una función con retry exponencial backoff.
+        
+        Args:
+            func: Función a ejecutar
+            job_id: ID del job (para logging)
+            operation_name: Nombre de la operación (para logging)
+            max_retries: Número máximo de reintentos
+            base_delay: Delay inicial en segundos
+            max_delay: Delay máximo en segundos
+            exponential_base: Base para crecimiento exponencial (default: 2)
+            jitter: Agregar jitter aleatorio para evitar thundering herd
+            
+        Returns:
+            Resultado de la función
+            
+        Raises:
+            Exception: Si todos los reintentos fallan
+        """
+        last_exception = None
+        
+        for attempt in range(max_retries):
+            try:
+                result = func()
+                
+                # Si tuvimos que reintentar pero ahora funcionó
+                if attempt > 0:
+                    add_log(
+                        job_id, 
+                        'INFO', 
+                        f'✅ {operation_name} exitoso después de {attempt + 1} intentos'
+                    )
+                
+                return result
+                
+            except Exception as e:
+                last_exception = e
+                error_str = str(e)
+                
+                # Determinar si es un error retryable
+                is_retryable = self._is_retryable_error(error_str)
+                
+                # Si no es retryable o es el último intento, lanzar excepción
+                if not is_retryable or attempt == max_retries - 1:
+                    add_log(
+                        job_id,
+                        'ERROR',
+                        f'❌ {operation_name} falló después de {attempt + 1} intentos',
+                        {'error': error_str, 'retryable': is_retryable}
+                    )
+                    raise
+                
+                # Calcular delay con exponential backoff
+                delay = min(base_delay * (exponential_base ** attempt), max_delay)
+                
+                # Agregar jitter aleatorio (±25%)
+                if jitter:
+                    jitter_range = delay * 0.25
+                    delay += random.uniform(-jitter_range, jitter_range)
+                
+                add_log(
+                    job_id,
+                    'WARNING',
+                    f'⚠️ {operation_name} falló (intento {attempt + 1}/{max_retries}), '
+                    f'reintentando en {delay:.1f}s...',
+                    {'error': error_str[:200], 'delay_seconds': delay}
+                )
+                
+                print(f"⚠️ [{operation_name}] Intento {attempt + 1}/{max_retries} falló: {error_str[:100]}")
+                print(f"   Esperando {delay:.1f}s antes de reintentar...")
+                
+                time.sleep(delay)
+        
+        # Esto no debería alcanzarse, pero por seguridad
+        raise last_exception
+    
+    def _is_retryable_error(self, error_str: str) -> bool:
+        """
+        Determina si un error es retryable basado en su mensaje.
+        
+        Args:
+            error_str: Mensaje de error
+            
+        Returns:
+            bool: True si el error es retryable
+        """
+        # Errores transitorios que SÍ se deben reintentar
+        retryable_patterns = [
+            'RATE_LIMIT_EXCEEDED',
+            'QUOTA_EXCEEDED',
+            'RESOURCE_EXHAUSTED',
+            'DEADLINE_EXCEEDED',
+            'UNAVAILABLE',
+            'INTERNAL',
+            'timeout',
+            'timed out',
+            'connection',
+            'Connection reset',
+            'Temporary failure',
+            'Service temporarily unavailable',
+            'Too many requests',
+            '429',
+            '503',
+            '504',
+        ]
+        
+        # Errores permanentes que NO se deben reintentar
+        non_retryable_patterns = [
+            'POLICY_ERROR',
+            'POLICY_VIOLATION',
+            'INVALID_ARGUMENT',
+            'NOT_FOUND',
+            'PERMISSION_DENIED',
+            'UNAUTHENTICATED',
+            'ALREADY_EXISTS',
+            'FAILED_PRECONDITION',
+            'INVALID_CUSTOMER_ID',
+            'INVALID_CAMPAIGN',
+            'INVALID_AD_GROUP',
+            '400',
+            '401',
+            '403',
+            '404',
+        ]
+        
+        error_lower = error_str.lower()
+        
+        # Verificar primero los no retryables (tienen prioridad)
+        for pattern in non_retryable_patterns:
+            if pattern.lower() in error_lower:
+                return False
+        
+        # Luego verificar los retryables
+        for pattern in retryable_patterns:
+            if pattern.lower() in error_lower:
+                return True
+        
+        # Por defecto, NO reintentar (principio de seguridad)
+        return False
+    
     def _process_job(self, job_id: str, config: Dict[str, Any], google_ads_client_factory):
         """
         Procesa un automation job completo.
@@ -185,12 +337,19 @@ class AutomationWorker:
                 ad_group_name = f"AutoGroup_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{group_num}"
                 add_log(job_id, 'INFO', f'Creando ad group: {ad_group_name}')
                 
-                ad_group_id = self._create_ad_group(
-                    client,
-                    customer_id,
-                    campaign_id,
-                    ad_group_name
+                # Usar retry para crear ad group
+                ad_group_id = self._retry_with_backoff(
+                    func=lambda: self._create_ad_group(
+                        client, 
+                        customer_id, 
+                        campaign_id, 
+                        ad_group_name
+                    ),
+                    job_id=job_id,
+                    operation_name=f'Crear ad group {group_num}/{num_groups}',
+                    max_retries=3
                 )
+                
                 ad_groups_created.append({
                     'id': ad_group_id,
                     'name': ad_group_name
@@ -204,11 +363,18 @@ class AutomationWorker:
                     current_step=f'Agregando {len(group_keywords)} keywords al grupo {group_num}...'
                 )
                 
-                keywords_added = self._add_keywords_to_group(
-                    client,
-                    customer_id,
-                    ad_group_id,
-                    group_keywords
+                # Usar retry para agregar keywords (con más retries porque puede tener rate limits)
+                keywords_added = self._retry_with_backoff(
+                    func=lambda: self._add_keywords_to_group(
+                        client,
+                        customer_id,
+                        ad_group_id,
+                        group_keywords
+                    ),
+                    job_id=job_id,
+                    operation_name=f'Agregar keywords al grupo {group_num}',
+                    max_retries=5,  # Más retries para keywords
+                    base_delay=2.0   # Delay inicial más alto
                 )
                 total_keywords_added += keywords_added
                 add_log(job_id, 'SUCCESS', f'{keywords_added} keywords agregadas al grupo {ad_group_id}')
@@ -227,6 +393,7 @@ class AutomationWorker:
                     try:
                         add_log(job_id, 'INFO', f'Generando anuncio {ad_num + 1}/{ads_per_group} con {ai_provider}')
                         
+                        # Generar contenido con IA (sin retry, es rápido y no suele fallar)
                         ad_content = self._generate_ad_with_ai(
                             ai_provider,
                             group_keywords,
@@ -234,12 +401,18 @@ class AutomationWorker:
                             config
                         )
                         
-                        ad_resource_name = self._create_ad(
-                            client,
-                            customer_id,
-                            ad_group_id,
-                            ad_content,
-                            final_url
+                        # Usar retry para crear el anuncio en Google Ads
+                        ad_resource_name = self._retry_with_backoff(
+                            func=lambda: self._create_ad(
+                                client,
+                                customer_id,
+                                ad_group_id,
+                                ad_content,
+                                final_url
+                            ),
+                            job_id=job_id,
+                            operation_name=f'Crear anuncio {ad_num + 1}/{ads_per_group} en grupo {group_num}',
+                            max_retries=3
                         )
                         
                         total_ads_created += 1
