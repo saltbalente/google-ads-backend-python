@@ -78,6 +78,78 @@ def build_public_landing_url(folder_name: str) -> str:
     public_base = public_base.rstrip("/")
     return f"{public_base}/{folder_name}/"
 
+def commit_template_to_github(template_id: str, content: str, is_preview: bool = False) -> dict:
+    """
+    Hace commit de un template al repositorio de GitHub.
+    
+    Args:
+        template_id: ID/nombre del template
+        content: Contenido HTML del template
+        is_preview: Si es un preview (va a templates/previews/) o landing (templates/landing/)
+    
+    Returns:
+        dict con success, message, y github_url si exitoso
+    """
+    github_token = os.getenv("GITHUB_TOKEN")
+    github_owner = os.getenv("GITHUB_REPO_OWNER", "saltbalente")
+    github_repo = "google-ads-backend-python"  # Guardar en el mismo repo del backend
+    
+    if not github_token:
+        return {"success": False, "error": "GITHUB_TOKEN no configurado"}
+    
+    # Determinar la ruta del archivo
+    if is_preview:
+        file_path = f"templates/previews/{template_id}_preview.html"
+    else:
+        file_path = f"templates/landing/{template_id}.html"
+    
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    
+    # Verificar si el archivo ya existe (para obtener el SHA)
+    check_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{file_path}"
+    check_resp = requests.get(check_url, headers=headers)
+    
+    sha = None
+    if check_resp.status_code == 200:
+        sha = check_resp.json().get("sha")
+    
+    # Preparar el contenido en base64
+    content_b64 = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+    
+    # Crear o actualizar el archivo
+    commit_data = {
+        "message": f"{'Update' if sha else 'Add'} template: {template_id}",
+        "content": content_b64,
+        "branch": "main"
+    }
+    
+    if sha:
+        commit_data["sha"] = sha
+    
+    put_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{file_path}"
+    put_resp = requests.put(put_url, headers=headers, json=commit_data)
+    
+    if put_resp.status_code in [200, 201]:
+        result = put_resp.json()
+        github_url = result.get("content", {}).get("html_url", "")
+        logger.info(f"✅ Template {template_id} guardado en GitHub: {github_url}")
+        return {
+            "success": True,
+            "message": f"Template guardado en GitHub",
+            "github_url": github_url,
+            "file_path": file_path
+        }
+    else:
+        error_msg = put_resp.json().get("message", "Error desconocido")
+        logger.error(f"❌ Error al guardar en GitHub: {error_msg}")
+        return {
+            "success": False,
+            "error": f"Error de GitHub: {error_msg}"
+        }
+
 # Inicializar base de datos para automation jobs
 init_db()
 
@@ -2167,6 +2239,8 @@ def update_custom_template(template_id):
             
             # Preparar datos para el nuevo template
             new_name = data.get('name') or f"{original.get('name', template_id)} (v{datetime.now().strftime('%Y%m%d%H%M')})"
+            # Generar ID para la nueva versión
+            new_template_id = new_name.lower().replace(' ', '-').replace('(', '').replace(')', '')
             new_template_data = {
                 'name': new_name,
                 'content': new_code,
@@ -2182,11 +2256,16 @@ def update_custom_template(template_id):
             
             result_data = custom_template_manager.save_template(new_template_data)
             
+            # Guardar en GitHub
+            github_result = commit_template_to_github(new_template_id, new_code, is_preview=False)
+            commit_template_to_github(new_template_id, new_code, is_preview=True)
+            
             response = jsonify({
                 'success': True,
                 'message': f'Nueva versión creada: {new_name}',
                 'template': result_data.get('template'),
-                'isNewVersion': True
+                'isNewVersion': True,
+                'github': github_result
             })
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 201
@@ -2212,14 +2291,26 @@ def update_custom_template(template_id):
                 }
                 result_data = custom_template_manager.save_template(new_template_data)
                 
+                # Guardar también en GitHub
+                github_result = commit_template_to_github(template_id, new_code, is_preview=False)
+                
                 response = jsonify({
                     'success': True,
                     'message': f'Template {template_id} creado exitosamente',
                     'template': result_data.get('template'),
-                    'isNew': True
+                    'isNew': True,
+                    'github': github_result
                 })
                 response.headers.add('Access-Control-Allow-Origin', '*')
                 return response, 201
+            
+            # Guardar en GitHub después de actualizar localmente
+            github_result = commit_template_to_github(template_id, new_code, is_preview=False)
+            
+            # También guardar el preview
+            commit_template_to_github(template_id, new_code, is_preview=True)
+            
+            result_data['github'] = github_result
             
             status_code = 200 if result_data.get('success') else 404
             response = jsonify(result_data)
