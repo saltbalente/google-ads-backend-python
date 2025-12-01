@@ -2001,22 +2001,22 @@ def get_custom_templates():
     try:
         templates = custom_template_manager.get_all_templates()
         
-        result = jsonify({
+        response = jsonify({
             'success': True,
             'templates': templates,
             'count': len(templates)
-        }), 200
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
         
     except Exception as e:
         logger.error(f"Error getting custom templates: {str(e)}")
-        result = jsonify({
+        response = jsonify({
             'success': False,
             'error': f'Error al obtener templates: {str(e)}'
-        }), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @app.route('/api/custom-templates/<template_id>', methods=['GET'])
 def get_custom_template_by_id(template_id):
@@ -2025,28 +2025,28 @@ def get_custom_template_by_id(template_id):
         template = custom_template_manager.get_template_by_id(template_id)
         
         if template:
-            result = jsonify({
+            response = jsonify({
                 'success': True,
                 'template': template
-            }), 200
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 200
         else:
-            result = jsonify({
+            response = jsonify({
                 'success': False,
                 'error': 'Template no encontrado'
-            }), 404
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 404
             
     except Exception as e:
         logger.error(f"Error getting custom template: {str(e)}")
-        result = jsonify({
+        response = jsonify({
             'success': False,
             'error': f'Error al obtener template: {str(e)}'
-        }), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @app.route('/api/custom-templates/search', methods=['POST', 'OPTIONS'])
 def search_custom_templates_by_keywords():
@@ -2065,31 +2065,31 @@ def search_custom_templates_by_keywords():
         keywords = data.get('keywords', [])
         
         if not keywords:
-            result = jsonify({
+            response = jsonify({
                 'success': False,
                 'error': 'Se requiere al menos una palabra clave'
-            }), 400
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
         
         templates = custom_template_manager.get_templates_by_keywords(keywords)
         
-        result = jsonify({
+        response = jsonify({
             'success': True,
             'templates': templates,
             'count': len(templates)
-        }), 200
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
         
     except Exception as e:
         logger.error(f"Error searching custom templates: {str(e)}")
-        result = jsonify({
+        response = jsonify({
             'success': False,
             'error': f'Error al buscar templates: {str(e)}'
-        }), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @app.route('/api/custom-templates/<template_id>', methods=['DELETE', 'OPTIONS'])
 def delete_custom_template(template_id):
@@ -2191,10 +2191,35 @@ def update_custom_template(template_id):
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 201
         else:
-            # Actualizar template existente (reemplazar)
+            # Actualizar template existente (reemplazar) o crear si no existe (upsert)
             result_data = custom_template_manager.update_template(template_id, {
                 'content': new_code
             })
+            
+            # Si no encontró el template, crear uno nuevo con ese ID
+            if not result_data.get('success') and 'no encontrado' in result_data.get('message', '').lower():
+                logger.info(f"Template {template_id} no encontrado, creando nuevo...")
+                new_template_data = {
+                    'name': data.get('name') or template_id.replace('-', ' ').title(),
+                    'content': new_code,
+                    'businessType': data.get('businessType', 'General'),
+                    'targetAudience': data.get('targetAudience', 'General'),
+                    'tone': data.get('tone', 'Profesional'),
+                    'callToAction': data.get('callToAction', 'Contactar'),
+                    'colorScheme': data.get('colorScheme', 'default'),
+                    'sections': data.get('sections', ['hero', 'content', 'cta']),
+                    'keywords': data.get('keywords', [])
+                }
+                result_data = custom_template_manager.save_template(new_template_data)
+                
+                response = jsonify({
+                    'success': True,
+                    'message': f'Template {template_id} creado exitosamente',
+                    'template': result_data.get('template'),
+                    'isNew': True
+                })
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 201
             
             status_code = 200 if result_data.get('success') else 404
             response = jsonify(result_data)
