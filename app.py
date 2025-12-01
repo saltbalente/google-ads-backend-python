@@ -703,15 +703,22 @@ def call_openrouter_grok(prompt_messages, model=None):
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json'
     }
-    resp = requests.post(endpoint, json=payload, headers=headers, timeout=30)
-    if resp.status_code != 200:
-        return None, f'OpenRouter error {resp.status_code}: {resp.text}'
-    data = resp.json()
     try:
-        content = data['choices'][0]['message']['content']
-        return content, None
-    except Exception:
-        return None, 'Invalid OpenRouter response structure'
+        resp = requests.post(endpoint, json=payload, headers=headers, timeout=30)
+        if resp.status_code != 200:
+            return None, f'OpenRouter error {resp.status_code}: {resp.text}'
+        data = resp.json()
+        try:
+            content = data['choices'][0]['message']['content']
+            return content, None
+        except Exception:
+            return None, 'Invalid OpenRouter response structure'
+    except requests.exceptions.ConnectionError as e:
+        return None, f'OpenRouter connection failed (network issue): {str(e)}'
+    except requests.exceptions.Timeout:
+        return None, 'OpenRouter request timeout'
+    except Exception as e:
+        return None, f'OpenRouter unexpected error: {str(e)}'
 
 def call_openai_transform(prompt_messages, model=None):
     api_key = os.getenv('OPENAI_API_KEY')
@@ -727,15 +734,22 @@ def call_openai_transform(prompt_messages, model=None):
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json'
     }
-    resp = requests.post(endpoint, json=payload, headers=headers, timeout=30)
-    if resp.status_code != 200:
-        return None, f'OpenAI error {resp.status_code}: {resp.text}'
-    data = resp.json()
     try:
-        content = data['choices'][0]['message']['content']
-        return content, None
-    except Exception:
-        return None, 'Invalid OpenAI response structure'
+        resp = requests.post(endpoint, json=payload, headers=headers, timeout=30)
+        if resp.status_code != 200:
+            return None, f'OpenAI error {resp.status_code}: {resp.text}'
+        data = resp.json()
+        try:
+            content = data['choices'][0]['message']['content']
+            return content, None
+        except Exception:
+            return None, 'Invalid OpenAI response structure'
+    except requests.exceptions.ConnectionError as e:
+        return None, f'OpenAI connection failed (network issue): {str(e)}'
+    except requests.exceptions.Timeout:
+        return None, 'OpenAI request timeout'
+    except Exception as e:
+        return None, f'OpenAI unexpected error: {str(e)}'
 
 @app.route('/api/templates/transform', methods=['POST', 'OPTIONS'])
 def transform_template_with_ai():
@@ -854,6 +868,7 @@ def transform_template_with_ai_patch():
 
         transformed = None
         error = None
+        openai_tried = False
         
         try:
             if provider == 'openrouter':
@@ -861,29 +876,86 @@ def transform_template_with_ai_patch():
                 transformed, error = call_openrouter_grok(prompt_messages, model)
                 if error:
                     logger.warning(f"⚠️ OpenRouter failed: {error}")
+                    # Auto fallback a OpenAI si hay problemas de red o API key disponible
                     if os.getenv('OPENAI_API_KEY'):
-                        logger.info(f"🔄 Falling back to OpenAI")
+                        logger.info(f"🔄 Auto-falling back to OpenAI")
+                        openai_tried = True
                         transformed, error = call_openai_transform(prompt_messages)
+                        if not error:
+                            logger.info(f"✅ OpenAI fallback successful")
             else:
                 logger.info(f"🔄 Calling OpenAI with model: {model or os.getenv('OPENAI_MODEL', 'gpt-4o-mini')}")
+                openai_tried = True
                 transformed, error = call_openai_transform(prompt_messages, model)
         except Exception as ai_error:
             logger.error(f"❌ AI provider error: {str(ai_error)}")
             error = f"AI provider error: {str(ai_error)}"
+            
+            # Último intento: probar con OpenAI si no se intentó aún
+            if not openai_tried and os.getenv('OPENAI_API_KEY'):
+                try:
+                    logger.info(f"🔄 Final fallback attempt with OpenAI")
+                    transformed, error = call_openai_transform(prompt_messages)
+                    if not error:
+                        logger.info(f"✅ Final OpenAI attempt successful")
+                except Exception as final_error:
+                    logger.error(f"❌ Final OpenAI attempt also failed: {str(final_error)}")
 
         if error:
             logger.warning(f"⚠️ AI transformation failed, trying local fallback: {error}")
             
             def local_transform_html(code_text, instr):
+                """Fallback local para transformaciones comunes sin IA"""
                 l = instr.lower()
                 updated = code_text
+                changes_made = False
+                
+                # Cambiar color de botones a verde
                 if (('verde' in l) or ('green' in l)) and (('boton' in l) or ('botón' in l) or ('cta' in l) or ('button' in l)):
                     css = "<style>button, .btn, .cta-button{background-color:#2ecc71 !important; border-color:#27ae60 !important; color:#fff !important;} .btn-primary{background-color:#2ecc71 !important; border-color:#27ae60 !important;} a.btn{background-color:#2ecc71 !important; border-color:#27ae60 !important; color:#fff !important;}</style>"
                     if '<head>' in updated:
                         updated = updated.replace('<head>', '<head>' + css, 1)
                     else:
                         updated = css + updated
-                return updated if updated != code_text else None
+                    changes_made = True
+                
+                # Cambiar color de botones a rojo
+                elif (('rojo' in l) or ('red' in l)) and (('boton' in l) or ('botón' in l) or ('cta' in l) or ('button' in l)):
+                    css = "<style>button, .btn, .cta-button{background-color:#e74c3c !important; border-color:#c0392b !important; color:#fff !important;} .btn-primary{background-color:#e74c3c !important; border-color:#c0392b !important;} a.btn{background-color:#e74c3c !important; border-color:#c0392b !important; color:#fff !important;}</style>"
+                    if '<head>' in updated:
+                        updated = updated.replace('<head>', '<head>' + css, 1)
+                    else:
+                        updated = css + updated
+                    changes_made = True
+                
+                # Cambiar color de botones a azul
+                elif (('azul' in l) or ('blue' in l)) and (('boton' in l) or ('botón' in l) or ('cta' in l) or ('button' in l)):
+                    css = "<style>button, .btn, .cta-button{background-color:#3498db !important; border-color:#2980b9 !important; color:#fff !important;} .btn-primary{background-color:#3498db !important; border-color:#2980b9 !important;} a.btn{background-color:#3498db !important; border-color:#2980b9 !important; color:#fff !important;}</style>"
+                    if '<head>' in updated:
+                        updated = updated.replace('<head>', '<head>' + css, 1)
+                    else:
+                        updated = css + updated
+                    changes_made = True
+                
+                # Ocultar/mostrar elementos
+                if 'ocultar' in l or 'esconder' in l or 'hide' in l:
+                    # Buscar qué elemento ocultar
+                    if 'footer' in l:
+                        css = "<style>footer{display:none !important;}</style>"
+                        if '<head>' in updated:
+                            updated = updated.replace('<head>', '<head>' + css, 1)
+                        else:
+                            updated = css + updated
+                        changes_made = True
+                    elif 'header' in l or 'encabezado' in l:
+                        css = "<style>header{display:none !important;}</style>"
+                        if '<head>' in updated:
+                            updated = updated.replace('<head>', '<head>' + css, 1)
+                        else:
+                            updated = css + updated
+                        changes_made = True
+                
+                return updated if changes_made else None
 
             local = local_transform_html(code, instructions)
             if local:
