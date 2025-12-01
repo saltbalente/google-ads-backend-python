@@ -1,0 +1,7 @@
+{
+  "code": "<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Test Template</title>\n    <style>\n        body { font-family: Arial; }\n        .cta-button { \n            background: #3498db; \n            color: white; \n            padding: 15px 40px; \n            border-radius: 50px; \n        }\n    </style>\n</head>\n<body>\n    <h1>Bienvenido</h1>\n    <a href=\"#\" class=\"cta-button\">Contactar Ahora</a>\n</body>\n</html>",
+  "instructions": "Cambia el botón a color verde y agrega un footer",
+  "provider": "openrouter",
+  "scope": "general",
+  "templateId": "test-template-basico"
+}
