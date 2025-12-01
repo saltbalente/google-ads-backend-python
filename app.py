@@ -693,15 +693,24 @@ def call_openrouter_grok(prompt_messages, model=None):
     api_key = os.getenv('OPEN_ROUTER_API_KEY') or os.getenv('OPENROUTER_API_KEY')
     if not api_key:
         return None, 'OpenRouter API key not configured'
-    endpoint = 'https://api.openrouter.ai/v1/chat/completions'
+    
+    # Endpoint de OpenRouter (compatible con OpenAI API)
+    endpoint = 'https://openrouter.ai/api/v1/chat/completions'
+    
+    # Usar modelo recomendado por Render si no se especifica otro
+    # x-ai/grok-code-fast-1 es más rápido y económico para ediciones de código
+    default_model = 'x-ai/grok-code-fast-1'
+    
     payload = {
-        'model': model or 'xai/grok-2',
+        'model': model or default_model,
         'messages': prompt_messages,
         'temperature': 0.2
     }
     headers = {
         'Authorization': f'Bearer {api_key}',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'HTTP-Referer': os.getenv('APP_URL', 'https://google-ads-backend-mm4z.onrender.com'),  # Requerido por OpenRouter
+        'X-Title': 'Google Ads Backend'  # Opcional pero recomendado
     }
     try:
         resp = requests.post(endpoint, json=payload, headers=headers, timeout=30)
@@ -711,12 +720,12 @@ def call_openrouter_grok(prompt_messages, model=None):
         try:
             content = data['choices'][0]['message']['content']
             return content, None
-        except Exception:
-            return None, 'Invalid OpenRouter response structure'
+        except Exception as e:
+            return None, f'Invalid OpenRouter response structure: {str(e)}'
     except requests.exceptions.ConnectionError as e:
         return None, f'OpenRouter connection failed (network issue): {str(e)}'
     except requests.exceptions.Timeout:
-        return None, 'OpenRouter request timeout'
+        return None, 'OpenRouter request timeout (30s)'
     except Exception as e:
         return None, f'OpenRouter unexpected error: {str(e)}'
 
