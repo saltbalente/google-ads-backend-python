@@ -872,17 +872,82 @@ def transform_template_with_ai_patch():
         provider = (data.get('provider') or 'openrouter').lower()
         model = data.get('model')
         scope = (data.get('scope') or 'general').lower()
+        template_id = data.get('templateId', 'unknown')
 
         logger.info(f"📝 Transform patch request - provider: {provider}, scope: {scope}, code_length: {len(code) if code else 0}, instructions_length: {len(instructions)}")
 
+        # ========================================
+        # P0: VALIDACIÓN PRE-PROCESAMIENTO
+        # ========================================
+        
+        # 1. Validar campos requeridos
         if not code or not instructions:
             logger.warning(f"⚠️ Missing required fields - code: {bool(code)}, instructions: {bool(instructions)}")
-            response = jsonify({'success': False, 'error': 'Missing code or instructions'})
+            response = jsonify({
+                'success': False, 
+                'error': 'Missing code or instructions',
+                'validation': 'required_fields'
+            })
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
+        
+        # 2. Validar tamaño máximo (150KB)
+        code_length = len(code)
+        MAX_SIZE = 150_000
+        if code_length > MAX_SIZE:
+            logger.error(f"❌ Template too large: {code_length} bytes (max: {MAX_SIZE})")
+            response = jsonify({
+                'success': False,
+                'error': f'Template too large ({code_length//1024}KB). Maximum: {MAX_SIZE//1024}KB',
+                'validation': 'size_limit',
+                'size': code_length
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+        
+        # 3. Validar sintaxis HTML básica
+        if not ('<html' in code.lower() or '<!doctype' in code.lower()):
+            logger.error(f"❌ Invalid HTML: missing <html> or <!DOCTYPE>")
+            response = jsonify({
+                'success': False,
+                'error': 'Invalid HTML structure: missing <html> or <!DOCTYPE>',
+                'validation': 'html_structure'
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+        
+        # 4. Validar instrucciones mínimas
+        if len(instructions) < 10:
+            logger.error(f"❌ Instructions too short: {len(instructions)} chars")
+            response = jsonify({
+                'success': False,
+                'error': f'Instructions too short ({len(instructions)} chars). Minimum: 10 characters',
+                'validation': 'instruction_length'
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+        
+        # 5. Detectar operaciones peligrosas
+        dangerous_patterns = [
+            'elimina todo', 'borra el template', 'página en blanco',
+            'delete all', 'remove everything', 'blank page'
+        ]
+        instr_lower = instructions.lower()
+        for pattern in dangerous_patterns:
+            if pattern in instr_lower:
+                logger.error(f"❌ Dangerous operation detected: '{pattern}'")
+                response = jsonify({
+                    'success': False,
+                    'error': f'Dangerous operation not allowed: "{pattern}"',
+                    'validation': 'dangerous_operation',
+                    'pattern': pattern
+                })
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 403
+
+        logger.info(f"✅ Validation passed - proceeding with transformation")
 
         # Detectar si el template es grande y ajustar timeout
-        code_length = len(code)
         if code_length > 20000:
             ai_timeout = 90  # 1.5 minutos para templates muy grandes
             logger.info(f"⚡ Large template detected ({code_length} chars), using extended timeout: {ai_timeout}s")
@@ -1022,6 +1087,12 @@ def transform_template_with_ai_patch():
 
         logger.info(f"✅ Transformation successful, transformed_length: {len(transformed) if transformed else 0}")
         
+        # P0: Guardar versión automáticamente después de transformación exitosa
+        try:
+            save_version_to_disk(template_id, transformed, instructions, diff='')
+        except Exception as version_error:
+            logger.warning(f"⚠️ Could not save version: {str(version_error)}")
+        
         import difflib
         diff = '\n'.join(difflib.unified_diff(code.splitlines(), (transformed or '').splitlines(), fromfile='original', tofile='modified', lineterm=''))
         response = jsonify({'success': True, 'code': transformed, 'diff': diff})
@@ -1034,6 +1105,170 @@ def transform_template_with_ai_patch():
         logger.error(f"❌ Unexpected error in transform_template_with_ai_patch: {str(e)}")
         logger.error(f"Traceback: {error_trace}")
         response = jsonify({'success': False, 'error': str(e), 'trace': error_trace})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+# ============================================
+# P0: TEMPLATE VERSIONING SYSTEM
+# ============================================
+
+@app.route('/api/templates/versions/save', methods=['POST', 'OPTIONS'])
+def save_template_version():
+    """Guarda una versión del template (P0 - Sistema de versionado)"""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response, 200
+    
+    try:
+        data = request.json or {}
+        template_id = data.get('templateId', 'unknown')
+        code = data.get('code', '')
+        instruction = data.get('instruction', '')
+        diff = data.get('diff', '')
+        
+        if not code:
+            response = jsonify({'success': False, 'error': 'Missing code'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+        
+        # Crear directorio de versiones si no existe
+        versions_dir = os.path.join('templates', 'versions', template_id.replace('.html', ''))
+        os.makedirs(versions_dir, exist_ok=True)
+        
+        # Generar nombre de versión con timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        version_file = os.path.join(versions_dir, f'v_{timestamp}.html')
+        meta_file = os.path.join(versions_dir, f'v_{timestamp}.meta.json')
+        
+        # Guardar código
+        with open(version_file, 'w', encoding='utf-8') as f:
+            f.write(code)
+        
+        # Guardar metadata
+        import json
+        metadata = {
+            'timestamp': datetime.now().isoformat(),
+            'instruction': instruction,
+            'diff': diff,
+            'size': len(code),
+            'template_id': template_id
+        }
+        with open(meta_file, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2)
+        
+        # Limpiar versiones antiguas (mantener solo últimas 20)
+        cleanup_old_versions(versions_dir, keep=20)
+        
+        logger.info(f"✅ Version saved: {version_file}")
+        
+        response = jsonify({
+            'success': True,
+            'version': timestamp,
+            'file': version_file
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
+        
+    except Exception as e:
+        logger.error(f"❌ Error saving version: {str(e)}")
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+def cleanup_old_versions(versions_dir, keep=20):
+    """Mantiene solo las últimas N versiones"""
+    try:
+        import glob
+        version_files = glob.glob(os.path.join(versions_dir, 'v_*.html'))
+        version_files.sort(reverse=True)  # Más recientes primero
+        
+        # Eliminar versiones antiguas
+        for old_file in version_files[keep:]:
+            try:
+                os.remove(old_file)
+                # También eliminar archivo meta
+                meta_file = old_file.replace('.html', '.meta.json')
+                if os.path.exists(meta_file):
+                    os.remove(meta_file)
+                logger.info(f"🗑️ Removed old version: {old_file}")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not remove old version: {str(e)}")
+    except Exception as e:
+        logger.warning(f"⚠️ Cleanup failed: {str(e)}")
+
+def save_version_to_disk(template_id, code, instruction, diff=''):
+    """Helper para guardar versión (usado internamente)"""
+    try:
+        from datetime import datetime
+        import json
+        
+        versions_dir = os.path.join('templates', 'versions', template_id.replace('.html', ''))
+        os.makedirs(versions_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        version_file = os.path.join(versions_dir, f'v_{timestamp}.html')
+        meta_file = os.path.join(versions_dir, f'v_{timestamp}.meta.json')
+        
+        with open(version_file, 'w', encoding='utf-8') as f:
+            f.write(code)
+        
+        metadata = {
+            'timestamp': datetime.now().isoformat(),
+            'instruction': instruction,
+            'diff': diff,
+            'size': len(code),
+            'template_id': template_id
+        }
+        with open(meta_file, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2)
+        
+        cleanup_old_versions(versions_dir, keep=20)
+        logger.info(f"📦 Auto-saved version: {version_file}")
+    except Exception as e:
+        logger.warning(f"⚠️ Auto-save version failed: {str(e)}")
+
+@app.route('/api/templates/versions/<template_id>', methods=['GET', 'OPTIONS'])
+def get_template_versions(template_id):
+    """Obtiene lista de versiones de un template"""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        return response, 200
+    
+    try:
+        versions_dir = os.path.join('templates', 'versions', template_id.replace('.html', ''))
+        
+        if not os.path.exists(versions_dir):
+            response = jsonify({'success': True, 'versions': []})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 200
+        
+        import glob, json
+        version_files = glob.glob(os.path.join(versions_dir, 'v_*.meta.json'))
+        version_files.sort(reverse=True)  # Más recientes primero
+        
+        versions = []
+        for meta_file in version_files[:50]:  # Máximo 50 versiones
+            try:
+                with open(meta_file, 'r', encoding='utf-8') as f:
+                    meta = json.load(f)
+                    versions.append(meta)
+            except Exception as e:
+                logger.warning(f"⚠️ Could not read meta file: {str(e)}")
+        
+        response = jsonify({'success': True, 'versions': versions})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting versions: {str(e)}")
+        response = jsonify({'success': False, 'error': str(e)})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
