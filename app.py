@@ -5967,13 +5967,13 @@ def get_automation_status(job_id):
         job = get_job(job_id)
         
         if not job:
-            result = jsonify({
+            response = jsonify({
                 "success": False,
                 "error": "Job no encontrado",
                 "message": f"No existe un job con ID: {job_id}"
-            }), 404
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 404
         
         result = jsonify({
             "success": True,
@@ -5986,13 +5986,12 @@ def get_automation_status(job_id):
     except Exception as e:
         print(f"❌ Error obteniendo status del job {job_id}: {str(e)}")
         
-        result = jsonify({
+        response = jsonify({
             "success": False,
             "error": str(e)
-        }), 500
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 
 @app.route('/api/automation/history', methods=['POST', 'OPTIONS'])
