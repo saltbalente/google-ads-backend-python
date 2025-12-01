@@ -2107,22 +2107,29 @@ def delete_custom_template(template_id):
         result_data = custom_template_manager.delete_template(template_id)
         
         status_code = 200 if result_data['success'] else 404
-        result = jsonify(result_data), status_code
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify(result_data)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, status_code
         
     except Exception as e:
         logger.error(f"Error deleting custom template: {str(e)}")
-        result = jsonify({
+        response = jsonify({
             'success': False,
             'error': f'Error al eliminar template: {str(e)}'
-        }), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @app.route('/api/custom-templates/<template_id>', methods=['PUT', 'OPTIONS'])
 def update_custom_template(template_id):
-    """Actualiza un template personalizado"""
+    """
+    Actualiza un template personalizado existente o crea una nueva versión.
+    
+    Params en JSON:
+        - code/content: El código HTML actualizado
+        - createNewVersion: Si es true, crea una nueva versión en vez de reemplazar
+        - name: Nombre para la nueva versión (opcional)
+    """
     
     # CORS preflight
     if request.method == 'OPTIONS':
@@ -2133,22 +2140,77 @@ def update_custom_template(template_id):
         return response
     
     try:
-        data = request.json
-        result_data = custom_template_manager.update_template(template_id, data)
+        data = request.json or {}
         
-        status_code = 200 if result_data['success'] else 404
-        result = jsonify(result_data), status_code
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        # Soportar tanto 'code' como 'content' para compatibilidad
+        new_code = data.get('code') or data.get('content')
+        create_new_version = data.get('createNewVersion', False)
+        
+        if not new_code:
+            response = jsonify({
+                'success': False,
+                'error': 'Se requiere el campo code o content con el HTML'
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+        
+        if create_new_version:
+            # Crear nueva versión como un template nuevo
+            original = custom_template_manager.get_template_by_id(template_id)
+            if not original:
+                response = jsonify({
+                    'success': False,
+                    'error': f'Template original {template_id} no encontrado'
+                })
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 404
+            
+            # Preparar datos para el nuevo template
+            new_name = data.get('name') or f"{original.get('name', template_id)} (v{datetime.now().strftime('%Y%m%d%H%M')})"
+            new_template_data = {
+                'name': new_name,
+                'content': new_code,
+                'businessType': original.get('businessType', ''),
+                'targetAudience': original.get('targetAudience', ''),
+                'tone': original.get('tone', ''),
+                'callToAction': original.get('callToAction', ''),
+                'colorScheme': original.get('colorScheme', ''),
+                'sections': original.get('sections', []),
+                'keywords': original.get('keywords', []),
+                'basedOn': template_id  # Referencia al original
+            }
+            
+            result_data = custom_template_manager.save_template(new_template_data)
+            
+            response = jsonify({
+                'success': True,
+                'message': f'Nueva versión creada: {new_name}',
+                'template': result_data.get('template'),
+                'isNewVersion': True
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 201
+        else:
+            # Actualizar template existente (reemplazar)
+            result_data = custom_template_manager.update_template(template_id, {
+                'content': new_code
+            })
+            
+            status_code = 200 if result_data.get('success') else 404
+            response = jsonify(result_data)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, status_code
         
     except Exception as e:
         logger.error(f"Error updating custom template: {str(e)}")
-        result = jsonify({
+        import traceback
+        traceback.print_exc()
+        response = jsonify({
             'success': False,
             'error': f'Error al actualizar template: {str(e)}'
-        }), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @app.route('/api/custom-templates/preview', methods=['POST', 'OPTIONS'])
 def generate_custom_template_preview():
