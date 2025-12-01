@@ -438,9 +438,9 @@ def delete_landing(folder_name):
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
     except Exception as e:
-        result = jsonify({"success": False, "error": str(e)}), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify({"success": False, "error": str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @app.route('/api/landing/update', methods=['POST', 'OPTIONS'])
 def update_landing():
@@ -1179,9 +1179,9 @@ def serve_custom_template_preview(filename):
         
         # Verificar que el archivo existe y está en el directorio correcto
         if not os.path.exists(filepath) or not filepath.startswith(temp_dir):
-            result = jsonify({'success': False, 'error': 'Preview no encontrado'}), 404
-            result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            response = jsonify({'success': False, 'error': 'Preview no encontrado'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 404
         
         # Leer y servir el archivo HTML
         with open(filepath, 'r', encoding='utf-8') as f:
@@ -5248,9 +5248,9 @@ def get_keyword_ideas():
         # Print stack trace for debugging
         import traceback
         traceback.print_exc()
-        result = jsonify({'error': str(e)}), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify({'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 @app.route('/api/trends', methods=['POST', 'OPTIONS'])
 def get_google_trends():
@@ -5330,9 +5330,9 @@ def get_google_trends():
         import traceback
         traceback.print_exc()
         
-        result = jsonify({'success': False, 'error': str(e)}), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 
 def get_trends_from_google_ads(keywords, geo, time_range, resolution):
@@ -5905,16 +5905,15 @@ def start_automation():
         total_operations = data['numberOfGroups'] * (1 + data['adsPerGroup'])  # groups + ads
         estimated_minutes = max(2, min(10, total_operations // 3))
         
-        result = jsonify({
+        response = jsonify({
             "success": True,
             "jobId": job_id,
             "message": "Automatización iniciada en background",
             "estimatedTime": f"{estimated_minutes}-{estimated_minutes + 3} minutos",
             "status": "queued"
-        }), 202  # 202 Accepted
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 202  # 202 Accepted
         
     except Exception as e:
         import traceback
@@ -5922,14 +5921,13 @@ def start_automation():
         print(f"❌ Error iniciando automation: {str(e)}")
         print(error_trace)
         
-        result = jsonify({
+        response = jsonify({
             "success": False,
             "error": str(e),
             "message": "Error iniciando automatización"
-        }), 500
-        
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 
 @app.route('/api/automation/status/<job_id>', methods=['GET', 'OPTIONS'])
