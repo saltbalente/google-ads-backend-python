@@ -828,7 +828,10 @@ def transform_template_with_ai_patch():
         model = data.get('model')
         scope = (data.get('scope') or 'general').lower()
 
+        logger.info(f"📝 Transform patch request - provider: {provider}, scope: {scope}, code_length: {len(code) if code else 0}, instructions_length: {len(instructions)}")
+
         if not code or not instructions:
+            logger.warning(f"⚠️ Missing required fields - code: {bool(code)}, instructions: {bool(instructions)}")
             response = jsonify({'success': False, 'error': 'Missing code or instructions'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
@@ -851,14 +854,26 @@ def transform_template_with_ai_patch():
 
         transformed = None
         error = None
-        if provider == 'openrouter':
-            transformed, error = call_openrouter_grok(prompt_messages, model)
-            if error and os.getenv('OPENAI_API_KEY'):
-                transformed, error = call_openai_transform(prompt_messages)
-        else:
-            transformed, error = call_openai_transform(prompt_messages, model)
+        
+        try:
+            if provider == 'openrouter':
+                logger.info(f"🔄 Calling OpenRouter with model: {model or 'xai/grok-2'}")
+                transformed, error = call_openrouter_grok(prompt_messages, model)
+                if error:
+                    logger.warning(f"⚠️ OpenRouter failed: {error}")
+                    if os.getenv('OPENAI_API_KEY'):
+                        logger.info(f"🔄 Falling back to OpenAI")
+                        transformed, error = call_openai_transform(prompt_messages)
+            else:
+                logger.info(f"🔄 Calling OpenAI with model: {model or os.getenv('OPENAI_MODEL', 'gpt-4o-mini')}")
+                transformed, error = call_openai_transform(prompt_messages, model)
+        except Exception as ai_error:
+            logger.error(f"❌ AI provider error: {str(ai_error)}")
+            error = f"AI provider error: {str(ai_error)}"
 
         if error:
+            logger.warning(f"⚠️ AI transformation failed, trying local fallback: {error}")
+            
             def local_transform_html(code_text, instr):
                 l = instr.lower()
                 updated = code_text
@@ -872,27 +887,39 @@ def transform_template_with_ai_patch():
 
             local = local_transform_html(code, instructions)
             if local:
+                logger.info(f"✅ Local fallback transformation successful")
                 import difflib
                 diff = '\n'.join(difflib.unified_diff(code.splitlines(), local.splitlines(), fromfile='original', tofile='modified', lineterm=''))
                 response = jsonify({'success': True, 'code': local, 'diff': diff, 'fallback': True})
                 response.headers.add('Access-Control-Allow-Origin', '*')
                 return response, 200
+            
+            logger.error(f"❌ All transformation methods failed: {error}")
             response = jsonify({'success': False, 'error': error})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 500
 
         if transformed:
+            # Extraer código de markdown si viene envuelto
             m = re.search(r"```(?:html)?\n([\s\S]*?)\n```", transformed)
             if m:
                 transformed = m.group(1)
+                logger.info(f"✅ Extracted HTML from markdown code block")
 
+        logger.info(f"✅ Transformation successful, transformed_length: {len(transformed) if transformed else 0}")
+        
         import difflib
         diff = '\n'.join(difflib.unified_diff(code.splitlines(), (transformed or '').splitlines(), fromfile='original', tofile='modified', lineterm=''))
         response = jsonify({'success': True, 'code': transformed, 'diff': diff})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 200
+        
     except Exception as e:
-        response = jsonify({'success': False, 'error': str(e)})
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"❌ Unexpected error in transform_template_with_ai_patch: {str(e)}")
+        logger.error(f"Traceback: {error_trace}")
+        response = jsonify({'success': False, 'error': str(e), 'trace': error_trace})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
