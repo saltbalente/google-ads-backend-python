@@ -485,6 +485,7 @@ def build_landing():
         optimize_images_with_ai = data.get('optimizeImagesWithAI') or data.get('optimize_images_with_ai', False)
         selected_color_palette = data.get('selectedColorPalette') or data.get('selected_color_palette', 'mystical')
         use_dynamic_design = data.get('useDynamicDesign') or data.get('use_dynamic_design', False)
+        layout_style = data.get('layoutStyle') or data.get('layout_style', 'auto')
         
         # Log template selection
         if selected_template:
@@ -508,7 +509,7 @@ def build_landing():
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
-        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, user_videos=user_videos, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette, custom_template_content=custom_template_content, use_dynamic_design=use_dynamic_design)
+        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, user_videos=user_videos, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette, custom_template_content=custom_template_content, use_dynamic_design=use_dynamic_design, layout_style=layout_style)
         
         landing_queue.release()  # Release queue slot on success
         

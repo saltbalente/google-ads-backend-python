@@ -947,7 +947,7 @@ class DesignGenerator:
         }
     
     @classmethod
-    def _generate_layout_config(cls, atmosphere: DesignAtmosphere) -> Dict[str, str]:
+    def _generate_layout_config(cls, atmosphere: DesignAtmosphere, forced_style: str = "auto") -> Dict[str, str]:
         """
         Genera configuración de layout estructural.
         Esto permite que la landing tenga estructuras variadas como Elementor.
@@ -976,15 +976,31 @@ class DesignGenerator:
             "single_column"   # Fallback for magazine style
         ]
         
-        # Seleccionar layout basado en intensidad de atmósfera
-        if atmosphere.animation_intensity == "intense":
-            # Para atmósferas intensas, preferir layouts dramáticos
-            hero_choice = random.choice(["overlay_card", "centered", "split_left"])
-        elif atmosphere.animation_intensity == "subtle":
-            # Para atmósferas sutiles, preferir minimalismo
-            hero_choice = random.choice(["minimal", "centered", "split_right"])
+        # Seleccionar layout
+        hero_choice = "centered"
+        
+        if forced_style != "auto" and forced_style:
+            # Mapeo de estilos forzados
+            if forced_style == "modern":
+                hero_choice = random.choice(["split_left", "split_right"])
+            elif forced_style == "impact":
+                hero_choice = "overlay_card"
+            elif forced_style == "classic":
+                hero_choice = "centered"
+            elif forced_style == "minimal":
+                hero_choice = "minimal"
+            else:
+                hero_choice = random.choice(hero_layouts)
         else:
-            hero_choice = random.choice(hero_layouts)
+            # Lógica automática basada en atmósfera
+            if atmosphere.animation_intensity == "intense":
+                # Para atmósferas intensas, preferir layouts dramáticos
+                hero_choice = random.choice(["overlay_card", "centered", "split_left"])
+            elif atmosphere.animation_intensity == "subtle":
+                # Para atmósferas sutiles, preferir minimalismo
+                hero_choice = random.choice(["minimal", "centered", "split_right"])
+            else:
+                hero_choice = random.choice(hero_layouts)
             
         return {
             "hero_style": hero_choice,
@@ -998,13 +1014,14 @@ class DesignGenerator:
 # FUNCIÓN PRINCIPAL DE INTEGRACIÓN
 # =============================================================================
 
-def generate_dynamic_design(keywords: List[str], customer_id: str = "") -> Dict[str, Any]:
+def generate_dynamic_design(keywords: List[str], customer_id: str = "", layout_style: str = "auto") -> Dict[str, Any]:
     """
     Función principal para generar diseño dinámico.
     
     Args:
         keywords: Lista de keywords del grupo de anuncios
         customer_id: ID del cliente
+        layout_style: Estilo de layout forzado (auto, modern, impact, classic, minimal)
         
     Returns:
         Diccionario con toda la configuración de diseño
@@ -1012,7 +1029,7 @@ def generate_dynamic_design(keywords: List[str], customer_id: str = "") -> Dict[
     config = DesignGenerator.generate(keywords, customer_id)
     
     # Generar layout estructural
-    layout_config = DesignGenerator._generate_layout_config(config.atmosphere)
+    layout_config = DesignGenerator._generate_layout_config(config.atmosphere, forced_style=layout_style)
     
     # Append border radius to CSS variables
     css_variables = config.css_variables + f"\n        :root {{ --border-radius: {layout_config['border_radius']}; }}"

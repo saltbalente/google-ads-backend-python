@@ -1160,10 +1160,12 @@ class LandingPageGenerator:
             
             # Step 1: Generate dynamic design configuration
             customer_id = config.get("customer_id", "default")
-            design = generate_dynamic_design(keywords, customer_id)
+            layout_style = config.get("layout_style", "auto")
+            design = generate_dynamic_design(keywords, customer_id, layout_style=layout_style)
             
             logger.info(f"✨ Diseño generado:")
             logger.info(f"   🎨 Nombre: {design['design_name']}")
+            logger.info(f"   📐 Layout: {layout_style} -> {design['layout']['hero_style']}")
             logger.info(f"   📂 Categoría: {design['category']}")
             logger.info(f"   🎯 Confianza: {design['category_confidence']:.2%}")
             logger.info(f"   💫 Hero Icon: {design['hero_icon']}")
@@ -2830,7 +2832,7 @@ class LandingPageGenerator:
             logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
             return 0
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, user_videos: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical", custom_template_content: Optional[str] = None, use_dynamic_design: bool = False) -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, user_videos: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical", custom_template_content: Optional[str] = None, use_dynamic_design: bool = False, layout_style: str = "auto") -> Dict[str, Any]:
         """
         Execute the complete landing page generation pipeline.
 
@@ -2846,6 +2848,16 @@ class LandingPageGenerator:
                 - "none": Only create landing page, no Google Ads changes
                 - "update_only": Update existing ads tracking URLs only
                 - "create_only": Create new ads if group is empty, don't update existing
+                - "auto": Try to update existing, create new if empty
+            user_images: Optional list of user images with positions
+            user_videos: Optional list of user videos with positions
+            paragraph_template: Optional paragraph template name
+            optimize_images_with_ai: Whether to use AI for image optimization
+            selected_color_palette: Color palette to use
+            custom_template_content: Optional custom template content
+            use_dynamic_design: Whether to use dynamic design system
+            layout_style: Forced layout style (auto, modern, impact, classic, minimal)
+        """
                 - "auto": Full automation (default) - update existing or create new as needed
             user_images: Optional list of user provided images with position info
             paragraph_template: Optional paragraph template ID for AI optimization
@@ -3045,7 +3057,8 @@ class LandingPageGenerator:
                 # 🔮 Dynamic Design System - Pass keywords for intelligent design generation
                 "keywords": ctx.keywords,
                 "customer_id": customer_id,
-                "use_dynamic_design": use_dynamic_design  # User can enable/disable dynamic design
+                "use_dynamic_design": use_dynamic_design,  # User can enable/disable dynamic design
+                "layout_style": layout_style  # Pass layout style preference
             }
 
             # Step 4: Render HTML
