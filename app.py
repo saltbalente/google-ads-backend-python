@@ -247,7 +247,10 @@ def delete_landing_from_github(folder_name):
     # Get all files in the folder recursively
     def get_all_files(path=""):
         files = []
-        url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{folder_name}/{path}"
+        # Construct URL correctly avoiding double slashes or trailing slash issues
+        target_path = f"{folder_name}/{path}" if path else folder_name
+        url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{target_path}"
+        
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             contents = response.json()
@@ -257,22 +260,49 @@ def delete_landing_from_github(folder_name):
                 elif item['type'] == 'dir':
                     sub_path = f"{path}/{item['name']}" if path else item['name']
                     files.extend(get_all_files(sub_path))
+        elif response.status_code == 404:
+            # Folder or path doesn't exist, which is fine
+            pass
+        else:
+            logger.error(f"Error listing files in {target_path}: {response.status_code} {response.text}")
+            raise RuntimeError(f"Failed to list files in {target_path}: {response.status_code}")
+            
         return files
     
-    files_to_delete = get_all_files()
+    try:
+        files_to_delete = get_all_files()
+    except RuntimeError as e:
+        raise e
+
+    if not files_to_delete:
+        logger.info(f"No files found to delete in {folder_name}")
+        return True
+    
+    logger.info(f"Found {len(files_to_delete)} files to delete in {folder_name}")
     
     # Delete each file
     for file_path in files_to_delete:
-        delete_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{folder_name}/{file_path}"
+        # Construct full path for the file
+        full_path = f"{folder_name}/{file_path}"
+        delete_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{full_path}"
+        
         # Get file SHA
         resp = requests.get(delete_url, headers=headers)
         if resp.status_code == 200:
             sha = resp.json()['sha']
             delete_data = {
                 "message": f"Delete {file_path} from landing {folder_name}",
-                "sha": sha
+                "sha": sha,
+                "branch": "main"
             }
-            requests.delete(delete_url, headers=headers, json=delete_data)
+            del_resp = requests.delete(delete_url, headers=headers, json=delete_data)
+            if del_resp.status_code not in [200, 201]:
+                 logger.error(f"Failed to delete {full_path}: {del_resp.status_code} {del_resp.text}")
+        elif resp.status_code == 404:
+            # Already deleted
+            continue
+        else:
+             logger.error(f"Failed to get SHA for {full_path}: {resp.status_code}")
     
     # After deleting files, the folder should be empty, but GitHub doesn't have empty folders
     return True
