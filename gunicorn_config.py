@@ -14,7 +14,9 @@ backlog = 2048
 # - Cada worker usa ~120-150MB
 # - 512MB / 150MB = ~3 workers seguros
 # - Dejamos 1 worker para evitar OOM (Out of Memory)
-workers = int(os.getenv('WEB_CONCURRENCY', '2'))  # 2 workers para 512MB RAM
+# IMPORTANTE: Ignoramos WEB_CONCURRENCY de Render porque suele calcularlo basado en CPU
+# y nos asigna demasiados workers (ej. 8) lo que causa crash por memoria.
+workers = 2 
 worker_class = 'sync'
 worker_connections = 1000
 
