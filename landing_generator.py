@@ -2858,12 +2858,6 @@ class LandingPageGenerator:
             use_dynamic_design: Whether to use dynamic design system
             layout_style: Forced layout style (auto, modern, impact, classic, minimal)
         """
-                - "auto": Full automation (default) - update existing or create new as needed
-            user_images: Optional list of user provided images with position info
-            paragraph_template: Optional paragraph template ID for AI optimization
-            optimize_images_with_ai: If True, use Gemini to optimize images
-            selected_color_palette: Color palette for the landing page theme
-        """
         start_time = time.time()
 
         # Comprehensive input validation
