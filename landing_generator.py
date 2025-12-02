@@ -1432,26 +1432,163 @@ class LandingPageGenerator:
                 html, flags=re.DOTALL | re.IGNORECASE
             )
         
-        # ========== 6. USER IMAGES ==========
+        # ========== 6. USER IMAGES - MEJORADO ==========
         user_images = config.get("user_images", [])
         if user_images:
-            for img in user_images:
-                pos = img.get("position", "").lower()
-                url = img.get("url", "")
-                if pos and url:
-                    # Try to replace images by position class or data attribute
-                    html = re.sub(
-                        rf'(<amp-img[^>]*(?:class="[^"]*{pos}[^"]*"|data-position="{pos}")[^>]*src=")[^"]*(")',
-                        rf'\1{url}\2',
-                        html, flags=re.IGNORECASE
-                    )
-                    html = re.sub(
-                        rf'(<img[^>]*(?:class="[^"]*{pos}[^"]*"|data-position="{pos}")[^>]*src=")[^"]*(")',
-                        rf'\1{url}\2',
-                        html, flags=re.IGNORECASE
-                    )
+            logger.info(f"🖼️ Processing {len(user_images)} user images...")
+            try:
+                soup = BeautifulSoup(html, 'html.parser')
+                
+                for img in user_images:
+                    pos = img.get("position", "").lower()
+                    url = img.get("url", "")
+                    if not pos or not url:
+                        continue
+                    
+                    logger.info(f"  📍 Looking for position: {pos}")
+                    
+                    # Strategy 1: Find by data-position attribute
+                    found = soup.find_all(['img', 'amp-img'], attrs={'data-position': pos})
+                    if found:
+                        for elem in found:
+                            elem['src'] = url
+                            logger.info(f"    ✅ Updated {elem.name} with data-position='{pos}'")
+                    
+                    # Strategy 2: Find by class containing position name
+                    if not found:
+                        found = soup.find_all(['img', 'amp-img'], class_=lambda c: c and pos in str(c).lower())
+                        if found:
+                            for elem in found:
+                                elem['src'] = url
+                                logger.info(f"    ✅ Updated {elem.name} with class containing '{pos}'")
+                    
+                    # Strategy 3: Find by ID containing position name
+                    if not found:
+                        found = soup.find(['img', 'amp-img'], id=lambda i: i and pos in str(i).lower())
+                        if found:
+                            found['src'] = url
+                            logger.info(f"    ✅ Updated {found.name} with id containing '{pos}'")
+                    
+                    # Strategy 4: Find first image in section with matching class/id
+                    if not found:
+                        section = soup.find(['section', 'div'], class_=lambda c: c and pos in str(c).lower())
+                        if section:
+                            first_img = section.find(['img', 'amp-img'])
+                            if first_img:
+                                first_img['src'] = url
+                                logger.info(f"    ✅ Updated first image in section.{pos}")
+                    
+                    # Strategy 5: Position-specific fallbacks for common positions
+                    if not found:
+                        if pos in ['top', 'hero', 'hero_bg']:
+                            # Find first large image (hero)
+                            all_imgs = soup.find_all(['img', 'amp-img'])
+                            if all_imgs:
+                                all_imgs[0]['src'] = url
+                                logger.info(f"    ✅ Updated first image as hero/top")
+                        elif pos in ['middle', 'center']:
+                            all_imgs = soup.find_all(['img', 'amp-img'])
+                            if len(all_imgs) > 1:
+                                all_imgs[1]['src'] = url
+                                logger.info(f"    ✅ Updated second image as middle")
+                        elif pos.startswith('cta'):
+                            # Find CTA buttons/sections and their images
+                            cta_num = pos.replace('cta', '')
+                            cta_sections = soup.find_all(['a', 'button', 'div'], class_=lambda c: c and 'cta' in str(c).lower())
+                            try:
+                                idx = int(cta_num) - 1 if cta_num else 0
+                                if idx < len(cta_sections):
+                                    cta_img = cta_sections[idx].find(['img', 'amp-img'])
+                                    if cta_img:
+                                        cta_img['src'] = url
+                                        logger.info(f"    ✅ Updated image in CTA #{cta_num}")
+                            except:
+                                pass
+                
+                html = str(soup)
+                logger.info(f"✅ User images processed")
+                
+            except Exception as e:
+                logger.warning(f"⚠️ Error processing user images with BeautifulSoup: {e}, trying regex fallback")
+                # Regex fallback
+                for img in user_images:
+                    pos = img.get("position", "").lower()
+                    url = img.get("url", "")
+                    if pos and url:
+                        html = re.sub(
+                            rf'(<(?:amp-)?img[^>]*(?:class="[^"]*{pos}[^"]*"|data-position="{pos}")[^>]*src=")[^"]*(")',
+                            rf'\1{url}\2',
+                            html, flags=re.IGNORECASE
+                        )
         
-        # ========== 7. FINAL CLEANUP ==========
+        # ========== 7. USER VIDEOS - NUEVO ==========
+        user_videos = config.get("user_videos", [])
+        if user_videos:
+            logger.info(f"🎥 Processing {len(user_videos)} user videos...")
+            try:
+                soup = BeautifulSoup(html, 'html.parser')
+                
+                for video in user_videos:
+                    pos = video.get("position", "").lower()
+                    video_url = video.get("video_url", "")
+                    thumbnail_url = video.get("thumbnail_url", "")
+                    
+                    if not pos or not video_url:
+                        continue
+                    
+                    logger.info(f"  📍 Looking for video position: {pos}")
+                    
+                    # Find video elements by position
+                    video_elems = soup.find_all(['video', 'amp-video'], attrs={'data-position': pos})
+                    if not video_elems:
+                        video_elems = soup.find_all(['video', 'amp-video'], class_=lambda c: c and pos in str(c).lower())
+                    
+                    for elem in video_elems:
+                        # Update video src
+                        if elem.name == 'amp-video':
+                            elem['src'] = video_url
+                            if thumbnail_url:
+                                elem['poster'] = thumbnail_url
+                        else:
+                            # Regular video tag - update source children
+                            sources = elem.find_all('source')
+                            if sources:
+                                sources[0]['src'] = video_url
+                            else:
+                                elem['src'] = video_url
+                            if thumbnail_url:
+                                elem['poster'] = thumbnail_url
+                        
+                        logger.info(f"    ✅ Updated video with position '{pos}'")
+                    
+                    # If no video elements found, try to find placeholder divs/sections
+                    if not video_elems:
+                        section = soup.find(['section', 'div'], class_=lambda c: c and pos in str(c).lower())
+                        if section:
+                            # Create video element
+                            video_tag = soup.new_tag('video', attrs={
+                                'controls': '',
+                                'playsinline': '',
+                                'preload': 'metadata',
+                                'style': 'width: 100%; max-width: 800px; border-radius: 12px;'
+                            })
+                            if thumbnail_url:
+                                video_tag['poster'] = thumbnail_url
+                            
+                            source_tag = soup.new_tag('source', src=video_url, type='video/mp4')
+                            video_tag.append(source_tag)
+                            
+                            # Insert video at beginning of section
+                            section.insert(0, video_tag)
+                            logger.info(f"    ✅ Injected new video element in section.{pos}")
+                
+                html = str(soup)
+                logger.info(f"✅ User videos processed")
+                
+            except Exception as e:
+                logger.warning(f"⚠️ Error processing user videos: {e}")
+        
+        # ========== 8. FINAL CLEANUP ==========
         # Ensure proper encoding declaration
         if '<?xml' not in html and 'charset' not in html[:500].lower():
             html = html.replace('<head>', '<head>\n  <meta charset="utf-8">', 1)
