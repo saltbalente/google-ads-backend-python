@@ -69,6 +69,56 @@ Generated: {{ design.timestamp }}
     /* Animation Keyframes - Based on Intensity */
     {{ design.animation_css|safe }}
     
+    /* ===== GARANTÍA DE CONTRASTE ===== */
+    /* Asegura que el texto SIEMPRE sea visible en fondos oscuros */
+    
+    /* Títulos siempre claros con fallback */
+    h1, h2, h3, h4, h5, h6 {
+      color: #F8FAFC !important; /* Blanco por defecto */
+    }
+    
+    /* Gradiente de texto con fallback de color claro */
+    .bg-clip-text.text-transparent {
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      -webkit-background-clip: text;
+      /* Fallback: si el gradiente falla, usar blanco */
+      color: #F8FAFC;
+    }
+    
+    /* Forzar colores claros en gradientes de texto */
+    .from-primary.to-secondary.bg-clip-text,
+    .from-primary.via-secondary.to-accent.bg-clip-text {
+      background-image: linear-gradient(
+        to right,
+        var(--color-primary-light, #C4B5FD),
+        var(--color-accent, #F472B6),
+        var(--color-secondary, #FBBF24)
+      ) !important;
+    }
+    
+    /* Texto del cuerpo siempre claro */
+    body, p, span, li, div {
+      color: var(--color-text, #E2E8F0);
+    }
+    
+    /* Clases de texto gris más claras */
+    .text-gray-300 { color: #D1D5DB !important; }
+    .text-gray-400 { color: #9CA3AF !important; }
+    .text-gray-500 { color: #6B7280 !important; }
+    
+    /* Subheadlines siempre visibles */
+    .text-xl, .text-2xl {
+      color: #CBD5E1 !important;
+    }
+    
+    /* Primary light siempre claro para subtítulos */
+    .text-primary-light {
+      color: #C4B5FD !important;
+    }
+    
+    /* ===== FIN GARANTÍA DE CONTRASTE ===== */
+    
     /* Base Styles */
     body {
       font-family: var(--font-body);

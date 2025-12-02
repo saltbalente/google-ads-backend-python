@@ -843,17 +843,51 @@ class DesignGenerator:
     @classmethod
     def _generate_color_scheme(cls, atmosphere: DesignAtmosphere) -> Dict[str, str]:
         """Genera un esquema de colores con ligera variación."""
+        primary = random.choice(atmosphere.primary_colors)
+        secondary = random.choice(atmosphere.secondary_colors)
+        accent = random.choice(atmosphere.accent_colors)
+        
+        # Asegurar que primary_light sea SIEMPRE claro para gradientes de texto
+        # Usamos los colores más claros de la paleta
+        primary_light = cls._ensure_light_color(atmosphere.primary_colors[0])
+        
         return {
-            "primary": random.choice(atmosphere.primary_colors),
-            "secondary": random.choice(atmosphere.secondary_colors),
-            "accent": random.choice(atmosphere.accent_colors),
+            "primary": primary,
+            "secondary": secondary,
+            "accent": accent,
             "primary_dark": atmosphere.primary_colors[-1],  # Más oscuro
-            "primary_light": atmosphere.primary_colors[0],  # Más claro
-            "text": "#F8FAFC",
-            "text_muted": "#94A3B8",
+            "primary_light": primary_light,  # SIEMPRE claro para textos
+            "text": "#F8FAFC",  # Blanco casi puro
+            "text_muted": "#CBD5E1",  # Gris claro (más legible)
+            "text_heading": "#FFFFFF",  # Blanco puro para títulos
             "surface": "#1E293B",
             "background": "#0F172A",
         }
+    
+    @classmethod
+    def _ensure_light_color(cls, color: str) -> str:
+        """
+        Asegura que un color sea lo suficientemente claro para ser visible en fondos oscuros.
+        Si el color es muy oscuro, lo aclara.
+        """
+        # Colores claros predefinidos como fallback
+        light_colors = ["#C4B5FD", "#F9A8D4", "#FCD34D", "#A5F3FC", "#BEF264", "#FCA5A5"]
+        
+        try:
+            # Convertir hex a RGB
+            hex_color = color.lstrip('#')
+            r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            
+            # Calcular luminosidad (fórmula estándar)
+            luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+            
+            # Si la luminosidad es baja (< 0.5), usar un color claro alternativo
+            if luminance < 0.5:
+                return random.choice(light_colors)
+            return color
+        except:
+            # Si hay error, devolver un color claro seguro
+            return "#C4B5FD"
     
     @classmethod
     def _generate_gradients(cls, atmosphere: DesignAtmosphere, colors: Dict[str, str]) -> Dict[str, str]:
@@ -887,14 +921,26 @@ class DesignGenerator:
             --color-primary-dark: {colors['primary_dark']};
             --color-primary-light: {colors['primary_light']};
             --color-text: {colors['text']};
+            --color-text-heading: {colors.get('text_heading', '#FFFFFF')};
             --color-text-muted: {colors['text_muted']};
             --color-surface: {colors['surface']};
             --color-background: {colors['background']};
             --glow-color: {colors['primary']}66;
             --pulse-color: {colors['accent']}99;
+            --gradient-text-fallback: {colors.get('text_heading', '#FFFFFF')};
             --font-heading: '{atmosphere.font_pairing.get("heading", "Cinzel")}', serif;
             --font-body: '{atmosphere.font_pairing.get("body", "Outfit")}', sans-serif;
             --animation-intensity: {1.0 if atmosphere.animation_intensity == "intense" else 0.7 if atmosphere.animation_intensity == "moderate" else 0.4};
+        }}
+        
+        /* Ensure headings are always visible */
+        h1, h2, h3, h4, h5, h6 {{
+            color: var(--color-text-heading, #FFFFFF) !important;
+        }}
+        
+        /* Fix gradient text visibility */
+        .bg-clip-text.text-transparent {{
+            -webkit-text-fill-color: var(--gradient-text-fallback, #FFFFFF);
         }}
         """
     
