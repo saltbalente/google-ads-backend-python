@@ -79,6 +79,11 @@ Generated: {{ design.timestamp }}
     h1, h2, h3, h4, h5, h6 {
       font-family: var(--font-heading);
     }
+
+    /* Dynamic Border Radius */
+    .dynamic-radius {
+      border-radius: var(--border-radius, 1rem);
+    }
     
     /* Hero Section - Dynamic Style */
     .hero-section {
@@ -105,7 +110,7 @@ Generated: {{ design.timestamp }}
     /* Testimonial Cards */
     .testimonial-card {
       {{ design.section_styles.testimonial|safe }}
-      border-radius: 1rem;
+      border-radius: var(--border-radius, 1rem);
       padding: 1.5rem;
       backdrop-filter: blur(10px);
     }
@@ -118,7 +123,7 @@ Generated: {{ design.timestamp }}
       justify-content: center;
       gap: 0.75rem;
       padding: 1rem 2.5rem;
-      border-radius: 9999px;
+      border-radius: var(--border-radius, 9999px);
       font-weight: 600;
       font-size: 1.125rem;
       text-decoration: none;
@@ -183,7 +188,7 @@ Generated: {{ design.timestamp }}
     /* Image Effects */
     .image-container {
       position: relative;
-      border-radius: 1rem;
+      border-radius: var(--border-radius, 1rem);
       overflow: hidden;
     }
     
@@ -275,36 +280,108 @@ Generated: {{ design.timestamp }}
     <div class="hero-overlay"></div>
     
     <!-- Hero Content -->
-    <div class="relative z-10 max-w-4xl mx-auto px-4">
-      <!-- Hero Icon -->
-      <div class="hero-icon mb-6">
-        {{ design.hero_icon }}
+    <div class="relative z-10 w-full max-w-7xl mx-auto px-4">
+      
+      {% if design.layout and design.layout.hero_style == 'split_left' %}
+      <!-- SPLIT LEFT LAYOUT -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center text-left">
+        <div>
+          <div class="hero-icon mb-6 text-left text-6xl">{{ design.hero_icon }}</div>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+            <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              {{ headline }}
+            </span>
+          </h1>
+          <p class="text-xl md:text-2xl text-gray-300 mb-8">
+            {{ subheadline }}
+          </p>
+          <div class="flex gap-4 justify-start">
+             <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
+              <span>💬</span>
+              <span>Contactar Ahora</span>
+            </a>
+          </div>
+        </div>
+        <div class="hidden lg:flex justify-center items-center relative">
+           <div class="absolute w-full aspect-square max-w-md bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-3xl animate-pulse-custom"></div>
+           <div class="relative text-[12rem] animate-float">{{ design.hero_icon }}</div>
+        </div>
       </div>
-      
-      <!-- Main Title -->
-      <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-        <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-          {{ headline }}
-        </span>
-      </h1>
-      
-      <!-- Subtitle -->
-      <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto">
-        {{ subheadline }}
-      </p>
-      
-      <!-- Hero CTA Button -->
-      <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
-        <span>💬</span>
-        <span>Contactar Ahora</span>
-      </a>
+
+      {% elif design.layout and design.layout.hero_style == 'split_right' %}
+      <!-- SPLIT RIGHT LAYOUT -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center text-left">
+        <div class="hidden lg:flex justify-center items-center relative order-2 lg:order-1">
+           <div class="absolute w-full aspect-square max-w-md bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-3xl animate-pulse-custom"></div>
+           <div class="relative text-[12rem] animate-float">{{ design.hero_icon }}</div>
+        </div>
+        <div class="order-1 lg:order-2">
+          <div class="hero-icon mb-6 text-left text-6xl">{{ design.hero_icon }}</div>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+            <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              {{ headline }}
+            </span>
+          </h1>
+          <p class="text-xl md:text-2xl text-gray-300 mb-8">
+            {{ subheadline }}
+          </p>
+          <div class="flex gap-4 justify-start">
+             <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
+              <span>💬</span>
+              <span>Contactar Ahora</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {% elif design.layout and design.layout.hero_style == 'overlay_card' %}
+      <!-- OVERLAY CARD LAYOUT -->
+      <div class="flex justify-center items-center min-h-[60vh]">
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-8 md:p-12 rounded-3xl shadow-2xl max-w-4xl text-center relative overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none"></div>
+          <div class="hero-icon mb-6 text-6xl inline-block">{{ design.hero_icon }}</div>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight relative z-10">
+            <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              {{ headline }}
+            </span>
+          </h1>
+          <p class="text-xl md:text-2xl text-gray-300 mb-8 relative z-10">
+            {{ subheadline }}
+          </p>
+          <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow relative z-10">
+            <span>💬</span>
+            <span>Contactar Ahora</span>
+          </a>
+        </div>
+      </div>
+
+      {% else %}
+      <!-- DEFAULT CENTERED LAYOUT -->
+      <div class="max-w-4xl mx-auto text-center">
+        <div class="hero-icon mb-6">
+          {{ design.hero_icon }}
+        </div>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+          <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+            {{ headline }}
+          </span>
+        </h1>
+        <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          {{ subheadline }}
+        </p>
+        <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
+          <span>💬</span>
+          <span>Contactar Ahora</span>
+        </a>
+      </div>
+      {% endif %}
       
       <!-- Trust Indicators -->
-      <div class="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-400">
+      <div class="mt-12 flex flex-wrap justify-center gap-6 text-sm text-gray-400">
         {% for icon in design.icons[:3] %}
-        <span class="flex items-center gap-2">
+        <span class="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full backdrop-blur-sm border border-white/5">
           <span>{{ icon }}</span>
-          <span>{{ design.mood_keywords[loop.index0]|default('Profesional') }}</span>
+          <span>{{ design.mood_keywords[loop.index0]|default('Profesional')|title }}</span>
         </span>
         {% endfor %}
       </div>
@@ -324,6 +401,20 @@ Generated: {{ design.timestamp }}
   <section class="content-section">
     <div class="max-w-4xl mx-auto">
       
+      {% if design.layout and design.layout.content_style == 'split_image_text' and top_image %}
+      <!-- SPLIT CONTENT LAYOUT -->
+      <div class="grid md:grid-cols-2 gap-12 items-center mb-16">
+        <div class="image-container glow-border reveal h-full min-h-[300px]">
+          <img src="{{ top_image }}" alt="{{ headline }}" loading="lazy" class="w-full h-full object-cover" />
+        </div>
+        <div class="prose prose-invert prose-lg reveal">
+          <div class="text-gray-300 leading-relaxed space-y-6">
+            {{ intro_paragraph|safe }}
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <!-- DEFAULT SINGLE COLUMN LAYOUT -->
       <!-- Primary Image -->
       {% if top_image %}
       <div class="image-container mb-12 glow-border reveal">
@@ -337,8 +428,74 @@ Generated: {{ design.timestamp }}
           {{ intro_paragraph|safe }}
         </div>
       </div>
+      {% endif %}
       
       <!-- Feature Cards Grid -->
+      {% if design.layout and design.layout.features_style == 'grid_3' %}
+      <!-- GRID 3 LAYOUT -->
+      <div class="grid md:grid-cols-3 gap-6 mt-12">
+        {% for i in range(6) %}
+        <div class="testimonial-card reveal h-full" style="animation-delay: {{ i * 0.1 }}s;">
+          <div class="flex flex-col items-center text-center gap-4">
+            <span class="text-4xl mb-2">{{ design.icons[i % design.icons|length] }}</span>
+            <div>
+              <h3 class="font-heading text-lg font-semibold text-primary-light mb-2">
+                {{ design.mood_keywords[i % design.mood_keywords|length]|title }}
+              </h3>
+              <p class="text-gray-400 text-sm">
+                Soluciones especializadas en {{ design.mood_keywords[i % design.mood_keywords|length] }}.
+              </p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% elif design.layout and design.layout.features_style == 'zigzag' %}
+      <!-- ZIGZAG LAYOUT -->
+      <div class="space-y-16 mt-16">
+        {% for i in range(4) %}
+        <div class="flex flex-col md:flex-row gap-8 items-center reveal {% if loop.index is even %}md:flex-row-reverse{% endif %}" style="animation-delay: {{ i * 0.1 }}s;">
+          <div class="w-full md:w-1/2 flex justify-center">
+            <div class="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center text-5xl shadow-lg border border-white/10">
+              {{ design.icons[i % design.icons|length] }}
+            </div>
+          </div>
+          <div class="w-full md:w-1/2 text-center md:text-left">
+            <h3 class="font-heading text-2xl font-bold text-primary-light mb-4">
+              {{ design.mood_keywords[i % design.mood_keywords|length]|title }}
+            </h3>
+            <p class="text-gray-300 leading-relaxed">
+              Ofrecemos el mejor servicio de {{ design.mood_keywords[i % design.mood_keywords|length] }} con atención personalizada y resultados garantizados para tu tranquilidad.
+            </p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% elif design.layout and design.layout.features_style == 'cards' %}
+      <!-- CARDS LAYOUT (Large) -->
+      <div class="grid md:grid-cols-2 gap-8 mt-12">
+        {% for i in range(4) %}
+        <div class="testimonial-card reveal relative overflow-hidden group hover:bg-white/5 transition-colors duration-300" style="animation-delay: {{ i * 0.1 }}s;">
+          <div class="absolute top-0 right-0 p-4 opacity-10 text-8xl transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
+            {{ design.icons[i % design.icons|length] }}
+          </div>
+          <div class="relative z-10">
+            <span class="text-4xl mb-4 block">{{ design.icons[i % design.icons|length] }}</span>
+            <h3 class="font-heading text-xl font-bold text-primary-light mb-3">
+              {{ design.mood_keywords[i % design.mood_keywords|length]|title }}
+            </h3>
+            <p class="text-gray-400">
+              Experiencia comprobada en {{ design.mood_keywords[i % design.mood_keywords|length] }}. Nuestro equipo está listo para ayudarte a lograr tus objetivos.
+            </p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% else %}
+      <!-- DEFAULT GRID 2 LAYOUT -->
       <div class="grid md:grid-cols-2 gap-6 mt-12">
         {% for i in range(4) %}
         <div class="testimonial-card reveal" style="animation-delay: {{ i * 0.1 }}s;">
@@ -356,6 +513,7 @@ Generated: {{ design.timestamp }}
         </div>
         {% endfor %}
       </div>
+      {% endif %}
       
       <!-- Middle Image -->
       {% if middle_image %}

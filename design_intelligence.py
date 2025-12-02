@@ -945,6 +945,53 @@ class DesignGenerator:
                 border-top: 1px solid {colors['primary']}22;
             """,
         }
+    
+    @classmethod
+    def _generate_layout_config(cls, atmosphere: DesignAtmosphere) -> Dict[str, str]:
+        """
+        Genera configuración de layout estructural.
+        Esto permite que la landing tenga estructuras variadas como Elementor.
+        """
+        # Hero Layouts
+        hero_layouts = [
+            "centered",       # Clásico centrado
+            "split_left",     # Texto izquierda, imagen/icono derecha
+            "split_right",    # Texto derecha, imagen/icono izquierda
+            "overlay_card",   # Texto en tarjeta flotante sobre fondo
+            "minimal"         # Texto grande, minimalista
+        ]
+        
+        # Features/Benefits Layouts
+        feature_layouts = [
+            "grid_3",         # Grid de 3 columnas
+            "grid_2",         # Grid de 2 columnas
+            "zigzag",         # Lista alternada imagen/texto
+            "cards"           # Tarjetas con efecto flotante
+        ]
+        
+        # Content Layouts
+        content_layouts = [
+            "single_column",  # Columna central estrecha (lectura)
+            "split_image_text", # Bloques anchos con fondo alternado
+            "single_column"   # Fallback for magazine style
+        ]
+        
+        # Seleccionar layout basado en intensidad de atmósfera
+        if atmosphere.animation_intensity == "intense":
+            # Para atmósferas intensas, preferir layouts dramáticos
+            hero_choice = random.choice(["overlay_card", "centered", "split_left"])
+        elif atmosphere.animation_intensity == "subtle":
+            # Para atmósferas sutiles, preferir minimalismo
+            hero_choice = random.choice(["minimal", "centered", "split_right"])
+        else:
+            hero_choice = random.choice(hero_layouts)
+            
+        return {
+            "hero_style": hero_choice,
+            "features_style": random.choice(feature_layouts),
+            "content_style": random.choice(content_layouts),
+            "border_radius": random.choice(["0px", "8px", "16px", "24px", "9999px"])
+        }
 
 
 # =============================================================================
@@ -964,6 +1011,12 @@ def generate_dynamic_design(keywords: List[str], customer_id: str = "") -> Dict[
     """
     config = DesignGenerator.generate(keywords, customer_id)
     
+    # Generar layout estructural
+    layout_config = DesignGenerator._generate_layout_config(config.atmosphere)
+    
+    # Append border radius to CSS variables
+    css_variables = config.css_variables + f"\n        :root {{ --border-radius: {layout_config['border_radius']}; }}"
+    
     return {
         "design_id": config.design_id,
         "design_name": config.design_name,
@@ -982,7 +1035,7 @@ def generate_dynamic_design(keywords: List[str], customer_id: str = "") -> Dict[
         
         # Animaciones
         "animation_intensity": config.atmosphere.animation_intensity,
-        "css_variables": config.css_variables,
+        "css_variables": css_variables,
         "animation_css": config.animation_css,
         
         # Elementos visuales
@@ -992,6 +1045,9 @@ def generate_dynamic_design(keywords: List[str], customer_id: str = "") -> Dict[
         
         # Estilos de sección
         "section_styles": config.section_styles,
+        
+        # Layout Estructural (Nuevo para nivel Elementor)
+        "layout": layout_config,
         
         # Meta
         "design_meta": config.design_meta,
