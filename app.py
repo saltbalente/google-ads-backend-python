@@ -457,25 +457,20 @@ def build_landing():
         optimize_images_with_ai = data.get('optimizeImagesWithAI') or data.get('optimize_images_with_ai', False)
         selected_color_palette = data.get('selectedColorPalette') or data.get('selected_color_palette', 'mystical')
         
-        # Si se proporciona un custom template, usarlo en lugar del selected_template
+        # Si se proporciona un custom template, extraer el contenido para usarlo directamente
+        custom_template_content = None
         if custom_template:
-            # El custom template viene con un nombre, convertirlo a filename
             template_name = custom_template.get('name', '')
+            custom_template_content = custom_template.get('content', '')
             if template_name:
-                # Sanitizar el nombre igual que en custom_template_manager
-                import re
-                sanitized = template_name.lower()
-                sanitized = re.sub(r'[^a-z0-9]+', '-', sanitized)
-                sanitized = sanitized.strip('-')[:50]
-                selected_template = f"{sanitized}.html"
-                logger.info(f"🎨 Using custom template: '{template_name}' -> '{selected_template}'")
+                logger.info(f"🎨 Using custom template: '{template_name}' with {len(custom_template_content) if custom_template_content else 0} chars of content")
         
         if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
             response = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
-        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, user_videos=user_videos, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette)
+        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, user_videos=user_videos, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette, custom_template_content=custom_template_content)
         response = jsonify({'success': True, 'url': out['url'], 'alias': out['alias']})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 200

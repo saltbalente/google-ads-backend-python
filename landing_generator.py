@@ -973,6 +973,42 @@ class LandingPageGenerator:
             # Get color palette
             color_palette = COLOR_PALETTES.get(selected_color_palette, COLOR_PALETTES["mystical"])
             
+            # Check if custom template content is provided (from custom templates)
+            custom_template_content = config.get("custom_template_content")
+            
+            if custom_template_content:
+                # Use the custom template content directly
+                # This is a complete HTML file, not a Jinja2 template
+                logger.info(f"🎨 Using custom template content ({len(custom_template_content)} chars)")
+                
+                # The custom template is already a complete HTML, just do variable substitutions
+                html = custom_template_content
+                
+                # Replace common placeholders with actual values
+                whatsapp_number = config.get("whatsapp_number", "")
+                phone_number = config.get("phone_number", whatsapp_number)
+                gtm_id = config.get("gtm_id", "")
+                
+                # Replace WhatsApp URLs
+                if whatsapp_number:
+                    # Clean the number for URL
+                    clean_number = whatsapp_number.replace("+", "").replace(" ", "").replace("-", "")
+                    # Replace various WhatsApp URL patterns
+                    import re
+                    html = re.sub(r'href="https://wa\.me/\d+"', f'href="https://wa.me/{clean_number}"', html)
+                    html = re.sub(r'href="https://api\.whatsapp\.com/send\?phone=\d+"', f'href="https://api.whatsapp.com/send?phone={clean_number}"', html)
+                
+                # Replace phone numbers in tel: links
+                if phone_number:
+                    clean_phone = phone_number.replace("+", "").replace(" ", "").replace("-", "")
+                    html = re.sub(r'href="tel:\+?\d+"', f'href="tel:{phone_number}"', html)
+                
+                # Replace GTM ID
+                if gtm_id:
+                    html = re.sub(r'GTM-[A-Z0-9]+', gtm_id, html)
+                
+                return html
+            
             # Initialize template_name variable
             template_name = None
             
@@ -2305,7 +2341,7 @@ class LandingPageGenerator:
             logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
             return 0
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, user_videos: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical") -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, user_videos: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical", custom_template_content: Optional[str] = None) -> Dict[str, Any]:
         """
         Execute the complete landing page generation pipeline.
 
@@ -2514,10 +2550,9 @@ class LandingPageGenerator:
                 "primary_keyword": ctx.primary_keyword,
                 "selected_template": selected_template,
                 "user_images": user_images or [],
-                "user_images": user_images or [],
                 "user_videos": user_videos or [],
                 "folder_name": folder_name,
-                "selected_template": selected_template
+                "custom_template_content": custom_template_content
             }
 
             # Step 4: Render HTML
