@@ -69,55 +69,111 @@ Generated: {{ design.timestamp }}
     /* Animation Keyframes - Based on Intensity */
     {{ design.animation_css|safe }}
     
-    /* ===== GARANTÍA DE CONTRASTE ===== */
-    /* Asegura que el texto SIEMPRE sea visible en fondos oscuros */
+    /* ============================================== */
+    /* 🛡️ SISTEMA ULTRA-SEGURO DE CONTRASTE DE TEXTO */
+    /* Múltiples capas de fallback garantizadas      */
+    /* ============================================== */
     
-    /* Títulos siempre claros con fallback */
+    /* CAPA 1: Variables CSS con fallbacks hardcodeados */
+    :root {
+      --safe-white: #FFFFFF;
+      --safe-light: #F8FAFC;
+      --safe-muted: #CBD5E1;
+      --safe-gradient-start: #E879F9;  /* Fuchsia brillante */
+      --safe-gradient-mid: #FBBF24;    /* Amber brillante */
+      --safe-gradient-end: #34D399;    /* Emerald brillante */
+    }
+    
+    /* CAPA 2: Reset de colores oscuros potencialmente problemáticos */
     h1, h2, h3, h4, h5, h6 {
-      color: #F8FAFC !important; /* Blanco por defecto */
+      color: var(--safe-white) !important;
+      -webkit-text-fill-color: var(--safe-white);
     }
     
-    /* Gradiente de texto con fallback de color claro */
-    .bg-clip-text.text-transparent {
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      -webkit-background-clip: text;
-      /* Fallback: si el gradiente falla, usar blanco */
-      color: #F8FAFC;
-    }
-    
-    /* Forzar colores claros en gradientes de texto */
+    /* CAPA 3: Gradientes de texto con colores GARANTIZADOS brillantes */
+    .bg-clip-text.text-transparent,
+    [class*="bg-gradient"][class*="bg-clip-text"],
+    .from-primary.bg-clip-text,
     .from-primary.to-secondary.bg-clip-text,
     .from-primary.via-secondary.to-accent.bg-clip-text {
+      /* Primero: establecer un color sólido de fallback */
+      color: var(--safe-white) !important;
+      /* Luego: aplicar el gradiente con colores BRILLANTES forzados */
       background-image: linear-gradient(
         to right,
-        var(--color-primary-light, #C4B5FD),
-        var(--color-accent, #F472B6),
-        var(--color-secondary, #FBBF24)
+        var(--safe-gradient-start),
+        var(--safe-gradient-mid),
+        var(--safe-gradient-end)
       ) !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      /* Fallback para navegadores que no soportan background-clip */
+      -webkit-text-stroke: 0.5px var(--safe-gradient-start);
     }
     
-    /* Texto del cuerpo siempre claro */
-    body, p, span, li, div {
-      color: var(--color-text, #E2E8F0);
+    /* CAPA 4: Forzar texto claro en párrafos y spans */
+    body {
+      color: var(--safe-light) !important;
     }
     
-    /* Clases de texto gris más claras */
+    p, span, li, div, a {
+      color: inherit;
+    }
+    
+    /* CAPA 5: Clases de Tailwind grises siempre claras */
+    .text-gray-200 { color: #E5E7EB !important; }
     .text-gray-300 { color: #D1D5DB !important; }
     .text-gray-400 { color: #9CA3AF !important; }
     .text-gray-500 { color: #6B7280 !important; }
     
-    /* Subheadlines siempre visibles */
-    .text-xl, .text-2xl {
-      color: #CBD5E1 !important;
+    /* CAPA 6: Subheadlines siempre visibles */
+    .text-lg { color: var(--safe-muted) !important; }
+    .text-xl { color: var(--safe-muted) !important; }
+    .text-2xl { color: var(--safe-muted) !important; }
+    .text-3xl { color: var(--safe-light) !important; }
+    
+    /* CAPA 7: Clases de colores Tailwind siempre brillantes */
+    .text-primary { color: #E879F9 !important; }
+    .text-primary-light { color: #F0ABFC !important; }
+    .text-secondary { color: #FBBF24 !important; }
+    .text-accent { color: #34D399 !important; }
+    
+    /* CAPA 8: Fix específico para texto dentro de spans con gradiente */
+    h1 span, h2 span, h3 span {
+      /* Heredar el gradiente del parent o usar color brillante */
+      color: inherit !important;
     }
     
-    /* Primary light siempre claro para subtítulos */
-    .text-primary-light {
-      color: #C4B5FD !important;
+    /* CAPA 9: Garantizar legibilidad en hover states */
+    a:hover, button:hover {
+      filter: brightness(1.1);
     }
     
-    /* ===== FIN GARANTÍA DE CONTRASTE ===== */
+    /* CAPA 10: Sombra de texto como última línea de defensa */
+    h1, h2, .hero-section h1, .hero-section h2 {
+      text-shadow: 
+        0 0 40px rgba(232, 121, 249, 0.5),
+        0 0 80px rgba(251, 191, 36, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.8);
+    }
+    
+    /* CAPA 11: Contraste mejorado para cards y sections oscuras */
+    .testimonial-card, .content-section, [class*="bg-gray"], [class*="bg-slate"] {
+      --local-text: var(--safe-light);
+    }
+    
+    .testimonial-card *, .content-section * {
+      color: var(--safe-light);
+    }
+    
+    .testimonial-card h3, .testimonial-card h4 {
+      color: var(--safe-white) !important;
+    }
+    
+    /* ============================================== */
+    /* 🛡️ FIN SISTEMA ULTRA-SEGURO DE CONTRASTE      */
+    /* ============================================== */
     
     /* Base Styles */
     body {

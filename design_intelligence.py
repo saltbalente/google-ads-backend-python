@@ -847,19 +847,35 @@ class DesignGenerator:
         secondary = random.choice(atmosphere.secondary_colors)
         accent = random.choice(atmosphere.accent_colors)
         
+        # 🛡️ COLORES ULTRA-BRILLANTES GARANTIZADOS PARA GRADIENTES DE TEXTO
+        # Estos colores SIEMPRE serán visibles en fondos oscuros
+        GRADIENT_SAFE_COLORS = {
+            "start": "#E879F9",   # Fuchsia 400 - MUY brillante
+            "mid": "#FBBF24",     # Amber 400 - Dorado vibrante
+            "end": "#34D399",     # Emerald 400 - Verde brillante
+        }
+        
         # Asegurar que primary_light sea SIEMPRE claro para gradientes de texto
-        # Usamos los colores más claros de la paleta
         primary_light = cls._ensure_light_color(atmosphere.primary_colors[0])
+        
+        # Colores seguros para gradiente basados en la atmósfera pero garantizados brillantes
+        gradient_start = cls._ensure_light_color(atmosphere.primary_colors[0])
+        gradient_mid = cls._ensure_light_color(secondary)
+        gradient_end = cls._ensure_light_color(accent)
         
         return {
             "primary": primary,
             "secondary": secondary,
             "accent": accent,
-            "primary_dark": atmosphere.primary_colors[-1],  # Más oscuro
-            "primary_light": primary_light,  # SIEMPRE claro para textos
+            "primary_dark": atmosphere.primary_colors[-1],
+            "primary_light": primary_light,
             "text": "#F8FAFC",  # Blanco casi puro
             "text_muted": "#CBD5E1",  # Gris claro (más legible)
             "text_heading": "#FFFFFF",  # Blanco puro para títulos
+            # 🛡️ Colores GARANTIZADOS brillantes para gradientes de texto
+            "gradient_text_start": gradient_start,
+            "gradient_text_mid": gradient_mid,
+            "gradient_text_end": gradient_end,
             "surface": "#1E293B",
             "background": "#0F172A",
         }
@@ -870,24 +886,38 @@ class DesignGenerator:
         Asegura que un color sea lo suficientemente claro para ser visible en fondos oscuros.
         Si el color es muy oscuro, lo aclara.
         """
-        # Colores claros predefinidos como fallback
-        light_colors = ["#C4B5FD", "#F9A8D4", "#FCD34D", "#A5F3FC", "#BEF264", "#FCA5A5"]
+        # Colores ULTRA BRILLANTES predefinidos como fallback - GARANTIZADOS visibles
+        ULTRA_BRIGHT_COLORS = [
+            "#F472B6",  # Pink 400
+            "#A78BFA",  # Violet 400
+            "#60A5FA",  # Blue 400
+            "#34D399",  # Emerald 400
+            "#FBBF24",  # Amber 400
+            "#FB923C",  # Orange 400
+            "#F87171",  # Red 400
+            "#E879F9",  # Fuchsia 400
+            "#2DD4BF",  # Teal 400
+            "#A3E635",  # Lime 400
+        ]
         
         try:
             # Convertir hex a RGB
             hex_color = color.lstrip('#')
+            if len(hex_color) != 6:
+                return random.choice(ULTRA_BRIGHT_COLORS)
+                
             r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
             
             # Calcular luminosidad (fórmula estándar)
             luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
             
-            # Si la luminosidad es baja (< 0.5), usar un color claro alternativo
-            if luminance < 0.5:
-                return random.choice(light_colors)
+            # UMBRAL MÁS ALTO: Si la luminosidad es < 0.55, usar color brillante
+            if luminance < 0.55:
+                return random.choice(ULTRA_BRIGHT_COLORS)
             return color
-        except:
-            # Si hay error, devolver un color claro seguro
-            return "#C4B5FD"
+        except Exception:
+            # Si hay cualquier error, devolver un color brillante seguro
+            return random.choice(ULTRA_BRIGHT_COLORS)
     
     @classmethod
     def _generate_gradients(cls, atmosphere: DesignAtmosphere, colors: Dict[str, str]) -> Dict[str, str]:
@@ -913,34 +943,73 @@ class DesignGenerator:
     @classmethod
     def _generate_css_variables(cls, colors: Dict[str, str], atmosphere: DesignAtmosphere) -> str:
         """Genera CSS custom properties."""
+        # Colores de gradiente garantizados brillantes
+        gradient_start = colors.get('gradient_text_start', '#E879F9')
+        gradient_mid = colors.get('gradient_text_mid', '#FBBF24')
+        gradient_end = colors.get('gradient_text_end', '#34D399')
+        
         return f"""
         :root {{
+            /* Colores base */
             --color-primary: {colors['primary']};
             --color-secondary: {colors['secondary']};
             --color-accent: {colors['accent']};
             --color-primary-dark: {colors['primary_dark']};
             --color-primary-light: {colors['primary_light']};
+            
+            /* Colores de texto - SIEMPRE claros */
             --color-text: {colors['text']};
             --color-text-heading: {colors.get('text_heading', '#FFFFFF')};
             --color-text-muted: {colors['text_muted']};
+            
+            /* Superficies */
             --color-surface: {colors['surface']};
             --color-background: {colors['background']};
+            
+            /* Efectos */
             --glow-color: {colors['primary']}66;
             --pulse-color: {colors['accent']}99;
-            --gradient-text-fallback: {colors.get('text_heading', '#FFFFFF')};
+            
+            /* 🛡️ GRADIENTE DE TEXTO SEGURO - Colores ultra-brillantes garantizados */
+            --gradient-text-start: {gradient_start};
+            --gradient-text-mid: {gradient_mid};
+            --gradient-text-end: {gradient_end};
+            --gradient-text-fallback: #FFFFFF;
+            
+            /* Fuentes */
             --font-heading: '{atmosphere.font_pairing.get("heading", "Cinzel")}', serif;
             --font-body: '{atmosphere.font_pairing.get("body", "Outfit")}', sans-serif;
+            
+            /* Animaciones */
             --animation-intensity: {1.0 if atmosphere.animation_intensity == "intense" else 0.7 if atmosphere.animation_intensity == "moderate" else 0.4};
         }}
         
-        /* Ensure headings are always visible */
+        /* 🛡️ REGLAS DE SEGURIDAD DE CONTRASTE INYECTADAS DESDE BACKEND */
+        
+        /* Títulos siempre visibles */
         h1, h2, h3, h4, h5, h6 {{
             color: var(--color-text-heading, #FFFFFF) !important;
         }}
         
-        /* Fix gradient text visibility */
-        .bg-clip-text.text-transparent {{
-            -webkit-text-fill-color: var(--gradient-text-fallback, #FFFFFF);
+        /* Gradientes de texto con colores BRILLANTES forzados */
+        .bg-clip-text.text-transparent,
+        [class*="bg-gradient"][class*="bg-clip-text"] {{
+            background-image: linear-gradient(
+                to right,
+                var(--gradient-text-start, #E879F9),
+                var(--gradient-text-mid, #FBBF24),
+                var(--gradient-text-end, #34D399)
+            ) !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            /* Sombra de respaldo para máxima visibilidad */
+            text-shadow: 0 0 40px var(--gradient-text-start);
+        }}
+        
+        /* Párrafos siempre legibles */
+        p, span, li {{
+            color: var(--color-text, #E2E8F0);
         }}
         """
     
