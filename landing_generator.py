@@ -983,29 +983,58 @@ class LandingPageGenerator:
                 
                 # The custom template is already a complete HTML, just do variable substitutions
                 html = custom_template_content
+                import re
                 
-                # Replace common placeholders with actual values
+                # Get values from config
                 whatsapp_number = config.get("whatsapp_number", "")
                 phone_number = config.get("phone_number", whatsapp_number)
                 gtm_id = config.get("gtm_id", "")
                 
-                # Replace WhatsApp URLs
+                # Replace WhatsApp URLs - multiple patterns
                 if whatsapp_number:
-                    # Clean the number for URL
+                    # Clean the number for URL (remove +, spaces, dashes)
                     clean_number = whatsapp_number.replace("+", "").replace(" ", "").replace("-", "")
-                    # Replace various WhatsApp URL patterns
-                    import re
+                    
+                    # Pattern 1: wa.me URLs
                     html = re.sub(r'href="https://wa\.me/\d+"', f'href="https://wa.me/{clean_number}"', html)
+                    html = re.sub(r"href='https://wa\.me/\d+'", f"href='https://wa.me/{clean_number}'", html)
+                    
+                    # Pattern 2: api.whatsapp.com URLs
                     html = re.sub(r'href="https://api\.whatsapp\.com/send\?phone=\d+"', f'href="https://api.whatsapp.com/send?phone={clean_number}"', html)
+                    html = re.sub(r"href='https://api\.whatsapp\.com/send\?phone=\d+'", f"href='https://api.whatsapp.com/send?phone={clean_number}'", html)
+                    
+                    # Pattern 3: Replace phone numbers in text content (formatted display)
+                    # Look for patterns like +1 803 549 8658 or +18035498658
+                    html = re.sub(r'\+1\s*\d{3}\s*\d{3}\s*\d{4}', whatsapp_number, html)
+                    html = re.sub(r'\+\d{10,15}', whatsapp_number, html)
+                    
+                    logger.info(f"📱 Replaced WhatsApp number with: {whatsapp_number}")
                 
                 # Replace phone numbers in tel: links
                 if phone_number:
-                    clean_phone = phone_number.replace("+", "").replace(" ", "").replace("-", "")
+                    # Pattern for tel: links
                     html = re.sub(r'href="tel:\+?\d+"', f'href="tel:{phone_number}"', html)
+                    html = re.sub(r"href='tel:\+?\d+'", f"href='tel:{phone_number}'", html)
+                    logger.info(f"📞 Replaced phone number with: {phone_number}")
                 
                 # Replace GTM ID
                 if gtm_id:
-                    html = re.sub(r'GTM-[A-Z0-9]+', gtm_id, html)
+                    html = re.sub(r'GTM-[A-Z0-9]{6,10}', gtm_id, html)
+                    logger.info(f"📊 Replaced GTM ID with: {gtm_id}")
+                
+                # Add tracking pixels if not present
+                if gtm_id and 'gtm.js' not in html.lower():
+                    gtm_script = f'''
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':
+    new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    }})(window,document,'script','dataLayer','{gtm_id}');</script>
+    <!-- End Google Tag Manager -->'''
+                    # Insert after <head> tag
+                    html = re.sub(r'(<head[^>]*>)', r'\1' + gtm_script, html, count=1)
+                    logger.info(f"📈 Injected GTM script for: {gtm_id}")
                 
                 return html
             
