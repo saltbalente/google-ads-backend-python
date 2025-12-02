@@ -2988,7 +2988,7 @@ class LandingPageGenerator:
             raise ValueError("gtm_id must be in format GTM-XXXXXXX")
 
         # Validate google_ads_mode
-        valid_modes = ["none", "update_only", "create_only", "auto"]
+        valid_modes = ["none", "update_only", "create_only", "auto", "demo"]
         if google_ads_mode not in valid_modes:
             raise ValueError(f"google_ads_mode must be one of: {', '.join(valid_modes)}")
 
