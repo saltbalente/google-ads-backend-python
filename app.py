@@ -457,6 +457,10 @@ def build_landing():
         optimize_images_with_ai = data.get('optimizeImagesWithAI') or data.get('optimize_images_with_ai', False)
         selected_color_palette = data.get('selectedColorPalette') or data.get('selected_color_palette', 'mystical')
         
+        # Log template selection
+        if selected_template:
+            logger.info(f"🎨 Using design template: '{selected_template}'")
+        
         # Si se proporciona un custom template, extraer el contenido para usarlo directamente
         custom_template_content = None
         if custom_template:
@@ -464,6 +468,10 @@ def build_landing():
             custom_template_content = custom_template.get('content', '')
             if template_name:
                 logger.info(f"🎨 Using custom template: '{template_name}' with {len(custom_template_content) if custom_template_content else 0} chars of content")
+        
+        # Log if neither is selected (will use auto-selection)
+        if not selected_template and not custom_template_content:
+            logger.info("🎨 No template selected, will use auto-selection based on keywords")
         
         if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
             response = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'})
