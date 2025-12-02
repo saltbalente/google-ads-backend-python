@@ -2934,7 +2934,7 @@ class LandingPageGenerator:
             logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
             return 0
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, user_videos: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical", custom_template_content: Optional[str] = None, use_dynamic_design: bool = False, layout_style: str = "auto") -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, user_videos: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical", custom_template_content: Optional[str] = None, use_dynamic_design: bool = False, layout_style: str = "auto", extra_sections: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Execute the complete landing page generation pipeline.
 
@@ -2959,8 +2959,12 @@ class LandingPageGenerator:
             custom_template_content: Optional custom template content
             use_dynamic_design: Whether to use dynamic design system
             layout_style: Forced layout style (auto, modern, impact, classic, minimal)
+            extra_sections: Optional dict with widget flags and styles
         """
         start_time = time.time()
+        
+        # Store extra sections for use in rendering
+        self.extra_sections = extra_sections or {}
 
         # Comprehensive input validation
         if not customer_id or not isinstance(customer_id, str):
@@ -3154,7 +3158,9 @@ class LandingPageGenerator:
                 "keywords": ctx.keywords,
                 "customer_id": customer_id,
                 "use_dynamic_design": use_dynamic_design,  # User can enable/disable dynamic design
-                "layout_style": layout_style  # Pass layout style preference
+                "layout_style": layout_style,  # Pass layout style preference
+                # ✨ Optional sections and widgets
+                **self.extra_sections  # Merge all widget flags and styles
             }
 
             # Step 4: Render HTML

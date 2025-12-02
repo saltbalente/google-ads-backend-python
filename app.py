@@ -517,6 +517,49 @@ def build_landing():
         use_dynamic_design = data.get('useDynamicDesign') or data.get('use_dynamic_design', False)
         layout_style = data.get('layoutStyle') or data.get('layout_style', 'auto')
         
+        # ========================================
+        # OPTIONAL WIDGETS AND SECTIONS
+        # ========================================
+        show_premium_services = data.get('showPremiumServices', False)
+        show_testimonials = data.get('showTestimonials', False)
+        show_blog = data.get('showBlog', False)
+        show_faq = data.get('showFaq', False)
+        show_conversion_booster = data.get('showConversionBooster', False)
+        show_hypnotic_texts = data.get('showHypnoticTexts', False)
+        show_whatsapp_sticky_bars = data.get('showWhatsappStickyBars', False)
+        show_vibrating_button = data.get('showVibratingButton', False)
+        show_scroll_popup = data.get('showScrollPopup', False)
+        show_live_consultations = data.get('showLiveConsultations', False)
+        show_live_questions = data.get('showLiveQuestions', False)
+        show_typing_effect = data.get('showTypingEffect', False)
+        
+        # Widget style variants
+        sticky_bars_style = data.get('stickyBarsStyle', 'whatsapp')
+        vibrating_button_style = data.get('vibratingButtonStyle', 'circular')
+        scroll_popup_style = data.get('scrollPopupStyle', 'centered')
+        live_consultations_style = data.get('liveConsultationsStyle', 'floating')
+        live_questions_style = data.get('liveQuestionsStyle', 'accordion')
+        hypnotic_texts_style = data.get('hypnoticTextsStyle', 'cards')
+        typing_effect_style = data.get('typingEffectStyle', 'bubble')
+        
+        # Log optional sections if any enabled
+        enabled_optionals = []
+        if show_premium_services: enabled_optionals.append('Premium Services')
+        if show_testimonials: enabled_optionals.append('Testimonials')
+        if show_blog: enabled_optionals.append('Blog')
+        if show_faq: enabled_optionals.append('FAQ')
+        if show_conversion_booster: enabled_optionals.append('Conversion Booster')
+        if show_hypnotic_texts: enabled_optionals.append(f'Hypnotic Texts ({hypnotic_texts_style})')
+        if show_whatsapp_sticky_bars: enabled_optionals.append(f'Sticky Bars ({sticky_bars_style})')
+        if show_vibrating_button: enabled_optionals.append(f'Vibrating Button ({vibrating_button_style})')
+        if show_scroll_popup: enabled_optionals.append(f'Scroll Popup ({scroll_popup_style})')
+        if show_live_consultations: enabled_optionals.append(f'Live Consultations ({live_consultations_style})')
+        if show_live_questions: enabled_optionals.append(f'Live Questions ({live_questions_style})')
+        if show_typing_effect: enabled_optionals.append(f'Typing Effect ({typing_effect_style})')
+        
+        if enabled_optionals:
+            logger.info(f"✨ Optional widgets enabled: {', '.join(enabled_optionals)}")
+        
         # Log template selection
         if selected_template:
             logger.info(f"🎨 Using design template: '{selected_template}'")
@@ -538,8 +581,50 @@ def build_landing():
             response = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
+        
+        # Build extra sections config
+        extra_sections = {
+            'show_premium_services': show_premium_services,
+            'show_testimonials': show_testimonials,
+            'show_blog': show_blog,
+            'show_faq': show_faq,
+            'show_conversion_booster': show_conversion_booster,
+            'show_hypnotic_texts': show_hypnotic_texts,
+            'show_whatsapp_sticky_bars': show_whatsapp_sticky_bars,
+            'show_vibrating_button': show_vibrating_button,
+            'show_scroll_popup': show_scroll_popup,
+            'show_live_consultations': show_live_consultations,
+            'show_live_questions': show_live_questions,
+            'show_typing_effect': show_typing_effect,
+            # Styles
+            'sticky_bars_style': sticky_bars_style,
+            'vibrating_button_style': vibrating_button_style,
+            'scroll_popup_style': scroll_popup_style,
+            'live_consultations_style': live_consultations_style,
+            'live_questions_style': live_questions_style,
+            'hypnotic_texts_style': hypnotic_texts_style,
+            'typing_effect_style': typing_effect_style,
+        }
+        
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
-        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, user_videos=user_videos, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette, custom_template_content=custom_template_content, use_dynamic_design=use_dynamic_design, layout_style=layout_style)
+        out = gen.run(
+            customer_id, 
+            ad_group_id, 
+            whatsapp_number, 
+            gtm_id, 
+            phone_number=phone_number, 
+            webhook_url=webhook_url, 
+            selected_template=selected_template, 
+            user_images=user_images, 
+            user_videos=user_videos, 
+            paragraph_template=paragraph_template, 
+            optimize_images_with_ai=optimize_images_with_ai, 
+            selected_color_palette=selected_color_palette, 
+            custom_template_content=custom_template_content, 
+            use_dynamic_design=use_dynamic_design, 
+            layout_style=layout_style,
+            extra_sections=extra_sections
+        )
         
         landing_queue.release()  # Release queue slot on success
         
