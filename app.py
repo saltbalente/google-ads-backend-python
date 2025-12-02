@@ -2605,6 +2605,40 @@ def delete_custom_template(template_id):
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
+def get_template_from_github(template_id):
+    """Intenta obtener un template directamente de GitHub si no existe localmente"""
+    github_owner = os.getenv("GITHUB_REPO_OWNER")
+    github_repo = os.getenv("GITHUB_REPO_NAME", "monorepo-landings")
+    github_token = os.getenv("GITHUB_TOKEN")
+    
+    if not all([github_owner, github_token]):
+        return None
+        
+    headers = {"Authorization": f"token {github_token}"}
+    
+    # Intentar obtener index.html de la carpeta del template
+    url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{template_id}/index.html"
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        file_info = response.json()
+        content_resp = requests.get(file_info['download_url'])
+        
+        if content_resp.status_code == 200:
+            content = content_resp.text
+            
+            # Construir objeto template similar al local
+            return {
+                'name': template_id.replace('-', ' ').title(),
+                'filename': f"{template_id}.html",
+                'baseFilename': template_id,
+                'content': content,
+                'businessType': 'General', # Default
+                'targetAudience': 'General', # Default
+                'source': 'github'
+            }
+    return None
+
 @app.route('/api/custom-templates/<template_id>', methods=['PUT', 'OPTIONS'])
 def update_custom_template(template_id):
     """
@@ -2642,10 +2676,15 @@ def update_custom_template(template_id):
         if create_new_version:
             # Crear nueva versión como un template nuevo
             original = custom_template_manager.get_template_by_id(template_id)
+            
+            # Si no está local, buscar en GitHub
+            if not original:
+                original = get_template_from_github(template_id)
+            
             if not original:
                 response = jsonify({
                     'success': False,
-                    'error': f'Template original {template_id} no encontrado'
+                    'error': f'Template original {template_id} no encontrado en local ni en GitHub'
                 })
                 response.headers.add('Access-Control-Allow-Origin', '*')
                 return response, 404
