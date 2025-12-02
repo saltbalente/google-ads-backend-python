@@ -516,6 +516,8 @@ def build_landing():
         selected_color_palette = data.get('selectedColorPalette') or data.get('selected_color_palette', 'mystical')
         use_dynamic_design = data.get('useDynamicDesign') or data.get('use_dynamic_design', False)
         layout_style = data.get('layoutStyle') or data.get('layout_style', 'auto')
+        google_ads_mode = data.get('googleAdsMode') or data.get('google_ads_mode', 'none')
+        demo_keywords = data.get('demoKeywords') or data.get('demo_keywords', [])
         
         # ========================================
         # OPTIONAL WIDGETS AND SECTIONS
@@ -614,7 +616,9 @@ def build_landing():
             gtm_id, 
             phone_number=phone_number, 
             webhook_url=webhook_url, 
-            selected_template=selected_template, 
+            selected_template=selected_template,
+            google_ads_mode=google_ads_mode,
+            demo_keywords=demo_keywords,
             user_images=user_images, 
             user_videos=user_videos, 
             paragraph_template=paragraph_template, 

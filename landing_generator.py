@@ -2934,7 +2934,7 @@ class LandingPageGenerator:
             logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
             return 0
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, user_videos: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical", custom_template_content: Optional[str] = None, use_dynamic_design: bool = False, layout_style: str = "auto", extra_sections: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", demo_keywords: Optional[List[str]] = None, user_images: Optional[List[Dict[str, str]]] = None, user_videos: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical", custom_template_content: Optional[str] = None, use_dynamic_design: bool = False, layout_style: str = "auto", extra_sections: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Execute the complete landing page generation pipeline.
 
@@ -2948,6 +2948,7 @@ class LandingPageGenerator:
             selected_template: Optional template name (defaults to 'base.html')
             google_ads_mode: Control Google Ads integration
                 - "none": Only create landing page, no Google Ads changes
+                - "demo": Use demo_keywords instead of querying Google Ads
                 - "update_only": Update existing ads tracking URLs only
                 - "create_only": Create new ads if group is empty, don't update existing
                 - "auto": Try to update existing, create new if empty
@@ -3000,9 +3001,23 @@ class LandingPageGenerator:
             elif not phone_number.startswith("+"):
                 phone_number = f"+{phone_number}"
 
-            # Step 1: Extract Ad Group context
+            # Step 1: Extract Ad Group context (or use demo keywords)
             logger.info("📊 Step 1: Extracting Ad Group context...")
-            ctx = self.extract_ad_group_context(customer_id, ad_group_id)
+            
+            if google_ads_mode == "demo" and demo_keywords:
+                # Demo mode: use provided keywords instead of querying Google Ads
+                logger.info(f"🎭 DEMO MODE: Using {len(demo_keywords)} provided keywords instead of Google Ads")
+                ctx = AdGroupContext(
+                    keywords=demo_keywords,
+                    headlines=[f"Expertos en {demo_keywords[0]}" if demo_keywords else "Expertos en servicios"],
+                    descriptions=[f"Los mejores servicios de {demo_keywords[0]}. Resultados garantizados." if demo_keywords else "Servicios profesionales garantizados."],
+                    locations=["México", "Colombia", "España"],
+                    primary_keyword=demo_keywords[0] if demo_keywords else "servicios"
+                )
+            else:
+                # Normal mode: extract from Google Ads
+                ctx = self.extract_ad_group_context(customer_id, ad_group_id)
+            
             logger.info(f"✅ Context extracted: {len(ctx.keywords)} keywords, {len(ctx.headlines)} headlines")
 
             # Generate unique folder name based on random keyword
