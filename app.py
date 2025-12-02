@@ -484,6 +484,7 @@ def build_landing():
         paragraph_template = data.get('paragraphTemplate') or data.get('paragraph_template')
         optimize_images_with_ai = data.get('optimizeImagesWithAI') or data.get('optimize_images_with_ai', False)
         selected_color_palette = data.get('selectedColorPalette') or data.get('selected_color_palette', 'mystical')
+        use_dynamic_design = data.get('useDynamicDesign') or data.get('use_dynamic_design', False)
         
         # Log template selection
         if selected_template:
@@ -507,10 +508,24 @@ def build_landing():
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
-        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, user_videos=user_videos, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette, custom_template_content=custom_template_content)
+        out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, user_videos=user_videos, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette, custom_template_content=custom_template_content, use_dynamic_design=use_dynamic_design)
         
         landing_queue.release()  # Release queue slot on success
-        response = jsonify({'success': True, 'url': out['url'], 'alias': out['alias'], 'quality': out.get('quality', {})})
+        
+        # Build response with design intelligence if available
+        response_data = {
+            'success': True, 
+            'url': out['url'], 
+            'alias': out['alias'], 
+            'quality': out.get('quality', {})
+        }
+        
+        # Add design intelligence if available
+        if 'design_intelligence' in out:
+            response_data['design_intelligence'] = out['design_intelligence']
+            logger.info(f"✨ Design Intelligence included: {out['design_intelligence'].get('category', 'unknown')}")
+        
+        response = jsonify(response_data)
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 200
     except Exception as e:

@@ -238,6 +238,9 @@ class LandingPageGenerator:
         self.max_retries = max(1, max_retries)
         self.request_timeout = max(10, request_timeout)
         self.health_check_timeout = max(5, health_check_timeout)
+        
+        # Store last generated design for retrieval
+        self.last_generated_design = None
 
         logger.info(f"LandingPageGenerator initialized successfully with model: {self.openai_model}")
 
@@ -1161,6 +1164,9 @@ class LandingPageGenerator:
             logger.info(f"   🎯 Confianza: {design['category_confidence']:.2%}")
             logger.info(f"   💫 Hero Icon: {design['hero_icon']}")
             logger.info(f"   🌈 Color primario: {design['colors']['primary']}")
+            
+            # Store design for later retrieval
+            self.last_generated_design = design
             
             # Step 2: Load and render the dynamic_ai template
             tpl = self.env.get_template("dynamic_ai.html")
@@ -2683,7 +2689,7 @@ class LandingPageGenerator:
             logger.warning(f"Could not get existing ads count for ad group {ad_group_id}: {str(e)}")
             return 0
 
-    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, user_videos: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical", custom_template_content: Optional[str] = None) -> Dict[str, Any]:
+    def run(self, customer_id: str, ad_group_id: str, whatsapp_number: str, gtm_id: str, phone_number: Optional[str] = None, webhook_url: Optional[str] = None, selected_template: Optional[str] = None, google_ads_mode: str = "none", user_images: Optional[List[Dict[str, str]]] = None, user_videos: Optional[List[Dict[str, str]]] = None, paragraph_template: Optional[str] = None, optimize_images_with_ai: bool = False, selected_color_palette: str = "mystical", custom_template_content: Optional[str] = None, use_dynamic_design: bool = False) -> Dict[str, Any]:
         """
         Execute the complete landing page generation pipeline.
 
@@ -2898,7 +2904,7 @@ class LandingPageGenerator:
                 # 🔮 Dynamic Design System - Pass keywords for intelligent design generation
                 "keywords": ctx.keywords,
                 "customer_id": customer_id,
-                "use_dynamic_design": True  # Enable by default for amazing varied designs!
+                "use_dynamic_design": use_dynamic_design  # User can enable/disable dynamic design
             }
 
             # Step 4: Render HTML
@@ -3029,6 +3035,11 @@ class LandingPageGenerator:
                 "google_ads_result": google_ads_result,
                 "quality": quality_data  # Include quality report
             }
+            
+            # Add design intelligence if it was generated
+            if use_dynamic_design and self.last_generated_design:
+                result["design_intelligence"] = self.last_generated_design
+                logger.info(f"✨ Design intelligence included in result")
 
             logger.info(f"🎉 Landing page generation completed successfully in {execution_time:.2f}s")
             logger.info(f"📍 Final URL: {final_url}")
