@@ -778,18 +778,19 @@ def health():
 @app.route('/api/ai/health', methods=['GET'])
 def ai_health():
     """Endpoint de salud para proveedores de IA y funcionalidades P0+P1"""
-    openai_ok = bool(os.environ.get('OPENAI_API_KEY'))
-    gemini_ok = bool(os.environ.get('GOOGLE_API_KEY'))
-    openrouter_ok = bool(os.environ.get('OPEN_ROUTER_API_KEY') or os.environ.get('OPENROUTER_API_KEY'))
-    deepseek_ok = bool(os.environ.get('DEEPSEEK_API_KEY'))
+    import sys
+    import os as os_module
+    
+    openai_ok = bool(os_module.environ.get('OPENAI_API_KEY'))
+    gemini_ok = bool(os_module.environ.get('GOOGLE_API_KEY'))
+    openrouter_ok = bool(os_module.environ.get('OPEN_ROUTER_API_KEY') or os_module.environ.get('OPENROUTER_API_KEY'))
+    deepseek_ok = bool(os_module.environ.get('DEEPSEEK_API_KEY'))
     
     # Verificar funcionalidades P0+P1
-    import sys
     has_beautifulsoup = 'bs4' in sys.modules or True  # Siempre debería estar
     
     # Verificar directorios de versionado
-    import os
-    versions_dir = os.path.exists('templates/versions')
+    versions_dir = os_module.path.exists('templates/versions')
     
     return jsonify({
         "status": "ok",
@@ -811,7 +812,7 @@ def ai_health():
             },
             "openai": {
                 "configured": openai_ok, 
-                "model": os.environ.get('OPENAI_MODEL', 'gpt-4o-mini'),
+                "model": os_module.environ.get('OPENAI_MODEL', 'gpt-4o-mini'),
                 "priority": 2,
                 "features": ["retry", "backoff", "markdown_cleanup"]
             },
@@ -828,7 +829,7 @@ def ai_health():
             },
             "deepseek": {
                 "configured": deepseek_ok, 
-                "model": os.environ.get('DEEPSEEK_MODEL', 'deepseek-chat'),
+                "model": os_module.environ.get('DEEPSEEK_MODEL', 'deepseek-chat'),
                 "priority": 5
             }
         },
@@ -851,6 +852,7 @@ def system_status():
         from retry_handler import get_all_circuit_breaker_stats
         from datetime import datetime
         import psutil
+        import time as time_module
         
         # Circuit breaker stats
         circuit_breaker_stats = get_all_circuit_breaker_stats()
@@ -863,7 +865,7 @@ def system_status():
             "status": "operational",
             "timestamp": datetime.utcnow().isoformat(),
             "version": "3.1.0-enterprise",
-            "uptime_seconds": time.time() - getattr(app, '_start_time', time.time()),
+            "uptime_seconds": time_module.time() - getattr(app, '_start_time', time_module.time()),
             "system": {
                 "memory_mb": round(memory_info.rss / 1024 / 1024, 2),
                 "cpu_percent": process.cpu_percent(),
