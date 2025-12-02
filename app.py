@@ -2472,14 +2472,38 @@ def handle_custom_template_by_id(template_id):
 
     elif request.method == 'DELETE':
         try:
-            result = custom_template_manager.delete_template(template_id)
+            # 1. Intentar eliminar de CustomTemplateManager (Local)
+            local_result = custom_template_manager.delete_template(template_id)
             
-            if result['success']:
-                response = jsonify(result)
+            # 2. Intentar eliminar de GitHub (Monorepo)
+            # Usamos la función delete_landing_from_github que ya maneja la lógica de borrado recursivo
+            github_deleted = False
+            github_error = None
+            
+            try:
+                # delete_landing_from_github devuelve True si tuvo éxito o si no había nada que borrar
+                github_deleted = delete_landing_from_github(template_id)
+            except Exception as e:
+                logger.error(f"Error deleting from GitHub: {e}")
+                github_error = str(e)
+            
+            # Si se eliminó de alguno de los dos lados, consideramos éxito
+            if local_result['success'] or github_deleted:
+                response = jsonify({
+                    "success": True,
+                    "message": f"Template eliminado. Local: {local_result['success']}, GitHub: {github_deleted}",
+                    "details": {
+                        "local": local_result,
+                        "github_error": github_error
+                    }
+                })
                 response.headers.add('Access-Control-Allow-Origin', '*')
                 return response, 200
             else:
-                response = jsonify(result)
+                response = jsonify({
+                    "success": False,
+                    "message": "Template no encontrado en local ni en GitHub"
+                })
                 response.headers.add('Access-Control-Allow-Origin', '*')
                 return response, 404
                 
