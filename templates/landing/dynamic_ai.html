@@ -268,7 +268,7 @@ Generated: {{ design.timestamp }}
   <!-- ========================================== -->
   <!-- HERO SECTION - Fully Dynamic -->
   <!-- ========================================== -->
-  <section class="hero-section relative">
+  <section class="hero-section relative" {% if user_image_hero_bg %}style="background-image: url('{{ user_image_hero_bg }}'); background-size: cover; background-position: center;"{% endif %}>
     <!-- Particles -->
     <div class="particles-container">
       {% for icon in design.icons %}
@@ -303,8 +303,18 @@ Generated: {{ design.timestamp }}
           </div>
         </div>
         <div class="hidden lg:flex justify-center items-center relative">
-           <div class="absolute w-full aspect-square max-w-md bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-3xl animate-pulse-custom"></div>
-           <div class="relative text-[12rem] animate-float">{{ design.hero_icon }}</div>
+           {% if user_videos and user_videos[0].url %}
+             <div class="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+               <video src="{{ user_videos[0].url }}" autoplay muted loop playsinline class="w-full h-auto"></video>
+             </div>
+           {% elif top_image %}
+             <div class="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+               <img src="{{ top_image }}" alt="{{ headline }}" class="w-full h-auto object-cover" />
+             </div>
+           {% else %}
+             <div class="absolute w-full aspect-square max-w-md bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-3xl animate-pulse-custom"></div>
+             <div class="relative text-[12rem] animate-float">{{ design.hero_icon }}</div>
+           {% endif %}
         </div>
       </div>
 
@@ -312,8 +322,18 @@ Generated: {{ design.timestamp }}
       <!-- SPLIT RIGHT LAYOUT -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center text-left">
         <div class="hidden lg:flex justify-center items-center relative order-2 lg:order-1">
-           <div class="absolute w-full aspect-square max-w-md bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-3xl animate-pulse-custom"></div>
-           <div class="relative text-[12rem] animate-float">{{ design.hero_icon }}</div>
+           {% if user_videos and user_videos[0].url %}
+             <div class="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+               <video src="{{ user_videos[0].url }}" autoplay muted loop playsinline class="w-full h-auto"></video>
+             </div>
+           {% elif top_image %}
+             <div class="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+               <img src="{{ top_image }}" alt="{{ headline }}" class="w-full h-auto object-cover" />
+             </div>
+           {% else %}
+             <div class="absolute w-full aspect-square max-w-md bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-3xl animate-pulse-custom"></div>
+             <div class="relative text-[12rem] animate-float">{{ design.hero_icon }}</div>
+           {% endif %}
         </div>
         <div class="order-1 lg:order-2">
           <div class="hero-icon mb-6 text-left text-6xl">{{ design.hero_icon }}</div>
@@ -339,7 +359,19 @@ Generated: {{ design.timestamp }}
       <div class="flex justify-center items-center min-h-[60vh]">
         <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-8 md:p-12 rounded-3xl shadow-2xl max-w-4xl text-center relative overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none"></div>
-          <div class="hero-icon mb-6 text-6xl inline-block">{{ design.hero_icon }}</div>
+          
+          {% if user_videos and user_videos[0].url %}
+             <div class="mb-8 rounded-xl overflow-hidden shadow-lg border border-white/10 mx-auto max-w-lg">
+               <video src="{{ user_videos[0].url }}" autoplay muted loop playsinline class="w-full h-auto"></video>
+             </div>
+          {% elif top_image %}
+             <div class="mb-8 rounded-xl overflow-hidden shadow-lg border border-white/10 mx-auto max-w-lg">
+               <img src="{{ top_image }}" alt="{{ headline }}" class="w-full h-auto object-cover" />
+             </div>
+          {% else %}
+             <div class="hero-icon mb-6 text-6xl inline-block">{{ design.hero_icon }}</div>
+          {% endif %}
+
           <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight relative z-10">
             <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
               {{ headline }}
@@ -358,9 +390,20 @@ Generated: {{ design.timestamp }}
       {% else %}
       <!-- DEFAULT CENTERED LAYOUT -->
       <div class="max-w-4xl mx-auto text-center">
-        <div class="hero-icon mb-6">
-          {{ design.hero_icon }}
-        </div>
+        {% if user_videos and user_videos[0].url %}
+           <div class="mb-8 rounded-2xl overflow-hidden shadow-2xl border border-white/10 mx-auto max-w-2xl">
+             <video src="{{ user_videos[0].url }}" autoplay muted loop playsinline class="w-full h-auto"></video>
+           </div>
+        {% elif top_image %}
+           <div class="mb-8 rounded-2xl overflow-hidden shadow-2xl border border-white/10 mx-auto max-w-2xl">
+             <img src="{{ top_image }}" alt="{{ headline }}" class="w-full h-auto object-cover" />
+           </div>
+        {% else %}
+           <div class="hero-icon mb-6">
+             {{ design.hero_icon }}
+           </div>
+        {% endif %}
+        
         <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
           <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
             {{ headline }}
@@ -401,11 +444,13 @@ Generated: {{ design.timestamp }}
   <section class="content-section">
     <div class="max-w-4xl mx-auto">
       
-      {% if design.layout and design.layout.content_style == 'split_image_text' and top_image %}
+      {% set content_image = user_image_middle or top_image %}
+      
+      {% if design.layout and design.layout.content_style == 'split_image_text' and content_image %}
       <!-- SPLIT CONTENT LAYOUT -->
       <div class="grid md:grid-cols-2 gap-12 items-center mb-16">
         <div class="image-container glow-border reveal h-full min-h-[300px]">
-          <img src="{{ top_image }}" alt="{{ headline }}" loading="lazy" class="w-full h-full object-cover" />
+          <img src="{{ content_image }}" alt="{{ headline }}" loading="lazy" class="w-full h-full object-cover" />
         </div>
         <div class="prose prose-invert prose-lg reveal">
           <div class="text-gray-300 leading-relaxed space-y-6">
@@ -416,9 +461,9 @@ Generated: {{ design.timestamp }}
       {% else %}
       <!-- DEFAULT SINGLE COLUMN LAYOUT -->
       <!-- Primary Image -->
-      {% if top_image %}
+      {% if content_image %}
       <div class="image-container mb-12 glow-border reveal">
-        <img src="{{ top_image }}" alt="{{ headline }}" loading="lazy" />
+        <img src="{{ content_image }}" alt="{{ headline }}" loading="lazy" />
       </div>
       {% endif %}
       
@@ -430,6 +475,13 @@ Generated: {{ design.timestamp }}
       </div>
       {% endif %}
       
+      <!-- Benefits Image -->
+      {% if user_image_benefits %}
+      <div class="image-container my-12 glow-border reveal max-w-2xl mx-auto">
+        <img src="{{ user_image_benefits }}" alt="Beneficios" loading="lazy" />
+      </div>
+      {% endif %}
+
       <!-- Feature Cards Grid -->
       {% if design.layout and design.layout.features_style == 'grid_3' %}
       <!-- GRID 3 LAYOUT -->
@@ -515,10 +567,10 @@ Generated: {{ design.timestamp }}
       </div>
       {% endif %}
       
-      <!-- Middle Image -->
-      {% if middle_image %}
+      <!-- Promo Image -->
+      {% if user_image_promo %}
       <div class="image-container my-12 glow-border reveal">
-        <img src="{{ middle_image }}" alt="{{ headline }}" loading="lazy" />
+        <img src="{{ user_image_promo }}" alt="Promoción Especial" loading="lazy" />
       </div>
       {% endif %}
       
@@ -530,8 +582,15 @@ Generated: {{ design.timestamp }}
       </div>
       
       <!-- Mid-Section CTA -->
-      <div class="text-center my-12 reveal">
-        <a href="https://wa.me/{{ whatsapp }}" class="cta-button">
+      <div class="text-center my-12 reveal relative p-8 rounded-3xl overflow-hidden">
+        {% if user_image_cta1 %}
+        <div class="absolute inset-0 opacity-30">
+            <img src="{{ user_image_cta1 }}" class="w-full h-full object-cover" />
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+        {% endif %}
+        
+        <a href="https://wa.me/{{ whatsapp }}" class="cta-button relative z-10">
           <span>{{ design.hero_icon }}</span>
           <span>Consulta Gratis</span>
         </a>
@@ -574,12 +633,23 @@ Generated: {{ design.timestamp }}
     </div>
   </section>
 
+  <!-- Bottom Image -->
+  {% if user_image_bottom %}
+  <section class="py-8 px-4">
+    <div class="max-w-4xl mx-auto image-container glow-border reveal">
+      <img src="{{ user_image_bottom }}" alt="Imagen Final" loading="lazy" />
+    </div>
+  </section>
+  {% endif %}
+
   <!-- ========================================== -->
   <!-- FINAL CTA SECTION -->
   <!-- ========================================== -->
-  <section class="py-20 px-4 text-center relative overflow-hidden">
+  <section class="py-20 px-4 text-center relative overflow-hidden" {% if user_image_cta2 %}style="background-image: url('{{ user_image_cta2 }}'); background-size: cover; background-position: center;"{% endif %}>
     <!-- Animated Background -->
+    {% if not user_image_cta2 %}
     <div class="absolute inset-0" style="{{ design.section_styles.hero }}"></div>
+    {% endif %}
     <div class="hero-overlay"></div>
     
     <div class="relative z-10 max-w-3xl mx-auto reveal">

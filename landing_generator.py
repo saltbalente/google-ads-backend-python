@@ -1180,6 +1180,7 @@ class LandingPageGenerator:
             # Step 3: Prepare template context
             # Process user images
             user_images = config.get("user_images", [])
+            user_videos = config.get("user_videos", [])
             img_context = {}
             top_image = None
             middle_image = None
@@ -1250,6 +1251,7 @@ class LandingPageGenerator:
                 top_image=top_image,
                 middle_image=middle_image,
                 user_images=user_images,
+                user_videos=user_videos,
                 **img_context,
             )
             
