@@ -1169,7 +1169,7 @@ class LandingPageGenerator:
             if additional_ctas:
                 random.shuffle(additional_ctas)
 
-            return tpl.render(
+            html = tpl.render(
                 headline_h1=gen.headline_h1,
                 subheadline=gen.subheadline,
                 cta_text=gen.cta_text,
@@ -1194,6 +1194,11 @@ class LandingPageGenerator:
                 **img_context,
                 **video_context
             )
+            
+            # Inject widgets if enabled (works on ANY template)
+            html = self._inject_widgets_if_enabled(html, config)
+            
+            return html
         except Exception as e:
             raise RuntimeError(f"Template rendering failed: {str(e)}")
 
@@ -1698,6 +1703,99 @@ class LandingPageGenerator:
             html = html.replace('<head>', '<head>\n  <meta charset="utf-8">', 1)
         
         logger.info("✅ Custom template processing complete")
+        
+        # ========== 9. INJECT WIDGETS IF ENABLED ==========
+        # Los widgets se inyectan en CUALQUIER template (custom, normal, o dinámico)
+        html = self._inject_widgets_if_enabled(html, config)
+        
+        return html
+
+    def _inject_widgets_if_enabled(self, html: str, config: Dict[str, Any]) -> str:
+        """
+        🔌 INYECCIÓN DE WIDGETS EN CUALQUIER TEMPLATE
+        =============================================
+        
+        Este método inyecta widgets de conversión (sticky bars, botones vibrantes,
+        popups, etc.) en cualquier HTML, sin importar qué template se use.
+        
+        Los widgets se agregan:
+        - CSS: antes de </head>
+        - HTML: antes de </body>
+        - JS: antes de </body>
+        
+        Args:
+            html: HTML del template renderizado
+            config: Configuración con flags de widgets (show_*, *_style)
+            
+        Returns:
+            HTML con widgets inyectados
+        """
+        # Check if any widget is enabled
+        widget_flags = [
+            'show_whatsapp_sticky_bars', 'show_sticky_bars',
+            'show_vibrating_button',
+            'show_scroll_popup',
+            'show_live_consultations',
+            'show_live_questions',
+            'show_hypnotic_texts',
+            'show_typing_effect'
+        ]
+        
+        any_widget_enabled = any(config.get(flag, False) for flag in widget_flags)
+        
+        if not any_widget_enabled:
+            return html  # No widgets enabled, return as-is
+        
+        logger.info("🔌 Injecting widgets into template...")
+        
+        try:
+            from widgets_injector import inject_widgets
+            
+            # Prepare widget config from landing config
+            widget_config = {
+                'whatsapp_number': config.get('whatsapp_number', ''),
+                'phone_number': config.get('phone_number', config.get('whatsapp_number', '')),
+                'primary_color': config.get('primary_color', '#8B5CF6'),
+                'secondary_color': config.get('secondary_color', '#6B46C1'),
+                
+                # Widget toggles (map both naming conventions)
+                'show_sticky_bars': config.get('show_whatsapp_sticky_bars', False) or config.get('show_sticky_bars', False),
+                'show_vibrating_button': config.get('show_vibrating_button', False),
+                'show_scroll_popup': config.get('show_scroll_popup', False),
+                'show_live_consultations': config.get('show_live_consultations', False),
+                'show_live_questions': config.get('show_live_questions', False),
+                'show_hypnotic_texts': config.get('show_hypnotic_texts', False),
+                'show_typing_effect': config.get('show_typing_effect', False),
+                
+                # Widget styles
+                'sticky_bars_style': config.get('sticky_bars_style', 'whatsapp'),
+                'vibrating_button_style': config.get('vibrating_button_style', 'circular'),
+                'scroll_popup_style': config.get('scroll_popup_style', 'centered'),
+                'live_consultations_style': config.get('live_consultations_style', 'floating'),
+                'live_questions_style': config.get('live_questions_style', 'accordion'),
+                'hypnotic_texts_style': config.get('hypnotic_texts_style', 'cards'),
+                'typing_effect_style': config.get('typing_effect_style', 'bubble'),
+                
+                # Content (use generated content if available)
+                'sticky_bar_text': config.get('sticky_bar_text', '💬 ¡Consulta GRATIS ahora mismo!'),
+                'popup_title': config.get('popup_title', '¡Espera! ¿Te vas sin tu consulta gratis?'),
+                'popup_message': config.get('popup_message', 'Un experto está disponible ahora mismo'),
+                'live_questions': config.get('live_questions', []),
+                'hypnotic_messages': config.get('hypnotic_messages', []),
+                'typing_messages': config.get('typing_messages', []),
+            }
+            
+            # Inject widgets
+            html = inject_widgets(html, widget_config)
+            
+            enabled_widgets = [k.replace('show_', '') for k, v in widget_config.items() if k.startswith('show_') and v]
+            logger.info(f"✅ Widgets injected: {', '.join(enabled_widgets)}")
+            
+        except ImportError as e:
+            logger.warning(f"⚠️ widgets_injector not available: {e}")
+        except Exception as e:
+            logger.error(f"❌ Error injecting widgets: {e}")
+        
         return html
 
     def get_available_templates(self) -> List[str]:
