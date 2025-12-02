@@ -2430,35 +2430,67 @@ def get_custom_templates():
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
-@app.route('/api/custom-templates/<template_id>', methods=['GET'])
-def get_custom_template_by_id(template_id):
-    """Obtiene un template personalizado por ID"""
-    try:
-        template = custom_template_manager.get_template_by_id(template_id)
-        
-        if template:
-            response = jsonify({
-                'success': True,
-                'template': template
-            })
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 200
-        else:
+@app.route('/api/custom-templates/<template_id>', methods=['GET', 'DELETE', 'OPTIONS'])
+def handle_custom_template_by_id(template_id):
+    """Maneja operaciones sobre un template específico (GET, DELETE)"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, DELETE, OPTIONS')
+        return response
+
+    if request.method == 'GET':
+        try:
+            template = custom_template_manager.get_template_by_id(template_id)
+            
+            if template:
+                response = jsonify({
+                    'success': True,
+                    'template': template
+                })
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 200
+            else:
+                response = jsonify({
+                    'success': False,
+                    'error': 'Template no encontrado'
+                })
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 404
+                
+        except Exception as e:
+            logger.error(f"Error getting custom template: {str(e)}")
             response = jsonify({
                 'success': False,
-                'error': 'Template no encontrado'
+                'error': f'Error al obtener template: {str(e)}'
             })
             response.headers.add('Access-Control-Allow-Origin', '*')
-            return response, 404
+            return response, 500
+
+    elif request.method == 'DELETE':
+        try:
+            result = custom_template_manager.delete_template(template_id)
             
-    except Exception as e:
-        logger.error(f"Error getting custom template: {str(e)}")
-        response = jsonify({
-            'success': False,
-            'error': f'Error al obtener template: {str(e)}'
-        })
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        return response, 500
+            if result['success']:
+                response = jsonify(result)
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 200
+            else:
+                response = jsonify(result)
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return response, 404
+                
+        except Exception as e:
+            logger.error(f"Error deleting custom template: {str(e)}")
+            response = jsonify({
+                'success': False,
+                'error': f'Error al eliminar template: {str(e)}'
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 500
 
 @app.route('/api/custom-templates/search', methods=['POST', 'OPTIONS'])
 def search_custom_templates_by_keywords():
