@@ -459,7 +459,7 @@ Generated: 2023-10-27
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         
         <div class="bg-surface border border-primary/20 rounded-2xl p-8 hover:border-primary/50 transition-all duration-300 reveal hover:-translate-y-2 shadow-lg shadow-primary/5">
-          <div class="text-4xl mb-4">🕯️</div>
+          <div class="text-4xl mb-4">🧿</div>
           <h3 class="text-xl font-bold text-primary-light mb-3">Lectura de Tarot Premium</h3>
           <p class="text-gray-300 mb-6 leading-relaxed">Lectura profunda de 1 hora.</p>
           <a href="https://wa.me/1234567890?text=Hola%2C%20quiero%20la%20lectura%20premium" class="cta-button w-full text-sm py-3 justify-center">
@@ -468,7 +468,7 @@ Generated: 2023-10-27
         </div>
         
         <div class="bg-surface border border-primary/20 rounded-2xl p-8 hover:border-primary/50 transition-all duration-300 reveal hover:-translate-y-2 shadow-lg shadow-primary/5">
-          <div class="text-4xl mb-4">✨</div>
+          <div class="text-4xl mb-4">🧿</div>
           <h3 class="text-xl font-bold text-primary-light mb-3">Limpieza Energética</h3>
           <p class="text-gray-300 mb-6 leading-relaxed">Limpieza total de aura.</p>
           <a href="https://wa.me/1234567890?text=Hola%2C%20quiero%20la%20limpieza" class="cta-button w-full text-sm py-3 justify-center">
@@ -1310,19 +1310,18 @@ Generated: 2023-10-27
   <!-- 📱 WHATSAPP STICKY BARS (TOP + BOTTOM) -->
   <!-- ========================================== -->
   <style>
+    /* Base styles */
     .wa-sticky-top {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       z-index: 9999;
-      background: linear-gradient(90deg, #25D366, #128C7E);
       padding: 10px 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 12px;
-      box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3);
     }
     
     .wa-sticky-bottom {
@@ -1331,14 +1330,35 @@ Generated: 2023-10-27
       left: 0;
       right: 0;
       z-index: 9999;
-      background: linear-gradient(90deg, #128C7E, #25D366);
       padding: 12px 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 12px;
+    }
+    
+    /* Style Variant: WhatsApp (default) */
+    
+    .wa-sticky-top {
+      background: linear-gradient(90deg, #25D366, #128C7E);
+      box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3);
+    }
+    .wa-sticky-bottom {
+      background: linear-gradient(90deg, #128C7E, #25D366);
       box-shadow: 0 -4px 20px rgba(37, 211, 102, 0.3);
     }
+    .wa-sticky-btn { background: white; color: #128C7E; }
+    .wa-sticky-status .dot { background: #90EE90; }
+    
+    
+    /* Style Variant: Mystic (purple gradient) */
+    
+    
+    /* Style Variant: Elegant (black/gold) */
+    
+    
+    /* Style Variant: Urgent (red) */
+    
     
     .wa-sticky-text {
       color: white;
@@ -1362,7 +1382,6 @@ Generated: 2023-10-27
     .wa-sticky-status .dot {
       width: 8px;
       height: 8px;
-      background: #90EE90;
       border-radius: 50%;
       animation: pulse-dot 1.5s ease-in-out infinite;
     }
@@ -1373,8 +1392,6 @@ Generated: 2023-10-27
     }
     
     .wa-sticky-btn {
-      background: white;
-      color: #128C7E;
       padding: 8px 20px;
       border-radius: 25px;
       font-weight: 700;
@@ -1474,22 +1491,28 @@ Generated: 2023-10-27
   <!-- 💫 VIBRATING COLOR-CHANGING BUTTON -->
   <!-- ========================================== -->
   <style>
+    /* Base vibrating button styles */
     .vibrating-wa-btn {
       position: fixed;
       bottom: 90px;
       right: 24px;
       z-index: 9998;
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       transition: all 0.5s ease;
-      animation: vibrate 0.3s ease-in-out infinite, colorCycle 24s linear infinite;
+      text-decoration: none;
     }
     
+    /* Style Variant: Circular (default) */
+    
+    .vibrating-wa-btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      animation: vibrate 0.3s ease-in-out infinite, colorCycle 24s linear infinite;
+    }
     .vibrating-wa-btn::before {
       content: '';
       position: absolute;
@@ -1499,7 +1522,6 @@ Generated: 2023-10-27
       opacity: 0.4;
       animation: aura-pulse 2s ease-in-out infinite;
     }
-    
     .vibrating-wa-btn::after {
       content: '';
       position: absolute;
@@ -1509,10 +1531,20 @@ Generated: 2023-10-27
       opacity: 0.2;
       animation: aura-pulse 2s ease-in-out infinite 0.5s;
     }
+    .vibrating-wa-btn svg { width: 36px; height: 36px; }
+    .vibrating-wa-btn .btn-text { display: none; }
+    
+    
+    /* Style Variant: Square with text */
+    
+    
+    /* Style Variant: Heart shape */
+    
+    
+    /* Style Variant: Bubble with counter */
+    
     
     .vibrating-wa-btn svg {
-      width: 36px;
-      height: 36px;
       fill: white;
       position: relative;
       z-index: 1;
@@ -1568,22 +1600,22 @@ Generated: 2023-10-27
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
     </svg>
+    <span class="btn-text">💬 Escríbeme</span>
   </a>
   
 
   
   <!-- ========================================== -->
-  <!-- 📜 SCROLL POPUP (45%) -->
+  <!-- 📜 SCROLL POPUP (45%) - WITH STYLE VARIANTS -->
   <!-- ========================================== -->
   <style>
+    /* Base styles */
     .scroll-popup-overlay {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.8);
       z-index: 99998;
       display: none;
-      align-items: center;
-      justify-content: center;
       padding: 20px;
       backdrop-filter: blur(5px);
     }
@@ -1592,6 +1624,38 @@ Generated: 2023-10-27
       display: flex;
       animation: fadeIn 0.4s ease;
     }
+    
+    /* Style Variant: Centered (default) */
+    
+    .scroll-popup-overlay {
+      align-items: center;
+      justify-content: center;
+    }
+    .scroll-popup {
+      background: linear-gradient(145deg, #1e1b4b, #312e81);
+      border: 2px solid #8B5CF6;
+      border-radius: 20px;
+      max-width: 450px;
+      width: 100%;
+      padding: 32px;
+      text-align: center;
+      position: relative;
+      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    
+    
+    /* Style Variant: Slide Up */
+    
+    
+    /* Style Variant: Slide Right */
+    
+    
+    /* Style Variant: Fullscreen */
+    
     
     .scroll-popup {
       background: linear-gradient(145deg, #1e1b4b, #312e81);
@@ -1715,9 +1779,11 @@ Generated: 2023-10-27
 
   
   <!-- ========================================== -->
-  <!-- 🔴 LIVE CONSULTATIONS SECTION -->
+  <!-- 🔴 LIVE CONSULTATIONS SECTION - WITH STYLE VARIANTS -->
   <!-- ========================================== -->
   <style>
+    /* Style Variant: Floating Card (default) */
+    
     .live-consultations {
       position: fixed;
       bottom: 100px;
@@ -1848,10 +1914,22 @@ Generated: 2023-10-27
       .live-consultations { bottom: 80px; padding: 10px; }
       .live-dot { width: 8px; height: 8px; }
     }
+    
+    
+    /* Style Variant: Toast Notifications */
+    
+    
+    /* Style Variant: Timeline Vertical */
+    
+    
+    /* Style Variant: Carousel */
+    
   </style>
   
   <div class="live-consultations" id="liveConsultations">
+    
     <button class="live-close" onclick="document.getElementById('liveConsultations').style.display='none'">✕</button>
+    
     <div class="live-consultations-header">
       <span class="live-dot"></span>
       <span class="live-consultations-title">Últimas consultas en vivo</span>
@@ -1988,20 +2066,25 @@ Generated: 2023-10-27
 
   
   <!-- ========================================== -->
-  <!-- ✍️ TYPING EFFECT FLOATING BUTTON -->
+  <!-- ✍️ TYPING EFFECT FLOATING BUTTON - WITH STYLE VARIANTS -->
   <!-- ========================================== -->
   <style>
+    /* Base styles */
     .typing-wa-container {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
       z-index: 9998;
       display: flex;
-      flex-direction: column;
       align-items: flex-end;
       gap: 8px;
     }
     
+    /* Style Variant: Bubble (default) */
+    
+    .typing-wa-container {
+      bottom: 24px;
+      right: 24px;
+      flex-direction: column;
+    }
     .typing-indicator {
       background: white;
       border-radius: 20px;
@@ -2012,6 +2095,23 @@ Generated: 2023-10-27
       gap: 8px;
       animation: slideUp 0.3s ease;
     }
+    .typing-wa-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+    }
+    
+    
+    /* Style Variant: Badge with pulse */
+    
+    
+    /* Style Variant: iOS Notification */
+    
+    
+    /* Style Variant: Tooltip */
+    
     
     @keyframes slideUp {
       from { opacity: 0; transform: translateY(10px); }
@@ -2055,15 +2155,11 @@ Generated: 2023-10-27
     }
     
     .typing-wa-btn {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #25D366, #128C7E);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
       transition: transform 0.3s;
+      text-decoration: none;
     }
     
     .typing-wa-btn:hover {
