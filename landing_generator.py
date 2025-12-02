@@ -26,8 +26,9 @@ from retry_handler import (
     with_retry, OPENAI_CIRCUIT, GITHUB_CIRCUIT, get_all_circuit_breaker_stats
 )
 
-# Import design intelligence system
-from design_intelligence import generate_dynamic_design, KeywordAnalyzer, EsotericCategory
+# ⚡ OPTIMIZACIÓN DE MEMORIA: Lazy import
+# Design Intelligence solo se importa cuando se usa (ahorra ~30-40MB en workers)
+# from design_intelligence import generate_dynamic_design, KeywordAnalyzer, EsotericCategory
 
 # Load environment variables
 load_dotenv()
@@ -1154,6 +1155,9 @@ class LandingPageGenerator:
         logger.info(f"📝 Keywords recibidas: {keywords[:5]}...")  # Show first 5
         
         try:
+            # ⚡ Lazy import: Solo cargar cuando se use diseño dinámico (ahorra ~30-40MB)
+            from design_intelligence import generate_dynamic_design
+            
             # Step 1: Generate dynamic design configuration
             customer_id = config.get("customer_id", "default")
             design = generate_dynamic_design(keywords, customer_id)

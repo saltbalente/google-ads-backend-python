@@ -9,11 +9,12 @@ bind = f"0.0.0.0:{os.getenv('PORT', '8080')}"
 backlog = 2048
 
 # Worker processes
-# PROFESSIONAL PLAN: Más recursos disponibles (2-4GB RAM)
-# Optimizado para alto rendimiento y concurrencia
-# Default: 4 workers (bueno para 2-4GB RAM)
-# Puede escalar hasta 8 con autoscaling
-workers = int(os.getenv('WEB_CONCURRENCY', '4'))  # 4 workers para Professional
+# 🔧 OPTIMIZADO PARA 512MB RAM
+# Con el nuevo Design Intelligence System cargado en memoria:
+# - Cada worker usa ~120-150MB
+# - 512MB / 150MB = ~3 workers seguros
+# - Dejamos 1 worker para evitar OOM (Out of Memory)
+workers = int(os.getenv('WEB_CONCURRENCY', '2'))  # 2 workers para 512MB RAM
 worker_class = 'sync'
 worker_connections = 1000
 
@@ -32,8 +33,9 @@ timeout = 600  # 10 minutes (increased from 300s)
 graceful_timeout = 120
 keepalive = 5
 
-# Threading (Professional Plan can handle more concurrent requests)
-threads = 2  # 8 workers × 2 threads = 16 concurrent requests
+# Threading - REDUCIDO para ahorrar memoria
+# 2 workers × 1 thread = 2 concurrent requests (suficiente para tu uso)
+threads = 1  # Reducido de 2 a 1 para ahorrar ~50MB por worker
 
 # Logging
 accesslog = '-'
