@@ -19,6 +19,13 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from dotenv import load_dotenv
 from google.protobuf.field_mask_pb2 import FieldMask
 
+# Import quality and retry modules
+from landing_quality import validate_landing_page, sanitize_landing_page, QualityLevel
+from retry_handler import (
+    RetryHandler, RetryConfig, CircuitBreaker, CircuitBreakerConfig,
+    with_retry, OPENAI_CIRCUIT, GITHUB_CIRCUIT, get_all_circuit_breaker_stats
+)
+
 # Load environment variables
 load_dotenv()
 
@@ -26,6 +33,21 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 DEFAULT_PUBLIC_DOMAIN = os.getenv("DEFAULT_PUBLIC_LANDING_DOMAIN", "consultadebrujosgratis.store")
+
+# Retry configurations for different services
+OPENAI_RETRY_CONFIG = RetryConfig(
+    max_retries=3,
+    base_delay=2.0,
+    max_delay=30.0,
+    retryable_exceptions=(requests.exceptions.RequestException, TimeoutError, ConnectionError)
+)
+
+GITHUB_RETRY_CONFIG = RetryConfig(
+    max_retries=5,
+    base_delay=1.0,
+    max_delay=60.0,
+    retryable_exceptions=(requests.exceptions.RequestException, TimeoutError, ConnectionError)
+)
 
 # Color Palettes for Landing Pages
 COLOR_PALETTES = {
@@ -2720,6 +2742,36 @@ class LandingPageGenerator:
             html_size = len(html.encode('utf-8'))
             logger.info(f"✅ HTML rendered successfully ({html_size} bytes)")
 
+            # Step 4.5: Quality Assurance - Validate and Sanitize
+            logger.info("🔍 Step 3.5: Running quality assurance checks...")
+            try:
+                # Sanitize the HTML (auto-fix common issues)
+                html, quality_report = sanitize_landing_page(html, config)
+                
+                # Log quality metrics
+                logger.info(f"📊 Quality Score: {quality_report.score}/100")
+                logger.info(f"   - Critical Issues: {quality_report.critical_count}")
+                logger.info(f"   - Warnings: {quality_report.warning_count}")
+                
+                # Log critical issues
+                for issue in quality_report.issues:
+                    if issue.level == QualityLevel.CRITICAL:
+                        logger.warning(f"   ⚠️ {issue.category}: {issue.message}")
+                
+                # Store quality report in result
+                quality_data = quality_report.to_dict()
+                
+                # Block publishing if quality is too low (optional, can be configured)
+                MIN_QUALITY_SCORE = int(os.getenv("MIN_LANDING_QUALITY_SCORE", "30"))
+                if quality_report.score < MIN_QUALITY_SCORE:
+                    logger.error(f"❌ Quality score too low ({quality_report.score}). Minimum required: {MIN_QUALITY_SCORE}")
+                    # Continue anyway but log the warning - in production you might want to raise
+                    # raise ValueError(f"Landing page quality score ({quality_report.score}) below minimum ({MIN_QUALITY_SCORE})")
+                
+            except Exception as qa_error:
+                logger.warning(f"⚠️ Quality assurance check failed: {qa_error}. Continuing without QA.")
+                quality_data = {"error": str(qa_error)}
+
             # Step 5: Publish to GitHub Pages
             logger.info("📄 Step 4: Publishing to GitHub Pages...")
             gh_result = self.publish_as_github_pages(folder_name, html)
@@ -2809,7 +2861,8 @@ class LandingPageGenerator:
                 "keywords_found": len(ctx.keywords),
                 "headlines_found": len(ctx.headlines),
                 "google_ads_mode": google_ads_mode,
-                "google_ads_result": google_ads_result
+                "google_ads_result": google_ads_result,
+                "quality": quality_data  # Include quality report
             }
 
             logger.info(f"🎉 Landing page generation completed successfully in {execution_time:.2f}s")

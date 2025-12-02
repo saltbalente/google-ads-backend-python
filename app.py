@@ -441,6 +441,34 @@ def build_landing():
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Google-Ads-Refresh-Token,X-Google-Ads-Login-Customer-Id')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
         return response
+    
+    # Rate limiting check
+    from rate_limiter import get_rate_limiter, get_landing_queue
+    rate_limiter = get_rate_limiter()
+    landing_queue = get_landing_queue()
+    
+    # Check rate limit
+    allowed, error_msg, retry_after = rate_limiter.check_rate_limit(
+        ip=request.remote_addr,
+        customer_id=request.get_json(silent=True, force=True).get('customerId') if request.data else None
+    )
+    
+    if not allowed:
+        response = jsonify({'success': False, 'error': error_msg, 'retry_after': retry_after})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers['Retry-After'] = str(int(retry_after or 60))
+        return response, 429
+    
+    # Try to acquire queue slot
+    if not landing_queue.acquire(timeout=120):  # Wait up to 2 minutes
+        response = jsonify({
+            'success': False, 
+            'error': 'Server is busy. Please try again in a few minutes.',
+            'queue_status': landing_queue.get_status()
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 503
+    
     try:
         data = request.get_json() or {}
         customer_id = data.get('customerId') or data.get('customer_id')
@@ -474,15 +502,104 @@ def build_landing():
             logger.info("🎨 No template selected, will use auto-selection based on keywords")
         
         if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
+            landing_queue.release()  # Release queue slot
             response = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response, 400
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
         out = gen.run(customer_id, ad_group_id, whatsapp_number, gtm_id, phone_number=phone_number, webhook_url=webhook_url, selected_template=selected_template, user_images=user_images, user_videos=user_videos, paragraph_template=paragraph_template, optimize_images_with_ai=optimize_images_with_ai, selected_color_palette=selected_color_palette, custom_template_content=custom_template_content)
-        response = jsonify({'success': True, 'url': out['url'], 'alias': out['alias']})
+        
+        landing_queue.release()  # Release queue slot on success
+        response = jsonify({'success': True, 'url': out['url'], 'alias': out['alias'], 'quality': out.get('quality', {})})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 200
     except Exception as e:
+        landing_queue.release()  # Release queue slot on error
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+@app.route('/api/landing/preview', methods=['POST', 'OPTIONS'])
+def preview_landing():
+    """
+    Genera una landing page en modo preview sin publicar a GitHub.
+    Retorna el HTML y el reporte de calidad para revisión.
+    """
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Google-Ads-Refresh-Token,X-Google-Ads-Login-Customer-Id')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        from landing_quality import sanitize_landing_page
+        
+        data = request.get_json() or {}
+        customer_id = data.get('customerId') or data.get('customer_id')
+        ad_group_id = data.get('adGroupId') or data.get('ad_group_id')
+        whatsapp_number = data.get('whatsappNumber') or data.get('whatsapp_number')
+        gtm_id = data.get('gtmId') or data.get('gtm_id')
+        phone_number = data.get('phoneNumber') or data.get('phone_number')
+        selected_template = data.get('selectedTemplate') or data.get('selected_template')
+        custom_template = data.get('customTemplate') or data.get('custom_template')
+        selected_color_palette = data.get('selectedColorPalette') or data.get('selected_color_palette', 'mystical')
+        
+        custom_template_content = None
+        if custom_template:
+            custom_template_content = custom_template.get('content', '')
+        
+        if not all([customer_id, ad_group_id, whatsapp_number, gtm_id]):
+            response = jsonify({'success': False, 'error': 'Faltan parámetros requeridos'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+        
+        # Initialize generator
+        gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())
+        
+        # Extract context
+        ctx = gen.extract_ad_group_context(customer_id, ad_group_id)
+        
+        # Generate content
+        content = gen.generate_content(ctx)
+        
+        # Prepare config
+        config = {
+            "whatsapp_number": whatsapp_number,
+            "phone_number": phone_number or whatsapp_number,
+            "gtm_id": gtm_id,
+            "primary_keyword": ctx.primary_keyword,
+            "selected_template": selected_template,
+            "custom_template_content": custom_template_content
+        }
+        
+        # Render HTML
+        html = gen.render(content, config, selected_color_palette)
+        
+        # Sanitize and validate
+        html, quality_report = sanitize_landing_page(html, config)
+        
+        response = jsonify({
+            'success': True,
+            'html': html,
+            'quality': quality_report.to_dict(),
+            'context': {
+                'primary_keyword': ctx.primary_keyword,
+                'keywords_found': len(ctx.keywords),
+                'headlines_found': len(ctx.headlines)
+            },
+            'content': {
+                'headline': content.headline_h1,
+                'subheadline': content.subheadline,
+                'cta': content.cta_text,
+                'seo_title': content.seo_title
+            }
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
+        
+    except Exception as e:
+        logger.error(f"Preview generation failed: {e}")
         response = jsonify({'success': False, 'error': str(e)})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
@@ -723,6 +840,88 @@ def ai_health():
             "timeout_range": "30-120s"
         }
     })
+
+@app.route('/api/system/status', methods=['GET'])
+def system_status():
+    """
+    Endpoint completo de status del sistema para monitoreo enterprise.
+    Incluye circuit breakers, estadísticas y configuración.
+    """
+    try:
+        from retry_handler import get_all_circuit_breaker_stats
+        from datetime import datetime
+        import psutil
+        
+        # Circuit breaker stats
+        circuit_breaker_stats = get_all_circuit_breaker_stats()
+        
+        # System metrics
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        
+        status = {
+            "status": "operational",
+            "timestamp": datetime.utcnow().isoformat(),
+            "version": "3.1.0-enterprise",
+            "uptime_seconds": time.time() - getattr(app, '_start_time', time.time()),
+            "system": {
+                "memory_mb": round(memory_info.rss / 1024 / 1024, 2),
+                "cpu_percent": process.cpu_percent(),
+                "threads": process.num_threads()
+            },
+            "services": {
+                "openai": {
+                    "configured": bool(os.environ.get('OPENAI_API_KEY')),
+                    "circuit_breaker": circuit_breaker_stats.get("openai", {})
+                },
+                "github": {
+                    "configured": bool(os.environ.get('GITHUB_TOKEN')),
+                    "circuit_breaker": circuit_breaker_stats.get("github", {})
+                },
+                "google_ads": {
+                    "configured": all([
+                        os.environ.get("GOOGLE_ADS_DEVELOPER_TOKEN"),
+                        os.environ.get("GOOGLE_ADS_CLIENT_ID")
+                    ]),
+                    "circuit_breaker": circuit_breaker_stats.get("google_ads", {})
+                }
+            },
+            "quality_assurance": {
+                "enabled": True,
+                "min_score": int(os.getenv("MIN_LANDING_QUALITY_SCORE", "30")),
+                "validation_categories": [
+                    "structure", "seo", "contact", "accessibility", 
+                    "performance", "amp", "content"
+                ]
+            }
+        }
+        
+        # Determine overall status
+        all_services_ok = all(
+            s.get("configured", False) 
+            for s in status["services"].values()
+        )
+        
+        any_circuit_open = any(
+            s.get("circuit_breaker", {}).get("state") == "open"
+            for s in status["services"].values()
+        )
+        
+        if any_circuit_open:
+            status["status"] = "degraded"
+        elif not all_services_ok:
+            status["status"] = "partial"
+        
+        response = jsonify(status)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
+        
+    except Exception as e:
+        logger.error(f"Error getting system status: {e}")
+        return jsonify({
+            "status": "error",
+            "error": str(e)
+        }), 500
 
 @app.route('/api/templates', methods=['GET'])
 def get_templates():
