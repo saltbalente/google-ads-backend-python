@@ -26,6 +26,9 @@ from retry_handler import (
     with_retry, OPENAI_CIRCUIT, GITHUB_CIRCUIT, get_all_circuit_breaker_stats
 )
 
+# Import design intelligence system
+from design_intelligence import generate_dynamic_design, KeywordAnalyzer, EsotericCategory
+
 # Load environment variables
 load_dotenv()
 
@@ -1012,6 +1015,15 @@ class LandingPageGenerator:
                 
                 return html
             
+            # Check if we should use DYNAMIC AI DESIGN
+            # This is the NEW intelligent system that analyzes keywords
+            use_dynamic_design = config.get("use_dynamic_design", True)  # Default to True!
+            keywords = config.get("keywords", [])
+            
+            if use_dynamic_design and keywords:
+                logger.info("🔮 DYNAMIC DESIGN MODE: Generating unique design based on keywords...")
+                return self._render_dynamic_ai_template(gen, config, keywords)
+            
             # Initialize template_name variable
             template_name = None
             
@@ -1109,6 +1121,155 @@ class LandingPageGenerator:
             )
         except Exception as e:
             raise RuntimeError(f"Template rendering failed: {str(e)}")
+
+    def _render_dynamic_ai_template(self, gen: GeneratedContent, config: Dict[str, Any], keywords: List[str]) -> str:
+        """
+        🔮 SISTEMA DE DISEÑO DINÁMICO CON IA
+        =====================================
+        
+        Este método genera landing pages únicas y variadas automáticamente
+        basándose en las keywords del grupo de anuncios.
+        
+        CARACTERÍSTICAS:
+        - Analiza keywords para detectar categoría esotérica
+        - Genera paletas de colores únicas
+        - Aplica animaciones según intensidad
+        - Nunca repite el mismo diseño consecutivamente
+        - Especializado 100% en el nicho esotérico
+        
+        Args:
+            gen: Contenido generado por IA
+            config: Configuración (whatsapp, gtm, etc.)
+            keywords: Lista de keywords del grupo de anuncios
+            
+        Returns:
+            HTML renderizado con diseño dinámico único
+        """
+        logger.info("=" * 60)
+        logger.info("🔮 GENERANDO DISEÑO DINÁMICO CON IA")
+        logger.info("=" * 60)
+        logger.info(f"📝 Keywords recibidas: {keywords[:5]}...")  # Show first 5
+        
+        try:
+            # Step 1: Generate dynamic design configuration
+            customer_id = config.get("customer_id", "default")
+            design = generate_dynamic_design(keywords, customer_id)
+            
+            logger.info(f"✨ Diseño generado:")
+            logger.info(f"   🎨 Nombre: {design['design_name']}")
+            logger.info(f"   📂 Categoría: {design['category']}")
+            logger.info(f"   🎯 Confianza: {design['category_confidence']:.2%}")
+            logger.info(f"   💫 Hero Icon: {design['hero_icon']}")
+            logger.info(f"   🌈 Color primario: {design['colors']['primary']}")
+            
+            # Step 2: Load and render the dynamic_ai template
+            tpl = self.env.get_template("dynamic_ai.html")
+            
+            # Step 3: Prepare template context
+            # Process user images
+            user_images = config.get("user_images", [])
+            img_context = {}
+            top_image = None
+            middle_image = None
+            
+            if user_images:
+                for img in user_images:
+                    pos = img.get("position", "").lower()
+                    url = img.get("url", "")
+                    if pos and url:
+                        img_context[f"user_image_{pos}"] = url
+                        if pos == "top" or pos == "hero":
+                            top_image = url
+                        elif pos == "middle" or pos == "center":
+                            middle_image = url
+            
+            # Shuffle additional CTAs for variety
+            additional_ctas = getattr(gen, 'additional_ctas', [])
+            if additional_ctas:
+                random.shuffle(additional_ctas)
+            
+            # Clean WhatsApp number
+            whatsapp = config.get("whatsapp_number", "")
+            clean_whatsapp = whatsapp.replace("+", "").replace(" ", "").replace("-", "") if whatsapp else ""
+            
+            # Get generated paragraphs
+            intro_paragraph = ""
+            body_paragraph = ""
+            
+            optimized = getattr(gen, 'optimized_paragraph', '')
+            if optimized:
+                # Split into intro and body if long enough
+                paragraphs = optimized.split('\n\n')
+                if len(paragraphs) >= 2:
+                    intro_paragraph = paragraphs[0]
+                    body_paragraph = '\n\n'.join(paragraphs[1:])
+                else:
+                    intro_paragraph = optimized
+                    body_paragraph = ""
+            
+            # Step 4: Render template with all dynamic data
+            html = tpl.render(
+                # Design system
+                design=design,
+                
+                # SEO
+                seo_title=gen.seo_title,
+                seo_description=gen.seo_description,
+                keywords=keywords,
+                
+                # Content
+                headline=gen.headline_h1,
+                subheadline=gen.subheadline,
+                intro_paragraph=intro_paragraph,
+                body_paragraph=body_paragraph,
+                benefits=gen.benefits,
+                cta_text=gen.cta_text,
+                social_proof=gen.social_proof,
+                additional_ctas=additional_ctas,
+                closing_headline=getattr(gen, 'closing_headline', '¿Listo para Transformar tu Vida?'),
+                closing_paragraph=getattr(gen, 'closing_paragraph', 'No esperes más. Da el primer paso hacia el cambio que mereces.'),
+                
+                # Contact
+                whatsapp=clean_whatsapp,
+                phone=config.get("phone_number", whatsapp),
+                gtm_id=config.get("gtm_id", ""),
+                
+                # Images
+                top_image=top_image,
+                middle_image=middle_image,
+                user_images=user_images,
+                **img_context,
+            )
+            
+            logger.info("✅ Landing page dinámica generada exitosamente")
+            logger.info(f"📊 Tamaño HTML: {len(html):,} bytes")
+            
+            return html
+            
+        except Exception as e:
+            logger.error(f"❌ Error en diseño dinámico: {str(e)}")
+            logger.info("⚠️ Fallback: usando template mystical.html")
+            
+            # Fallback to mystical template
+            try:
+                tpl = self.env.get_template("mystical.html")
+                color_palette = COLOR_PALETTES.get("mystical", COLOR_PALETTES["mystical"])
+                
+                return tpl.render(
+                    headline_h1=gen.headline_h1,
+                    subheadline=gen.subheadline,
+                    cta_text=gen.cta_text,
+                    social_proof=gen.social_proof,
+                    benefits=gen.benefits,
+                    seo_title=gen.seo_title,
+                    seo_description=gen.seo_description,
+                    whatsapp_number=config.get("whatsapp_number", ""),
+                    phone_number=config.get("phone_number", config.get("whatsapp_number", "")),
+                    gtm_id=config.get("gtm_id", ""),
+                    color_palette=color_palette,
+                )
+            except Exception as fallback_error:
+                raise RuntimeError(f"Dynamic and fallback template both failed: {str(e)} | {str(fallback_error)}")
 
     def _process_custom_template(self, html: str, gen: GeneratedContent, config: Dict[str, Any], color_palette: Dict[str, str]) -> str:
         """
@@ -2733,7 +2894,11 @@ class LandingPageGenerator:
                 "user_images": user_images or [],
                 "user_videos": user_videos or [],
                 "folder_name": folder_name,
-                "custom_template_content": custom_template_content
+                "custom_template_content": custom_template_content,
+                # 🔮 Dynamic Design System - Pass keywords for intelligent design generation
+                "keywords": ctx.keywords,
+                "customer_id": customer_id,
+                "use_dynamic_design": True  # Enable by default for amazing varied designs!
             }
 
             # Step 4: Render HTML

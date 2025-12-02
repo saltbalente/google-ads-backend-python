@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="es" class="scroll-smooth">
+<!--
+🔮 TEMPLATE DINÁMICO GENERADO POR IA
+=====================================
+Este template se adapta automáticamente basado en las keywords del grupo de anuncios.
+Cada generación produce un diseño único y variado especializado en el nicho esotérico.
+
+Design ID: {{ design.design_id }}
+Design Name: {{ design.design_name }}
+Category: {{ design.category }}
+Atmosphere: {{ design.atmosphere_name }}
+Generated: {{ design.timestamp }}
+-->
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ seo_title }}</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/apple-touch-icon.png">
+
+  <meta name="description" content="{{ seo_description }}" />
+  <meta name="keywords" content="{{ keywords|join(', ') }}" />
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="{{ seo_title }}" />
+  <meta property="og:description" content="{{ seo_description }}" />
+  <meta property="og:type" content="website" />
+  
+  <!-- Dynamic Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="{{ design.font_import_url }}" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            heading: [{{ design.fonts.heading|tojson|safe }}, 'serif'],
+            body: [{{ design.fonts.body|tojson|safe }}, 'sans-serif'],
+          },
+          colors: {
+            primary: {
+              DEFAULT: '{{ design.colors.primary }}',
+              dark: '{{ design.colors.primary_dark }}',
+              light: '{{ design.colors.primary_light }}',
+            },
+            secondary: '{{ design.colors.secondary }}',
+            accent: '{{ design.colors.accent }}',
+            surface: '{{ design.colors.surface }}',
+            background: '{{ design.colors.background }}',
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* CSS Variables - Generated Dynamically */
+    {{ design.css_variables|safe }}
+    
+    /* Animation Keyframes - Based on Intensity */
+    {{ design.animation_css|safe }}
+    
+    /* Base Styles */
+    body {
+      font-family: var(--font-body);
+      background: var(--color-background);
+      color: var(--color-text);
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+      font-family: var(--font-heading);
+    }
+    
+    /* Hero Section - Dynamic Style */
+    .hero-section {
+      {{ design.section_styles.hero|safe }}
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 2rem;
+    }
+    
+    .hero-overlay {
+      {{ design.section_styles.hero_overlay|safe }}
+    }
+    
+    /* Content Section */
+    .content-section {
+      {{ design.section_styles.content|safe }}
+      padding: 4rem 1rem;
+    }
+    
+    /* Testimonial Cards */
+    .testimonial-card {
+      {{ design.section_styles.testimonial|safe }}
+      border-radius: 1rem;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+    }
+    
+    /* CTA Buttons - Dynamic Gradient */
+    .cta-button {
+      {{ design.section_styles.cta_button|safe }}
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1rem 2.5rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 1.125rem;
+      text-decoration: none;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .cta-button:hover {
+      {{ design.section_styles.cta_button_hover|safe }}
+    }
+    
+    /* Footer */
+    .footer-section {
+      {{ design.section_styles.footer|safe }}
+      padding: 2rem 1rem;
+    }
+    
+    /* Floating Animation */
+    .animate-float {
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    /* Glow Effect */
+    .animate-glow {
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+    
+    /* Pulse Effect */
+    .animate-pulse-custom {
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+    
+    /* Hero Icon */
+    .hero-icon {
+      font-size: 5rem;
+      filter: drop-shadow(0 0 30px var(--color-primary));
+      animation: float 4s ease-in-out infinite;
+    }
+    
+    /* Particle Effect Container */
+    .particles-container {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    
+    .particle {
+      position: absolute;
+      font-size: 1.5rem;
+      opacity: 0.3;
+      animation: float 8s ease-in-out infinite;
+    }
+    
+    .particle:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
+    .particle:nth-child(2) { top: 20%; right: 15%; animation-delay: 1s; }
+    .particle:nth-child(3) { top: 40%; left: 20%; animation-delay: 2s; }
+    .particle:nth-child(4) { top: 60%; right: 10%; animation-delay: 1.5s; }
+    .particle:nth-child(5) { top: 80%; left: 15%; animation-delay: 0.5s; }
+    
+    /* Image Effects */
+    .image-container {
+      position: relative;
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+    
+    .image-container::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, var(--color-background) 0%, transparent 50%);
+    }
+    
+    .image-container img {
+      width: 100%;
+      height: auto;
+      object-fit: cover;
+    }
+    
+    /* Glow Border Effect */
+    .glow-border {
+      position: relative;
+    }
+    
+    .glow-border::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      background: linear-gradient(45deg, var(--color-primary), var(--color-secondary), var(--color-accent));
+      border-radius: inherit;
+      z-index: -1;
+      opacity: 0.5;
+      filter: blur(10px);
+    }
+    
+    /* Responsive Typography */
+    @media (max-width: 768px) {
+      .hero-icon {
+        font-size: 4rem;
+      }
+      
+      h1 {
+        font-size: 2rem !important;
+      }
+      
+      .cta-button {
+        width: 100%;
+        max-width: 300px;
+      }
+    }
+    
+    /* Scroll Reveal Animation */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.8s ease;
+    }
+    
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+
+  <!-- Google Tag Manager -->
+  <script>
+    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','{{ gtm_id }}');
+  </script>
+</head>
+
+<body class="antialiased selection:bg-primary/20 min-h-screen">
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ gtm_id }}"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+  <!-- ========================================== -->
+  <!-- HERO SECTION - Fully Dynamic -->
+  <!-- ========================================== -->
+  <section class="hero-section relative">
+    <!-- Particles -->
+    <div class="particles-container">
+      {% for icon in design.icons %}
+      <span class="particle">{{ icon }}</span>
+      {% endfor %}
+    </div>
+    
+    <!-- Hero Overlay -->
+    <div class="hero-overlay"></div>
+    
+    <!-- Hero Content -->
+    <div class="relative z-10 max-w-4xl mx-auto px-4">
+      <!-- Hero Icon -->
+      <div class="hero-icon mb-6">
+        {{ design.hero_icon }}
+      </div>
+      
+      <!-- Main Title -->
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+        <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+          {{ headline }}
+        </span>
+      </h1>
+      
+      <!-- Subtitle -->
+      <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto">
+        {{ subheadline }}
+      </p>
+      
+      <!-- Hero CTA Button -->
+      <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
+        <span>💬</span>
+        <span>Contactar Ahora</span>
+      </a>
+      
+      <!-- Trust Indicators -->
+      <div class="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-400">
+        {% for icon in design.icons[:3] %}
+        <span class="flex items-center gap-2">
+          <span>{{ icon }}</span>
+          <span>{{ design.mood_keywords[loop.index0]|default('Profesional') }}</span>
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- Scroll Indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-float">
+      <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- MAIN CONTENT SECTION -->
+  <!-- ========================================== -->
+  <section class="content-section">
+    <div class="max-w-4xl mx-auto">
+      
+      <!-- Primary Image -->
+      {% if top_image %}
+      <div class="image-container mb-12 glow-border reveal">
+        <img src="{{ top_image }}" alt="{{ headline }}" loading="lazy" />
+      </div>
+      {% endif %}
+      
+      <!-- Main Content -->
+      <div class="prose prose-invert prose-lg mx-auto reveal">
+        <div class="text-gray-300 leading-relaxed space-y-6">
+          {{ intro_paragraph|safe }}
+        </div>
+      </div>
+      
+      <!-- Feature Cards Grid -->
+      <div class="grid md:grid-cols-2 gap-6 mt-12">
+        {% for i in range(4) %}
+        <div class="testimonial-card reveal" style="animation-delay: {{ i * 0.1 }}s;">
+          <div class="flex items-start gap-4">
+            <span class="text-3xl">{{ design.icons[i % design.icons|length] }}</span>
+            <div>
+              <h3 class="font-heading text-lg font-semibold text-primary-light mb-2">
+                {{ design.mood_keywords[i % design.mood_keywords|length]|title }}
+              </h3>
+              <p class="text-gray-400 text-sm">
+                Experto en {{ design.mood_keywords[i % design.mood_keywords|length] }} con resultados comprobados.
+              </p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      
+      <!-- Middle Image -->
+      {% if middle_image %}
+      <div class="image-container my-12 glow-border reveal">
+        <img src="{{ middle_image }}" alt="{{ headline }}" loading="lazy" />
+      </div>
+      {% endif %}
+      
+      <!-- Additional Content -->
+      <div class="prose prose-invert prose-lg mx-auto reveal">
+        <div class="text-gray-300 leading-relaxed space-y-6">
+          {{ body_paragraph|safe }}
+        </div>
+      </div>
+      
+      <!-- Mid-Section CTA -->
+      <div class="text-center my-12 reveal">
+        <a href="https://wa.me/{{ whatsapp }}" class="cta-button">
+          <span>{{ design.hero_icon }}</span>
+          <span>Consulta Gratis</span>
+        </a>
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- TESTIMONIALS SECTION -->
+  <!-- ========================================== -->
+  <section class="py-16 px-4" style="background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-background) 100%);">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="font-heading text-3xl md:text-4xl text-center mb-12 reveal">
+        <span class="text-primary-light">✨</span>
+        <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          Testimonios Reales
+        </span>
+      </h2>
+      
+      <div class="grid md:grid-cols-3 gap-6">
+        {% set testimonials = [
+          {"name": "María G.", "text": "Increíble experiencia. Los resultados fueron exactamente lo que necesitaba."},
+          {"name": "Carlos R.", "text": "Profesional y efectivo. Muy recomendado para quien busca soluciones reales."},
+          {"name": "Laura M.", "text": "Después de años buscando, finalmente encontré a alguien que realmente sabe."}
+        ] %}
+        
+        {% for t in testimonials %}
+        <div class="testimonial-card reveal" style="animation-delay: {{ loop.index0 * 0.15 }}s;">
+          <div class="flex items-center gap-2 mb-3">
+            {% for _ in range(5) %}
+            <span class="text-yellow-400">⭐</span>
+            {% endfor %}
+          </div>
+          <p class="text-gray-300 italic mb-4">"{{ t.text }}"</p>
+          <p class="text-primary-light font-semibold">— {{ t.name }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- FINAL CTA SECTION -->
+  <!-- ========================================== -->
+  <section class="py-20 px-4 text-center relative overflow-hidden">
+    <!-- Animated Background -->
+    <div class="absolute inset-0" style="{{ design.section_styles.hero }}"></div>
+    <div class="hero-overlay"></div>
+    
+    <div class="relative z-10 max-w-3xl mx-auto reveal">
+      <span class="text-6xl mb-6 block animate-float">{{ design.hero_icon }}</span>
+      
+      <h2 class="font-heading text-3xl md:text-4xl font-bold mb-6">
+        <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+          {{ closing_headline|default('¿Listo para Transformar tu Vida?') }}
+        </span>
+      </h2>
+      
+      <p class="text-xl text-gray-300 mb-8">
+        {{ closing_paragraph|default('No esperes más. Da el primer paso hacia el cambio que mereces.') }}
+      </p>
+      
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
+          <span>💬</span>
+          <span>WhatsApp Directo</span>
+        </a>
+        
+        {% if phone %}
+        <a href="tel:{{ phone }}" class="cta-button" style="background: var(--color-secondary);">
+          <span>📞</span>
+          <span>Llamar Ahora</span>
+        </a>
+        {% endif %}
+      </div>
+      
+      <!-- Urgency Indicator -->
+      <p class="mt-6 text-gray-400 text-sm animate-pulse-custom">
+        ⚡ Respuesta inmediata • Consulta confidencial
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- FOOTER -->
+  <!-- ========================================== -->
+  <footer class="footer-section text-center">
+    <div class="max-w-4xl mx-auto">
+      <!-- Design Signature -->
+      <div class="flex justify-center gap-2 mb-4">
+        {% for icon in design.icons[:5] %}
+        <span class="text-lg opacity-50">{{ icon }}</span>
+        {% endfor %}
+      </div>
+      
+      <p class="text-gray-500 text-sm">
+        © {{ "now"|date("Y") }} Todos los derechos reservados
+      </p>
+      
+      <!-- Hidden Design Meta for debugging -->
+      <div class="hidden">
+        Design: {{ design.design_name }} | 
+        Category: {{ design.category }} | 
+        ID: {{ design.design_id }}
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll Reveal Script -->
+  <script>
+    // Simple scroll reveal animation
+    function reveal() {
+      const reveals = document.querySelectorAll('.reveal');
+      reveals.forEach(element => {
+        const windowHeight = window.innerHeight;
+        const elementTop = element.getBoundingClientRect().top;
+        const elementVisible = 150;
+        
+        if (elementTop < windowHeight - elementVisible) {
+          element.classList.add('active');
+        }
+      });
+    }
+    
+    window.addEventListener('scroll', reveal);
+    window.addEventListener('load', reveal);
+  </script>
+</body>
+</html>
