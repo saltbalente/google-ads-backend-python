@@ -80,28 +80,26 @@ def build_public_landing_url(folder_name: str) -> str:
 
 def commit_template_to_github(template_id: str, content: str, is_preview: bool = False) -> dict:
     """
-    Hace commit de un template al repositorio de GitHub.
+    Hace commit de un template al repositorio monorepo-landings de GitHub.
+    Estructura: monorepo-landings/{template_id}/index.html
     
     Args:
-        template_id: ID/nombre del template
+        template_id: ID/nombre del template (será el nombre de la carpeta)
         content: Contenido HTML del template
-        is_preview: Si es un preview (va a templates/previews/) o landing (templates/landing/)
+        is_preview: Si es un preview (no se usa, siempre se guarda como index.html)
     
     Returns:
         dict con success, message, y github_url si exitoso
     """
     github_token = os.getenv("GITHUB_TOKEN")
     github_owner = os.getenv("GITHUB_REPO_OWNER", "saltbalente")
-    github_repo = "google-ads-backend-python"  # Guardar en el mismo repo del backend
+    github_repo = os.getenv("GITHUB_REPO_NAME", "monorepo-landings")
     
     if not github_token:
         return {"success": False, "error": "GITHUB_TOKEN no configurado"}
     
-    # Determinar la ruta del archivo
-    if is_preview:
-        file_path = f"templates/previews/{template_id}_preview.html"
-    else:
-        file_path = f"templates/landing/{template_id}.html"
+    # Estructura: {template_id}/index.html
+    file_path = f"{template_id}/index.html"
     
     headers = {
         "Authorization": f"token {github_token}",
@@ -121,7 +119,7 @@ def commit_template_to_github(template_id: str, content: str, is_preview: bool =
     
     # Crear o actualizar el archivo
     commit_data = {
-        "message": f"{'Update' if sha else 'Add'} template: {template_id}",
+        "message": f"{'Update' if sha else 'Add'} landing: {template_id}",
         "content": content_b64,
         "branch": "main"
     }
@@ -135,11 +133,13 @@ def commit_template_to_github(template_id: str, content: str, is_preview: bool =
     if put_resp.status_code in [200, 201]:
         result = put_resp.json()
         github_url = result.get("content", {}).get("html_url", "")
-        logger.info(f"✅ Template {template_id} guardado en GitHub: {github_url}")
+        public_url = f"https://{github_owner}.github.io/{github_repo}/{template_id}/"
+        logger.info(f"✅ Landing {template_id} guardada en GitHub: {public_url}")
         return {
             "success": True,
             "message": f"Template guardado en GitHub",
             "github_url": github_url,
+            "public_url": public_url,
             "file_path": file_path
         }
     else:
@@ -2069,12 +2069,13 @@ def save_custom_template():
 
 def sync_templates_from_github() -> list:
     """
-    Sincroniza templates desde GitHub.
-    Lee los archivos de templates/landing/ en GitHub y los devuelve.
+    Sincroniza templates desde GitHub monorepo-landings.
+    Lee las carpetas de landings y extrae index.html de cada una.
+    Estructura esperada: monorepo-landings/{landing-name}/index.html
     """
     github_token = os.getenv("GITHUB_TOKEN")
     github_owner = os.getenv("GITHUB_REPO_OWNER", "saltbalente")
-    github_repo = "google-ads-backend-python"
+    github_repo = os.getenv("GITHUB_REPO_NAME", "monorepo-landings")
     
     if not github_token:
         return []
@@ -2086,39 +2087,52 @@ def sync_templates_from_github() -> list:
     
     templates = []
     
-    # Listar archivos en templates/landing/
-    list_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/templates/landing"
+    # Listar carpetas en la raíz del monorepo-landings
+    list_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents"
     list_resp = requests.get(list_url, headers=headers)
     
     if list_resp.status_code != 200:
-        logger.warning(f"No se pudo listar templates de GitHub: {list_resp.status_code}")
+        logger.warning(f"No se pudo listar monorepo-landings de GitHub: {list_resp.status_code}")
         return []
     
-    files = list_resp.json()
+    items = list_resp.json()
     
-    for file_info in files:
-        if file_info.get('name', '').endswith('.html'):
-            filename = file_info['name']
-            template_id = filename.replace('.html', '')
+    # Carpetas a ignorar (no son landings)
+    ignore_folders = {'assets', 'landing-videos', 'static', '.github', 'node_modules'}
+    
+    for item in items:
+        # Solo procesar directorios que no estén en la lista de ignorados
+        if item.get('type') == 'dir' and item.get('name') not in ignore_folders:
+            folder_name = item['name']
             
-            # Obtener contenido del archivo
-            content_resp = requests.get(file_info['download_url'])
-            if content_resp.status_code == 200:
-                content = content_resp.text
+            # Buscar index.html en esta carpeta
+            index_url = f"https://api.github.com/repos/{github_owner}/{github_repo}/contents/{folder_name}/index.html"
+            index_resp = requests.get(index_url, headers=headers)
+            
+            if index_resp.status_code == 200:
+                file_info = index_resp.json()
                 
-                # Extraer nombre del template del contenido o usar el ID
-                name = template_id.replace('-', ' ').title()
-                
-                templates.append({
-                    'id': template_id,
-                    'name': name,
-                    'filename': filename,
-                    'content': content,
-                    'githubLandingPath': f"templates/landing/{filename}",
-                    'githubPreviewPath': f"templates/previews/{template_id}_preview.html",
-                    'source': 'github'
-                })
+                # Obtener contenido del archivo
+                content_resp = requests.get(file_info['download_url'])
+                if content_resp.status_code == 200:
+                    content = content_resp.text
+                    
+                    # Extraer nombre del template del contenido o usar el folder name
+                    name = folder_name.replace('-', ' ').title()
+                    
+                    templates.append({
+                        'id': folder_name,
+                        'name': name,
+                        'filename': 'index.html',
+                        'folder': folder_name,
+                        'content': content,
+                        'githubLandingPath': f"{folder_name}/index.html",
+                        'githubPreviewPath': f"{folder_name}/index.html",  # Mismo archivo para preview
+                        'source': 'github',
+                        'publicUrl': f"https://{github_owner}.github.io/{github_repo}/{folder_name}/"
+                    })
     
+    logger.info(f"✅ Sincronizados {len(templates)} templates desde monorepo-landings")
     return templates
 
 @app.route('/api/custom-templates', methods=['GET'])
