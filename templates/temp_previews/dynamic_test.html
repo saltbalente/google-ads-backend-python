@@ -6,35 +6,35 @@
 Este template se adapta automáticamente basado en las keywords del grupo de anuncios.
 Cada generación produce un diseño único y variado especializado en el nicho esotérico.
 
-Design ID: {{ design.design_id }}
-Design Name: {{ design.design_name }}
-Category: {{ design.category }}
-Atmosphere: {{ design.atmosphere_name }}
-Generated: {{ design.timestamp }}
+Design ID: de9404461151
+Design Name: Luna Rosa
+Category: amor_amarres
+Atmosphere: Luna Rosa
+Generated: 2025-12-01T21:07:51.358636
 -->
 
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ seo_title }}</title>
+  <title>Amarres de Amor Poderosos - Resultados Garantizados</title>
   
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon-32x32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/apple-touch-icon.png">
 
-  <meta name="description" content="{{ seo_description }}" />
-  <meta name="keywords" content="{{ keywords|join(', ') }}" />
+  <meta name="description" content="Expertos en amarres de amor con más de 20 años de experiencia. Resultados rápidos y efectivos." />
+  <meta name="keywords" content="amarre de amor, recuperar ex, hechizo poderoso" />
   
   <!-- Open Graph -->
-  <meta property="og:title" content="{{ seo_title }}" />
-  <meta property="og:description" content="{{ seo_description }}" />
+  <meta property="og:title" content="Amarres de Amor Poderosos - Resultados Garantizados" />
+  <meta property="og:description" content="Expertos en amarres de amor con más de 20 años de experiencia. Resultados rápidos y efectivos." />
   <meta property="og:type" content="website" />
   
   <!-- Dynamic Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="{{ design.font_import_url }}" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&amp;family=Quicksand:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -43,19 +43,19 @@ Generated: {{ design.timestamp }}
       theme: {
         extend: {
           fontFamily: {
-            heading: [{{ design.fonts.heading|tojson|safe }}, 'serif'],
-            body: [{{ design.fonts.body|tojson|safe }}, 'sans-serif'],
+            heading: ["Cormorant Garamond", 'serif'],
+            body: ["Quicksand", 'sans-serif'],
           },
           colors: {
             primary: {
-              DEFAULT: '{{ design.colors.primary }}',
-              dark: '{{ design.colors.primary_dark }}',
-              light: '{{ design.colors.primary_light }}',
+              DEFAULT: '#DB2777',
+              dark: '#9D174D',
+              light: '#DB2777',
             },
-            secondary: '{{ design.colors.secondary }}',
-            accent: '{{ design.colors.accent }}',
-            surface: '{{ design.colors.surface }}',
-            background: '{{ design.colors.background }}',
+            secondary: '#A855F7',
+            accent: '#FBCFE8',
+            surface: '#1E293B',
+            background: '#0F172A',
           },
         }
       }
@@ -64,10 +64,50 @@ Generated: {{ design.timestamp }}
 
   <style>
     /* CSS Variables - Generated Dynamically */
-    {{ design.css_variables|safe }}
+    
+        :root {
+            --color-primary: #DB2777;
+            --color-secondary: #A855F7;
+            --color-accent: #FBCFE8;
+            --color-primary-dark: #9D174D;
+            --color-primary-light: #DB2777;
+            --color-text: #F8FAFC;
+            --color-text-muted: #94A3B8;
+            --color-surface: #1E293B;
+            --color-background: #0F172A;
+            --glow-color: #DB277766;
+            --pulse-color: #FBCFE899;
+            --font-heading: 'Cormorant Garamond', serif;
+            --font-body: 'Quicksand', sans-serif;
+            --animation-intensity: 0.7;
+        }
+        
     
     /* Animation Keyframes - Based on Intensity */
-    {{ design.animation_css|safe }}
+    
+                @keyframes float {
+                    0%, 100% { transform: translateY(0) rotate(0deg); }
+                    50% { transform: translateY(-15px) rotate(2deg); }
+                }
+            
+
+                @keyframes glow {
+                    0%, 100% { box-shadow: 0 0 20px var(--glow-color, rgba(168, 85, 247, 0.4)); }
+                    50% { box-shadow: 0 0 40px var(--glow-color, rgba(168, 85, 247, 0.7)); }
+                }
+            
+
+                @keyframes shimmer {
+                    0% { background-position: -200% 0; }
+                    100% { background-position: 200% 0; }
+                }
+            
+
+                @keyframes pulse-glow {
+                    0%, 100% { opacity: 0.7; transform: scale(1); }
+                    50% { opacity: 1; transform: scale(1.05); }
+                }
+            
     
     /* Base Styles */
     body {
@@ -82,7 +122,11 @@ Generated: {{ design.timestamp }}
     
     /* Hero Section - Dynamic Style */
     .hero-section {
-      {{ design.section_styles.hero|safe }}
+      
+                background: radial-gradient(ellipse at top, #BE185D, #581C87);
+                position: relative;
+                overflow: hidden;
+            
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -93,18 +137,27 @@ Generated: {{ design.timestamp }}
     }
     
     .hero-overlay {
-      {{ design.section_styles.hero_overlay|safe }}
+      
+                background: linear-gradient(to bottom, transparent 0%, rgba(15, 23, 42, 0.9) 100%);
+                position: absolute;
+                inset: 0;
+            
     }
     
     /* Content Section */
     .content-section {
-      {{ design.section_styles.content|safe }}
+      
+                background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
+            
       padding: 4rem 1rem;
     }
     
     /* Testimonial Cards */
     .testimonial-card {
-      {{ design.section_styles.testimonial|safe }}
+      
+                background: linear-gradient(135deg, #1E293Bee 0%, #0F172Aee 100%);
+                border: 1px solid #DB277733;
+            
       border-radius: 1rem;
       padding: 1.5rem;
       backdrop-filter: blur(10px);
@@ -112,7 +165,11 @@ Generated: {{ design.timestamp }}
     
     /* CTA Buttons - Dynamic Gradient */
     .cta-button {
-      {{ design.section_styles.cta_button|safe }}
+      
+                background: linear-gradient(90deg, #DB2777 0%, #A855F7 100%);
+                box-shadow: 0 4px 20px #DB277744;
+                transition: all 0.3s ease;
+            
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -128,12 +185,18 @@ Generated: {{ design.timestamp }}
     }
     
     .cta-button:hover {
-      {{ design.section_styles.cta_button_hover|safe }}
+      
+                transform: translateY(-2px);
+                box-shadow: 0 8px 30px #DB277766;
+            
     }
     
     /* Footer */
     .footer-section {
-      {{ design.section_styles.footer|safe }}
+      
+                background: #0F172A;
+                border-top: 1px solid #DB277722;
+            
       padding: 2rem 1rem;
     }
     
@@ -251,13 +314,13 @@ Generated: {{ design.timestamp }}
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','{{ gtm_id }}');
+    })(window,document,'script','dataLayer','GTM-TEST123');
   </script>
 </head>
 
 <body class="antialiased selection:bg-primary/20 min-h-screen">
   <!-- Google Tag Manager (noscript) -->
-  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ gtm_id }}"
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TEST123"
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   <!-- ========================================== -->
@@ -266,9 +329,17 @@ Generated: {{ design.timestamp }}
   <section class="hero-section relative">
     <!-- Particles -->
     <div class="particles-container">
-      {% for icon in design.icons %}
-      <span class="particle">{{ icon }}</span>
-      {% endfor %}
+      
+      <span class="particle">🌸</span>
+      
+      <span class="particle">💖</span>
+      
+      <span class="particle">💜</span>
+      
+      <span class="particle">🔮</span>
+      
+      <span class="particle">🦋</span>
+      
     </div>
     
     <!-- Hero Overlay -->
@@ -278,35 +349,45 @@ Generated: {{ design.timestamp }}
     <div class="relative z-10 max-w-4xl mx-auto px-4">
       <!-- Hero Icon -->
       <div class="hero-icon mb-6">
-        {{ design.hero_icon }}
+        ✨
       </div>
       
       <!-- Main Title -->
       <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
         <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-          {{ headline }}
+          Recupera a Tu Amor con Magia Poderosa
         </span>
       </h1>
       
       <!-- Subtitle -->
       <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto">
-        {{ subheadline }}
+        Rituales ancestrales que funcionan en 24-48 horas
       </p>
       
       <!-- Hero CTA Button -->
-      <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
+      <a href="https://wa.me/573001234567" class="cta-button animate-glow">
         <span>💬</span>
         <span>Contactar Ahora</span>
       </a>
       
       <!-- Trust Indicators -->
       <div class="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-400">
-        {% for icon in design.icons[:3] %}
+        
         <span class="flex items-center gap-2">
-          <span>{{ icon }}</span>
-          <span>{{ design.mood_keywords[loop.index0]|default('Profesional') }}</span>
+          <span>🌸</span>
+          <span>romance</span>
         </span>
-        {% endfor %}
+        
+        <span class="flex items-center gap-2">
+          <span>💖</span>
+          <span>conexión</span>
+        </span>
+        
+        <span class="flex items-center gap-2">
+          <span>💜</span>
+          <span>destino</span>
+        </span>
+        
       </div>
     </div>
     
@@ -325,56 +406,94 @@ Generated: {{ design.timestamp }}
     <div class="max-w-4xl mx-auto">
       
       <!-- Primary Image -->
-      {% if top_image %}
+      
       <div class="image-container mb-12 glow-border reveal">
-        <img src="{{ top_image }}" alt="{{ headline }}" loading="lazy" />
+        <img src="https://example.com/hero.jpg" alt="Recupera a Tu Amor con Magia Poderosa" loading="lazy" />
       </div>
-      {% endif %}
+      
       
       <!-- Main Content -->
       <div class="prose prose-invert prose-lg mx-auto reveal">
         <div class="text-gray-300 leading-relaxed space-y-6">
-          {{ intro_paragraph|safe }}
+          Nuestros maestros espirituales han ayudado a miles de personas a recuperar su amor perdido.
         </div>
       </div>
       
       <!-- Feature Cards Grid -->
       <div class="grid md:grid-cols-2 gap-6 mt-12">
-        {% for i in range(4) %}
-        <div class="testimonial-card reveal" style="animation-delay: {{ i * 0.1 }}s;">
+        
+        <div class="testimonial-card reveal" style="animation-delay: 0.0s;">
           <div class="flex items-start gap-4">
-            <span class="text-3xl">{{ design.icons[i % design.icons|length] }}</span>
+            <span class="text-3xl">🌸</span>
             <div>
               <h3 class="font-heading text-lg font-semibold text-primary-light mb-2">
-                {{ design.mood_keywords[i % design.mood_keywords|length]|title }}
+                Romance
               </h3>
               <p class="text-gray-400 text-sm">
-                Experto en {{ design.mood_keywords[i % design.mood_keywords|length] }} con resultados comprobados.
+                Experto en romance con resultados comprobados.
               </p>
             </div>
           </div>
         </div>
-        {% endfor %}
+        
+        <div class="testimonial-card reveal" style="animation-delay: 0.1s;">
+          <div class="flex items-start gap-4">
+            <span class="text-3xl">💖</span>
+            <div>
+              <h3 class="font-heading text-lg font-semibold text-primary-light mb-2">
+                Conexión
+              </h3>
+              <p class="text-gray-400 text-sm">
+                Experto en conexión con resultados comprobados.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card reveal" style="animation-delay: 0.2s;">
+          <div class="flex items-start gap-4">
+            <span class="text-3xl">💜</span>
+            <div>
+              <h3 class="font-heading text-lg font-semibold text-primary-light mb-2">
+                Destino
+              </h3>
+              <p class="text-gray-400 text-sm">
+                Experto en destino con resultados comprobados.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card reveal" style="animation-delay: 0.30000000000000004s;">
+          <div class="flex items-start gap-4">
+            <span class="text-3xl">🔮</span>
+            <div>
+              <h3 class="font-heading text-lg font-semibold text-primary-light mb-2">
+                Luna
+              </h3>
+              <p class="text-gray-400 text-sm">
+                Experto en luna con resultados comprobados.
+              </p>
+            </div>
+          </div>
+        </div>
+        
       </div>
       
       <!-- Middle Image -->
-      {% if middle_image %}
-      <div class="image-container my-12 glow-border reveal">
-        <img src="{{ middle_image }}" alt="{{ headline }}" loading="lazy" />
-      </div>
-      {% endif %}
+      
       
       <!-- Additional Content -->
       <div class="prose prose-invert prose-lg mx-auto reveal">
         <div class="text-gray-300 leading-relaxed space-y-6">
-          {{ body_paragraph|safe }}
+          Con técnicas milenarias y energías positivas, transformamos tu vida amorosa.
         </div>
       </div>
       
       <!-- Mid-Section CTA -->
       <div class="text-center my-12 reveal">
-        <a href="https://wa.me/{{ whatsapp }}" class="cta-button">
-          <span>{{ design.hero_icon }}</span>
+        <a href="https://wa.me/573001234567" class="cta-button">
+          <span>✨</span>
           <span>Consulta Gratis</span>
         </a>
       </div>
@@ -395,23 +514,63 @@ Generated: {{ design.timestamp }}
       </h2>
       
       <div class="grid md:grid-cols-3 gap-6">
-        {% set testimonials = [
-          {"name": "María G.", "text": "Increíble experiencia. Los resultados fueron exactamente lo que necesitaba."},
-          {"name": "Carlos R.", "text": "Profesional y efectivo. Muy recomendado para quien busca soluciones reales."},
-          {"name": "Laura M.", "text": "Después de años buscando, finalmente encontré a alguien que realmente sabe."}
-        ] %}
         
-        {% for t in testimonials %}
-        <div class="testimonial-card reveal" style="animation-delay: {{ loop.index0 * 0.15 }}s;">
+        
+        
+        <div class="testimonial-card reveal" style="animation-delay: 0.0s;">
           <div class="flex items-center gap-2 mb-3">
-            {% for _ in range(5) %}
+            
             <span class="text-yellow-400">⭐</span>
-            {% endfor %}
+            
+            <span class="text-yellow-400">⭐</span>
+            
+            <span class="text-yellow-400">⭐</span>
+            
+            <span class="text-yellow-400">⭐</span>
+            
+            <span class="text-yellow-400">⭐</span>
+            
           </div>
-          <p class="text-gray-300 italic mb-4">"{{ t.text }}"</p>
-          <p class="text-primary-light font-semibold">— {{ t.name }}</p>
+          <p class="text-gray-300 italic mb-4">"Increíble experiencia. Los resultados fueron exactamente lo que necesitaba."</p>
+          <p class="text-primary-light font-semibold">— María G.</p>
         </div>
-        {% endfor %}
+        
+        <div class="testimonial-card reveal" style="animation-delay: 0.15s;">
+          <div class="flex items-center gap-2 mb-3">
+            
+            <span class="text-yellow-400">⭐</span>
+            
+            <span class="text-yellow-400">⭐</span>
+            
+            <span class="text-yellow-400">⭐</span>
+            
+            <span class="text-yellow-400">⭐</span>
+            
+            <span class="text-yellow-400">⭐</span>
+            
+          </div>
+          <p class="text-gray-300 italic mb-4">"Profesional y efectivo. Muy recomendado para quien busca soluciones reales."</p>
+          <p class="text-primary-light font-semibold">— Carlos R.</p>
+        </div>
+        
+        <div class="testimonial-card reveal" style="animation-delay: 0.3s;">
+          <div class="flex items-center gap-2 mb-3">
+            
+            <span class="text-yellow-400">⭐</span>
+            
+            <span class="text-yellow-400">⭐</span>
+            
+            <span class="text-yellow-400">⭐</span>
+            
+            <span class="text-yellow-400">⭐</span>
+            
+            <span class="text-yellow-400">⭐</span>
+            
+          </div>
+          <p class="text-gray-300 italic mb-4">"Después de años buscando, finalmente encontré a alguien que realmente sabe."</p>
+          <p class="text-primary-light font-semibold">— Laura M.</p>
+        </div>
+        
       </div>
     </div>
   </section>
@@ -421,34 +580,38 @@ Generated: {{ design.timestamp }}
   <!-- ========================================== -->
   <section class="py-20 px-4 text-center relative overflow-hidden">
     <!-- Animated Background -->
-    <div class="absolute inset-0" style="{{ design.section_styles.hero }}"></div>
+    <div class="absolute inset-0" style="
+                background: radial-gradient(ellipse at top, #BE185D, #581C87);
+                position: relative;
+                overflow: hidden;
+            "></div>
     <div class="hero-overlay"></div>
     
     <div class="relative z-10 max-w-3xl mx-auto reveal">
-      <span class="text-6xl mb-6 block animate-float">{{ design.hero_icon }}</span>
+      <span class="text-6xl mb-6 block animate-float">✨</span>
       
       <h2 class="font-heading text-3xl md:text-4xl font-bold mb-6">
         <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-          {{ closing_headline|default('¿Listo para Transformar tu Vida?') }}
+          ¿Listo para Transformar tu Vida?
         </span>
       </h2>
       
       <p class="text-xl text-gray-300 mb-8">
-        {{ closing_paragraph|default('No esperes más. Da el primer paso hacia el cambio que mereces.') }}
+        No esperes más. Da el primer paso hacia el cambio que mereces.
       </p>
       
       <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-        <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
+        <a href="https://wa.me/573001234567" class="cta-button animate-glow">
           <span>💬</span>
           <span>WhatsApp Directo</span>
         </a>
         
-        {% if phone %}
-        <a href="tel:{{ phone }}" class="cta-button" style="background: var(--color-secondary);">
+        
+        <a href="tel:+573001234567" class="cta-button" style="background: var(--color-secondary);">
           <span>📞</span>
           <span>Llamar Ahora</span>
         </a>
-        {% endif %}
+        
       </div>
       
       <!-- Urgency Indicator -->
@@ -465,9 +628,17 @@ Generated: {{ design.timestamp }}
     <div class="max-w-4xl mx-auto">
       <!-- Design Signature -->
       <div class="flex justify-center gap-2 mb-4">
-        {% for icon in design.icons[:5] %}
-        <span class="text-lg opacity-50">{{ icon }}</span>
-        {% endfor %}
+        
+        <span class="text-lg opacity-50">🌸</span>
+        
+        <span class="text-lg opacity-50">💖</span>
+        
+        <span class="text-lg opacity-50">💜</span>
+        
+        <span class="text-lg opacity-50">🔮</span>
+        
+        <span class="text-lg opacity-50">🦋</span>
+        
       </div>
       
       <p class="text-gray-500 text-sm">
@@ -476,9 +647,9 @@ Generated: {{ design.timestamp }}
       
       <!-- Hidden Design Meta for debugging -->
       <div class="hidden">
-        Design: {{ design.design_name }} | 
-        Category: {{ design.category }} | 
-        ID: {{ design.design_id }}
+        Design: Luna Rosa | 
+        Category: amor_amarres | 
+        ID: de9404461151
       </div>
     </div>
   </footer>
