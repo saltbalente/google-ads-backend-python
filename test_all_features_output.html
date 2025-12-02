@@ -6,35 +6,35 @@
 Este template se adapta automáticamente basado en las keywords del grupo de anuncios.
 Cada generación produce un diseño único y variado especializado en el nicho esotérico.
 
-Design ID: {{ design.design_id }}
-Design Name: {{ design.design_name }}
-Category: {{ design.category }}
-Atmosphere: {{ design.atmosphere_name }}
-Generated: {{ design.timestamp }}
+Design ID: test_design
+Design Name: Test Design
+Category: Esoteric
+Atmosphere: Mystic
+Generated: 2023-10-27
 -->
 
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ seo_title }}</title>
+  <title>Test Page</title>
   
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon-32x32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/apple-touch-icon.png">
 
-  <meta name="description" content="{{ seo_description }}" />
-  <meta name="keywords" content="{{ keywords|join(', ') }}" />
+  <meta name="description" content="Test Description" />
+  <meta name="keywords" content="test" />
   
   <!-- Open Graph -->
-  <meta property="og:title" content="{{ seo_title }}" />
-  <meta property="og:description" content="{{ seo_description }}" />
+  <meta property="og:title" content="Test Page" />
+  <meta property="og:description" content="Test Description" />
   <meta property="og:type" content="website" />
   
   <!-- Dynamic Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="{{ design.font_import_url }}" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&amp;display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -43,19 +43,19 @@ Generated: {{ design.timestamp }}
       theme: {
         extend: {
           fontFamily: {
-            heading: [{{ design.fonts.heading|tojson|safe }}, 'serif'],
-            body: [{{ design.fonts.body|tojson|safe }}, 'sans-serif'],
+            heading: ["Roboto", 'serif'],
+            body: ["Roboto", 'sans-serif'],
           },
           colors: {
             primary: {
-              DEFAULT: '{{ design.colors.primary }}',
-              dark: '{{ design.colors.primary_dark }}',
-              light: '{{ design.colors.primary_light }}',
+              DEFAULT: '#8B5CF6',
+              dark: '#6D28D9',
+              light: '#A78BFA',
             },
-            secondary: '{{ design.colors.secondary }}',
-            accent: '{{ design.colors.accent }}',
-            surface: '{{ design.colors.surface }}',
-            background: '{{ design.colors.background }}',
+            secondary: '#EC4899',
+            accent: '#F59E0B',
+            surface: '#1E293B',
+            background: '#0F172A',
           },
         }
       }
@@ -64,10 +64,10 @@ Generated: {{ design.timestamp }}
 
   <style>
     /* CSS Variables - Generated Dynamically */
-    {{ design.css_variables|safe }}
+    
     
     /* Animation Keyframes - Based on Intensity */
-    {{ design.animation_css|safe }}
+    
     
     /* Base Styles */
     body {
@@ -87,7 +87,7 @@ Generated: {{ design.timestamp }}
     
     /* Hero Section - Dynamic Style */
     .hero-section {
-      {{ design.section_styles.hero|safe }}
+      
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -98,18 +98,18 @@ Generated: {{ design.timestamp }}
     }
     
     .hero-overlay {
-      {{ design.section_styles.hero_overlay|safe }}
+      
     }
     
     /* Content Section */
     .content-section {
-      {{ design.section_styles.content|safe }}
+      
       padding: 4rem 1rem;
     }
     
     /* Testimonial Cards */
     .testimonial-card {
-      {{ design.section_styles.testimonial|safe }}
+      
       border-radius: var(--border-radius, 1rem);
       padding: 1.5rem;
       backdrop-filter: blur(10px);
@@ -117,7 +117,7 @@ Generated: {{ design.timestamp }}
     
     /* CTA Buttons - Dynamic Gradient */
     .cta-button {
-      {{ design.section_styles.cta_button|safe }}
+      
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -133,12 +133,12 @@ Generated: {{ design.timestamp }}
     }
     
     .cta-button:hover {
-      {{ design.section_styles.cta_button_hover|safe }}
+      
     }
     
     /* Footer */
     .footer-section {
-      {{ design.section_styles.footer|safe }}
+      
       padding: 2rem 1rem;
     }
     
@@ -256,24 +256,26 @@ Generated: {{ design.timestamp }}
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','{{ gtm_id }}');
+    })(window,document,'script','dataLayer','GTM-TEST');
   </script>
 </head>
 
 <body class="antialiased selection:bg-primary/20 min-h-screen">
   <!-- Google Tag Manager (noscript) -->
-  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ gtm_id }}"
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TEST"
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
   <!-- ========================================== -->
   <!-- HERO SECTION - Fully Dynamic -->
   <!-- ========================================== -->
-  <section class="hero-section relative" {% if user_image_hero_bg %}style="background-image: url('{{ user_image_hero_bg }}'); background-size: cover; background-position: center;"{% endif %}>
+  <section class="hero-section relative" >
     <!-- Particles -->
     <div class="particles-container">
-      {% for icon in design.icons %}
-      <span class="particle">{{ icon }}</span>
-      {% endfor %}
+      
+      <span class="particle">🔮</span>
+      
+      <span class="particle">✨</span>
+      
     </div>
     
     <!-- Hero Overlay -->
@@ -282,151 +284,43 @@ Generated: {{ design.timestamp }}
     <!-- Hero Content -->
     <div class="relative z-10 w-full max-w-7xl mx-auto px-4">
       
-      {% if design.layout and design.layout.hero_style == 'split_left' %}
-      <!-- SPLIT LEFT LAYOUT -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center text-left">
-        <div>
-          <div class="hero-icon mb-6 text-left text-6xl">{{ design.hero_icon }}</div>
-          <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-            <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              {{ headline }}
-            </span>
-          </h1>
-          <p class="text-xl md:text-2xl text-gray-300 mb-8">
-            {{ subheadline }}
-          </p>
-          <div class="flex gap-4 justify-start">
-             <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
-              <span>💬</span>
-              <span>Contactar Ahora</span>
-            </a>
-          </div>
-        </div>
-        <div class="hidden lg:flex justify-center items-center relative">
-           {% if user_videos and user_videos[0].url %}
-             <div class="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-               <video src="{{ user_videos[0].url }}" autoplay muted loop playsinline class="w-full h-auto"></video>
-             </div>
-           {% elif top_image %}
-             <div class="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-               <img src="{{ top_image }}" alt="{{ headline }}" class="w-full h-auto object-cover" />
-             </div>
-           {% else %}
-             <div class="absolute w-full aspect-square max-w-md bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-3xl animate-pulse-custom"></div>
-             <div class="relative text-[12rem] animate-float">{{ design.hero_icon }}</div>
-           {% endif %}
-        </div>
-      </div>
-
-      {% elif design.layout and design.layout.hero_style == 'split_right' %}
-      <!-- SPLIT RIGHT LAYOUT -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center text-left">
-        <div class="hidden lg:flex justify-center items-center relative order-2 lg:order-1">
-           {% if user_videos and user_videos[0].url %}
-             <div class="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-               <video src="{{ user_videos[0].url }}" autoplay muted loop playsinline class="w-full h-auto"></video>
-             </div>
-           {% elif top_image %}
-             <div class="relative w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-white/10">
-               <img src="{{ top_image }}" alt="{{ headline }}" class="w-full h-auto object-cover" />
-             </div>
-           {% else %}
-             <div class="absolute w-full aspect-square max-w-md bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full blur-3xl animate-pulse-custom"></div>
-             <div class="relative text-[12rem] animate-float">{{ design.hero_icon }}</div>
-           {% endif %}
-        </div>
-        <div class="order-1 lg:order-2">
-          <div class="hero-icon mb-6 text-left text-6xl">{{ design.hero_icon }}</div>
-          <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-            <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              {{ headline }}
-            </span>
-          </h1>
-          <p class="text-xl md:text-2xl text-gray-300 mb-8">
-            {{ subheadline }}
-          </p>
-          <div class="flex gap-4 justify-start">
-             <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
-              <span>💬</span>
-              <span>Contactar Ahora</span>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {% elif design.layout and design.layout.hero_style == 'overlay_card' %}
-      <!-- OVERLAY CARD LAYOUT -->
-      <div class="flex justify-center items-center min-h-[60vh]">
-        <div class="bg-white/5 backdrop-blur-xl border border-white/10 p-8 md:p-12 rounded-3xl shadow-2xl max-w-4xl text-center relative overflow-hidden">
-          <div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none"></div>
-          
-          {% if user_videos and user_videos[0].url %}
-             <div class="mb-8 rounded-xl overflow-hidden shadow-lg border border-white/10 mx-auto max-w-lg">
-               <video src="{{ user_videos[0].url }}" autoplay muted loop playsinline class="w-full h-auto"></video>
-             </div>
-          {% elif top_image %}
-             <div class="mb-8 rounded-xl overflow-hidden shadow-lg border border-white/10 mx-auto max-w-lg">
-               <img src="{{ top_image }}" alt="{{ headline }}" class="w-full h-auto object-cover" />
-             </div>
-          {% else %}
-             <div class="hero-icon mb-6 text-6xl inline-block">{{ design.hero_icon }}</div>
-          {% endif %}
-
-          <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight relative z-10">
-            <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              {{ headline }}
-            </span>
-          </h1>
-          <p class="text-xl md:text-2xl text-gray-300 mb-8 relative z-10">
-            {{ subheadline }}
-          </p>
-          <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow relative z-10">
-            <span>💬</span>
-            <span>Contactar Ahora</span>
-          </a>
-        </div>
-      </div>
-
-      {% else %}
+      
       <!-- DEFAULT CENTERED LAYOUT -->
       <div class="max-w-4xl mx-auto text-center">
-        {% if user_videos and user_videos[0].url %}
-           <div class="mb-8 rounded-2xl overflow-hidden shadow-2xl border border-white/10 mx-auto max-w-2xl">
-             <video src="{{ user_videos[0].url }}" autoplay muted loop playsinline class="w-full h-auto"></video>
-           </div>
-        {% elif top_image %}
-           <div class="mb-8 rounded-2xl overflow-hidden shadow-2xl border border-white/10 mx-auto max-w-2xl">
-             <img src="{{ top_image }}" alt="{{ headline }}" class="w-full h-auto object-cover" />
-           </div>
-        {% else %}
+        
            <div class="hero-icon mb-6">
-             {{ design.hero_icon }}
+             🔮
            </div>
-        {% endif %}
+        
         
         <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
           <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-            {{ headline }}
+            Test Headline
           </span>
         </h1>
         <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto">
-          {{ subheadline }}
+          Test Subheadline
         </p>
-        <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
+        <a href="https://wa.me/1234567890" class="cta-button animate-glow">
           <span>💬</span>
           <span>Contactar Ahora</span>
         </a>
       </div>
-      {% endif %}
+      
       
       <!-- Trust Indicators -->
       <div class="mt-12 flex flex-wrap justify-center gap-6 text-sm text-gray-400">
-        {% for icon in design.icons[:3] %}
+        
         <span class="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full backdrop-blur-sm border border-white/5">
-          <span>{{ icon }}</span>
-          <span>{{ design.mood_keywords[loop.index0]|default('Profesional')|title }}</span>
+          <span>🔮</span>
+          <span>Místico</span>
         </span>
-        {% endfor %}
+        
+        <span class="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full backdrop-blur-sm border border-white/5">
+          <span>✨</span>
+          <span>Poderoso</span>
+        </span>
+        
       </div>
     </div>
     
@@ -444,154 +338,104 @@ Generated: {{ design.timestamp }}
   <section class="content-section">
     <div class="max-w-4xl mx-auto">
       
-      {% set content_image = user_image_middle or top_image %}
       
-      {% if design.layout and design.layout.content_style == 'split_image_text' and content_image %}
-      <!-- SPLIT CONTENT LAYOUT -->
-      <div class="grid md:grid-cols-2 gap-12 items-center mb-16">
-        <div class="image-container glow-border reveal h-full min-h-[300px]">
-          <img src="{{ content_image }}" alt="{{ headline }}" loading="lazy" class="w-full h-full object-cover" />
-        </div>
-        <div class="prose prose-invert prose-lg reveal">
-          <div class="text-gray-300 leading-relaxed space-y-6">
-            {{ intro_paragraph|safe }}
-          </div>
-        </div>
-      </div>
-      {% else %}
+      
+      
       <!-- DEFAULT SINGLE COLUMN LAYOUT -->
       <!-- Primary Image -->
-      {% if content_image %}
-      <div class="image-container mb-12 glow-border reveal">
-        <img src="{{ content_image }}" alt="{{ headline }}" loading="lazy" />
-      </div>
-      {% endif %}
+      
       
       <!-- Main Content -->
       <div class="prose prose-invert prose-lg mx-auto reveal">
         <div class="text-gray-300 leading-relaxed space-y-6">
-          {{ intro_paragraph|safe }}
+          <p>Intro</p>
         </div>
       </div>
-      {% endif %}
+      
       
       <!-- Benefits Image -->
-      {% if user_image_benefits %}
-      <div class="image-container my-12 glow-border reveal max-w-2xl mx-auto">
-        <img src="{{ user_image_benefits }}" alt="Beneficios" loading="lazy" />
-      </div>
-      {% endif %}
+      
 
       <!-- Feature Cards Grid -->
-      {% if design.layout and design.layout.features_style == 'grid_3' %}
-      <!-- GRID 3 LAYOUT -->
-      <div class="grid md:grid-cols-3 gap-6 mt-12">
-        {% for i in range(6) %}
-        <div class="testimonial-card reveal h-full" style="animation-delay: {{ i * 0.1 }}s;">
-          <div class="flex flex-col items-center text-center gap-4">
-            <span class="text-4xl mb-2">{{ design.icons[i % design.icons|length] }}</span>
-            <div>
-              <h3 class="font-heading text-lg font-semibold text-primary-light mb-2">
-                {{ design.mood_keywords[i % design.mood_keywords|length]|title }}
-              </h3>
-              <p class="text-gray-400 text-sm">
-                Soluciones especializadas en {{ design.mood_keywords[i % design.mood_keywords|length] }}.
-              </p>
-            </div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-
-      {% elif design.layout and design.layout.features_style == 'zigzag' %}
-      <!-- ZIGZAG LAYOUT -->
-      <div class="space-y-16 mt-16">
-        {% for i in range(4) %}
-        <div class="flex flex-col md:flex-row gap-8 items-center reveal {% if loop.index is even %}md:flex-row-reverse{% endif %}" style="animation-delay: {{ i * 0.1 }}s;">
-          <div class="w-full md:w-1/2 flex justify-center">
-            <div class="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center text-5xl shadow-lg border border-white/10">
-              {{ design.icons[i % design.icons|length] }}
-            </div>
-          </div>
-          <div class="w-full md:w-1/2 text-center md:text-left">
-            <h3 class="font-heading text-2xl font-bold text-primary-light mb-4">
-              {{ design.mood_keywords[i % design.mood_keywords|length]|title }}
-            </h3>
-            <p class="text-gray-300 leading-relaxed">
-              Ofrecemos el mejor servicio de {{ design.mood_keywords[i % design.mood_keywords|length] }} con atención personalizada y resultados garantizados para tu tranquilidad.
-            </p>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-
-      {% elif design.layout and design.layout.features_style == 'cards' %}
-      <!-- CARDS LAYOUT (Large) -->
-      <div class="grid md:grid-cols-2 gap-8 mt-12">
-        {% for i in range(4) %}
-        <div class="testimonial-card reveal relative overflow-hidden group hover:bg-white/5 transition-colors duration-300" style="animation-delay: {{ i * 0.1 }}s;">
-          <div class="absolute top-0 right-0 p-4 opacity-10 text-8xl transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-500">
-            {{ design.icons[i % design.icons|length] }}
-          </div>
-          <div class="relative z-10">
-            <span class="text-4xl mb-4 block">{{ design.icons[i % design.icons|length] }}</span>
-            <h3 class="font-heading text-xl font-bold text-primary-light mb-3">
-              {{ design.mood_keywords[i % design.mood_keywords|length]|title }}
-            </h3>
-            <p class="text-gray-400">
-              Experiencia comprobada en {{ design.mood_keywords[i % design.mood_keywords|length] }}. Nuestro equipo está listo para ayudarte a lograr tus objetivos.
-            </p>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-
-      {% else %}
+      
       <!-- DEFAULT GRID 2 LAYOUT -->
       <div class="grid md:grid-cols-2 gap-6 mt-12">
-        {% for i in range(4) %}
-        <div class="testimonial-card reveal" style="animation-delay: {{ i * 0.1 }}s;">
+        
+        <div class="testimonial-card reveal" style="animation-delay: 0.0s;">
           <div class="flex items-start gap-4">
-            <span class="text-3xl">{{ design.icons[i % design.icons|length] }}</span>
+            <span class="text-3xl">🔮</span>
             <div>
               <h3 class="font-heading text-lg font-semibold text-primary-light mb-2">
-                {{ design.mood_keywords[i % design.mood_keywords|length]|title }}
+                Místico
               </h3>
               <p class="text-gray-400 text-sm">
-                Experto en {{ design.mood_keywords[i % design.mood_keywords|length] }} con resultados comprobados.
+                Experto en Místico con resultados comprobados.
               </p>
             </div>
           </div>
         </div>
-        {% endfor %}
+        
+        <div class="testimonial-card reveal" style="animation-delay: 0.1s;">
+          <div class="flex items-start gap-4">
+            <span class="text-3xl">✨</span>
+            <div>
+              <h3 class="font-heading text-lg font-semibold text-primary-light mb-2">
+                Poderoso
+              </h3>
+              <p class="text-gray-400 text-sm">
+                Experto en Poderoso con resultados comprobados.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card reveal" style="animation-delay: 0.2s;">
+          <div class="flex items-start gap-4">
+            <span class="text-3xl">🔮</span>
+            <div>
+              <h3 class="font-heading text-lg font-semibold text-primary-light mb-2">
+                Místico
+              </h3>
+              <p class="text-gray-400 text-sm">
+                Experto en Místico con resultados comprobados.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="testimonial-card reveal" style="animation-delay: 0.30000000000000004s;">
+          <div class="flex items-start gap-4">
+            <span class="text-3xl">✨</span>
+            <div>
+              <h3 class="font-heading text-lg font-semibold text-primary-light mb-2">
+                Poderoso
+              </h3>
+              <p class="text-gray-400 text-sm">
+                Experto en Poderoso con resultados comprobados.
+              </p>
+            </div>
+          </div>
+        </div>
+        
       </div>
-      {% endif %}
+      
       
       <!-- Promo Image -->
-      {% if user_image_promo %}
-      <div class="image-container my-12 glow-border reveal">
-        <img src="{{ user_image_promo }}" alt="Promoción Especial" loading="lazy" />
-      </div>
-      {% endif %}
+      
       
       <!-- Additional Content -->
       <div class="prose prose-invert prose-lg mx-auto reveal">
         <div class="text-gray-300 leading-relaxed space-y-6">
-          {{ body_paragraph|safe }}
+          <p>Body</p>
         </div>
       </div>
       
       <!-- Mid-Section CTA -->
       <div class="text-center my-12 reveal relative p-8 rounded-3xl overflow-hidden">
-        {% if user_image_cta1 %}
-        <div class="absolute inset-0 opacity-30">
-            <img src="{{ user_image_cta1 }}" class="w-full h-full object-cover" />
-        </div>
-        <div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
-        {% endif %}
         
-        <a href="https://wa.me/{{ whatsapp }}" class="cta-button relative z-10">
-          <span>{{ design.hero_icon }}</span>
+        
+        <a href="https://wa.me/1234567890" class="cta-button relative z-10">
+          <span>🔮</span>
           <span>Consulta Gratis</span>
         </a>
       </div>
@@ -603,7 +447,7 @@ Generated: {{ design.timestamp }}
   <!-- DYNAMIC SECTIONS (PREMIUM, TESTIMONIALS, BLOG, FAQ) -->
   <!-- ========================================== -->
 
-  {% if show_premium_services and premium_services %}
+  
   <!-- PREMIUM SERVICES SECTION -->
   <section class="py-16 px-4 bg-surface/30 backdrop-blur-sm">
     <div class="max-w-7xl mx-auto">
@@ -613,22 +457,31 @@ Generated: {{ design.timestamp }}
         </span>
       </h2>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {% for service in premium_services %}
+        
         <div class="bg-surface border border-primary/20 rounded-2xl p-8 hover:border-primary/50 transition-all duration-300 reveal hover:-translate-y-2 shadow-lg shadow-primary/5">
-          <div class="text-4xl mb-4">{{ ['🔮', '✨', '🌙', '⭐', '🕯️', '🧿'] | random }}</div>
-          <h3 class="text-xl font-bold text-primary-light mb-3">{{ service.title }}</h3>
-          <p class="text-gray-300 mb-6 leading-relaxed">{{ service.description }}</p>
-          <a href="https://wa.me/{{ whatsapp }}?text={{ service.whatsapp_message|urlencode }}" class="cta-button w-full text-sm py-3 justify-center">
+          <div class="text-4xl mb-4">🕯️</div>
+          <h3 class="text-xl font-bold text-primary-light mb-3">Lectura de Tarot Premium</h3>
+          <p class="text-gray-300 mb-6 leading-relaxed">Lectura profunda de 1 hora.</p>
+          <a href="https://wa.me/1234567890?text=Hola%2C%20quiero%20la%20lectura%20premium" class="cta-button w-full text-sm py-3 justify-center">
             Solicitar Ahora
           </a>
         </div>
-        {% endfor %}
+        
+        <div class="bg-surface border border-primary/20 rounded-2xl p-8 hover:border-primary/50 transition-all duration-300 reveal hover:-translate-y-2 shadow-lg shadow-primary/5">
+          <div class="text-4xl mb-4">✨</div>
+          <h3 class="text-xl font-bold text-primary-light mb-3">Limpieza Energética</h3>
+          <p class="text-gray-300 mb-6 leading-relaxed">Limpieza total de aura.</p>
+          <a href="https://wa.me/1234567890?text=Hola%2C%20quiero%20la%20limpieza" class="cta-button w-full text-sm py-3 justify-center">
+            Solicitar Ahora
+          </a>
+        </div>
+        
       </div>
     </div>
   </section>
-  {% endif %}
+  
 
-  {% if show_testimonials and testimonials %}
+  
   <!-- TESTIMONIALS CAROUSEL -->
   <section class="py-20 px-4 overflow-hidden relative">
     <div class="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none"></div>
@@ -638,27 +491,41 @@ Generated: {{ design.timestamp }}
       </h2>
       <!-- Simple CSS Carousel -->
       <div class="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory hide-scrollbar" style="-webkit-overflow-scrolling: touch;">
-        {% for t in testimonials %}
+        
         <div class="min-w-[300px] md:min-w-[400px] bg-surface/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 snap-center reveal shadow-xl">
           <div class="flex gap-1 mb-4 text-yellow-400 text-sm">★★★★★</div>
-          <p class="text-gray-300 italic mb-6 text-lg leading-relaxed">"{{ t.text }}"</p>
+          <p class="text-gray-300 italic mb-6 text-lg leading-relaxed">"Me cambió la vida totalmente."</p>
           <div class="flex items-center gap-4 border-t border-white/10 pt-4">
             <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold text-xl shadow-lg">
-              {{ t.name[0] }}
+              M
             </div>
             <div>
-              <p class="font-bold text-white">{{ t.name }}</p>
-              <p class="text-xs text-primary-light">{{ t.location|default('Cliente Verificado') }}</p>
+              <p class="font-bold text-white">María G.</p>
+              <p class="text-xs text-primary-light">Madrid</p>
             </div>
           </div>
         </div>
-        {% endfor %}
+        
+        <div class="min-w-[300px] md:min-w-[400px] bg-surface/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 snap-center reveal shadow-xl">
+          <div class="flex gap-1 mb-4 text-yellow-400 text-sm">★★★★★</div>
+          <p class="text-gray-300 italic mb-6 text-lg leading-relaxed">"Increíble precisión."</p>
+          <div class="flex items-center gap-4 border-t border-white/10 pt-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold text-xl shadow-lg">
+              J
+            </div>
+            <div>
+              <p class="font-bold text-white">Juan P.</p>
+              <p class="text-xs text-primary-light">Bogotá</p>
+            </div>
+          </div>
+        </div>
+        
       </div>
     </div>
   </section>
-  {% endif %}
+  
 
-  {% if show_blog and blog_articles %}
+  
   <!-- BLOG SECTION -->
   <section class="py-20 px-4 bg-black/40">
     <div class="max-w-4xl mx-auto">
@@ -666,90 +533,99 @@ Generated: {{ design.timestamp }}
         <span class="border-b-2 border-primary pb-2">Artículos Esotéricos</span>
       </h2>
       <div class="space-y-16">
-        {% for article in blog_articles %}
+        
         <article class="reveal group">
-          <h3 class="text-2xl md:text-3xl font-bold text-primary-light mb-6 group-hover:text-secondary transition-colors">{{ article.title }}</h3>
+          <h3 class="text-2xl md:text-3xl font-bold text-primary-light mb-6 group-hover:text-secondary transition-colors">Cómo atraer el amor</h3>
           <div class="prose prose-invert prose-lg max-w-none text-gray-300 leading-relaxed">
-            {{ article.content|safe }}
+            <p>Consejos para atraer el amor...</p>
           </div>
-          {% if not loop.last %}
+          
           <div class="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mt-16"></div>
-          {% endif %}
+          
         </article>
-        {% endfor %}
+        
+        <article class="reveal group">
+          <h3 class="text-2xl md:text-3xl font-bold text-primary-light mb-6 group-hover:text-secondary transition-colors">Significado de los sueños</h3>
+          <div class="prose prose-invert prose-lg max-w-none text-gray-300 leading-relaxed">
+            <p>Soñar con agua significa...</p>
+          </div>
+          
+        </article>
+        
       </div>
     </div>
   </section>
-  {% endif %}
+  
 
-  {% if show_faq and faqs %}
+  
   <!-- FAQ SECTION -->
   <section class="py-16 px-4">
     <div class="max-w-3xl mx-auto">
       <h2 class="font-heading text-3xl md:text-4xl text-center mb-12 reveal">Preguntas Frecuentes</h2>
       <div class="space-y-4">
-        {% for faq in faqs %}
+        
         <div class="border border-white/10 rounded-xl overflow-hidden reveal bg-surface/50 backdrop-blur-sm">
           <details class="group">
             <summary class="flex justify-between items-center p-6 cursor-pointer hover:bg-white/5 transition-colors list-none">
-              <span class="font-semibold text-lg pr-8">{{ faq.question }}</span>
+              <span class="font-semibold text-lg pr-8">¿Es seguro?</span>
               <span class="transition-transform duration-300 group-open:rotate-180 text-primary">▼</span>
             </summary>
             <div class="p-6 pt-0 text-gray-300 border-t border-white/5">
-              <p class="mt-4 leading-relaxed">{{ faq.answer }}</p>
+              <p class="mt-4 leading-relaxed">Sí, totalmente seguro y confidencial.</p>
             </div>
           </details>
         </div>
-        {% endfor %}
+        
+        <div class="border border-white/10 rounded-xl overflow-hidden reveal bg-surface/50 backdrop-blur-sm">
+          <details class="group">
+            <summary class="flex justify-between items-center p-6 cursor-pointer hover:bg-white/5 transition-colors list-none">
+              <span class="font-semibold text-lg pr-8">¿Cuánto tarda?</span>
+              <span class="transition-transform duration-300 group-open:rotate-180 text-primary">▼</span>
+            </summary>
+            <div class="p-6 pt-0 text-gray-300 border-t border-white/5">
+              <p class="mt-4 leading-relaxed">Los resultados se ven en pocos días.</p>
+            </div>
+          </details>
+        </div>
+        
       </div>
     </div>
   </section>
-  {% endif %}
+  
 
   <!-- Bottom Image -->
-  {% if user_image_bottom %}
-  <section class="py-8 px-4">
-    <div class="max-w-4xl mx-auto image-container glow-border reveal">
-      <img src="{{ user_image_bottom }}" alt="Imagen Final" loading="lazy" />
-    </div>
-  </section>
-  {% endif %}
+  
 
   <!-- ========================================== -->
   <!-- FINAL CTA SECTION -->
   <!-- ========================================== -->
-  <section class="py-20 px-4 text-center relative overflow-hidden" {% if user_image_cta2 %}style="background-image: url('{{ user_image_cta2 }}'); background-size: cover; background-position: center;"{% endif %}>
+  <section class="py-20 px-4 text-center relative overflow-hidden" >
     <!-- Animated Background -->
-    {% if not user_image_cta2 %}
-    <div class="absolute inset-0" style="{{ design.section_styles.hero }}"></div>
-    {% endif %}
+    
+    <div class="absolute inset-0" style=""></div>
+    
     <div class="hero-overlay"></div>
     
     <div class="relative z-10 max-w-3xl mx-auto reveal">
-      <span class="text-6xl mb-6 block animate-float">{{ design.hero_icon }}</span>
+      <span class="text-6xl mb-6 block animate-float">🔮</span>
       
       <h2 class="font-heading text-3xl md:text-4xl font-bold mb-6">
         <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-          {{ closing_headline|default('¿Listo para Transformar tu Vida?') }}
+          ¿Listo para Transformar tu Vida?
         </span>
       </h2>
       
       <p class="text-xl text-gray-300 mb-8">
-        {{ closing_paragraph|default('No esperes más. Da el primer paso hacia el cambio que mereces.') }}
+        No esperes más. Da el primer paso hacia el cambio que mereces.
       </p>
       
       <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-        <a href="https://wa.me/{{ whatsapp }}" class="cta-button animate-glow">
+        <a href="https://wa.me/1234567890" class="cta-button animate-glow">
           <span>💬</span>
           <span>WhatsApp Directo</span>
         </a>
         
-        {% if phone %}
-        <a href="tel:{{ phone }}" class="cta-button" style="background: var(--color-secondary);">
-          <span>📞</span>
-          <span>Llamar Ahora</span>
-        </a>
-        {% endif %}
+        
       </div>
       
       <!-- Urgency Indicator -->
@@ -766,9 +642,11 @@ Generated: {{ design.timestamp }}
     <div class="max-w-4xl mx-auto">
       <!-- Design Signature -->
       <div class="flex justify-center gap-2 mb-4">
-        {% for icon in design.icons[:5] %}
-        <span class="text-lg opacity-50">{{ icon }}</span>
-        {% endfor %}
+        
+        <span class="text-lg opacity-50">🔮</span>
+        
+        <span class="text-lg opacity-50">✨</span>
+        
       </div>
       
       <p class="text-gray-500 text-sm">
@@ -777,9 +655,9 @@ Generated: {{ design.timestamp }}
       
       <!-- Hidden Design Meta for debugging -->
       <div class="hidden">
-        Design: {{ design.design_name }} | 
-        Category: {{ design.category }} | 
-        ID: {{ design.design_id }}
+        Design: Test Design | 
+        Category: Esoteric | 
+        ID: test_design
       </div>
     </div>
   </footer>
@@ -804,7 +682,7 @@ Generated: {{ design.timestamp }}
     window.addEventListener('load', reveal);
   </script>
 
-  {% if show_conversion_booster %}
+  
   <!-- ========================================== -->
   <!-- 🚀 CONVERSION BOOSTER SYSTEM -->
   <!-- Pop-up, Floating Button, Banners, etc. -->
@@ -1173,7 +1051,7 @@ Generated: {{ design.timestamp }}
     <div class="floating-tooltip" id="floatingTooltip">
       💬 ¡Escríbeme ahora y resuelve tus dudas GRATIS!
     </div>
-    <a href="https://wa.me/{{ whatsapp }}?text={{ conversion_booster.whatsapp_message|default('Hola, quiero información')|urlencode }}" class="floating-whatsapp-btn" aria-label="WhatsApp">
+    <a href="https://wa.me/1234567890?text=Hola%2C%20quiero%20mis%2030%20minutos%20GRATIS" class="floating-whatsapp-btn" aria-label="WhatsApp">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
       </svg>
@@ -1183,8 +1061,8 @@ Generated: {{ design.timestamp }}
   <!-- Sticky Top Banner -->
   <div class="sticky-banner" id="stickyBanner">
     <div class="sticky-banner-content">
-      <span class="sticky-banner-text">🔥 {{ conversion_booster.banner_text|default('¡OFERTA ESPECIAL! Consulta GRATIS por tiempo limitado') }}</span>
-      <a href="https://wa.me/{{ whatsapp }}?text={{ conversion_booster.whatsapp_message|default('Hola, quiero la oferta especial')|urlencode }}" class="sticky-banner-cta">
+      <span class="sticky-banner-text">🔥 ¡OFERTA ESPECIAL! Consulta GRATIS por tiempo limitado</span>
+      <a href="https://wa.me/1234567890?text=Hola%2C%20quiero%20mis%2030%20minutos%20GRATIS" class="sticky-banner-cta">
         ¡LO QUIERO! →
       </a>
     </div>
@@ -1194,9 +1072,9 @@ Generated: {{ design.timestamp }}
   <div class="side-banner" id="sideBanner">
     <button class="side-banner-close" onclick="document.getElementById('sideBanner').classList.remove('visible')">✕</button>
     <div class="side-banner-icon">🎁</div>
-    <div class="side-banner-title">{{ conversion_booster.side_banner_title|default('¡REGALO EXCLUSIVO!') }}</div>
-    <div class="side-banner-text">{{ conversion_booster.side_banner_text|default('Respuesta a UNA pregunta urgente por WhatsApp ahora mismo 100% GRATIS') }}</div>
-    <a href="https://wa.me/{{ whatsapp }}?text={{ conversion_booster.whatsapp_message|default('Hola, quiero mi regalo gratis')|urlencode }}" class="side-banner-cta">
+    <div class="side-banner-title">¡REGALO EXCLUSIVO!</div>
+    <div class="side-banner-text">Respuesta a UNA pregunta urgente por WhatsApp ahora mismo 100% GRATIS</div>
+    <a href="https://wa.me/1234567890?text=Hola%2C%20quiero%20mis%2030%20minutos%20GRATIS" class="side-banner-cta">
       ¡QUIERO MI REGALO! 🎁
     </a>
   </div>
@@ -1205,19 +1083,19 @@ Generated: {{ design.timestamp }}
   <div class="exit-popup-overlay" id="exitPopup">
     <div class="exit-popup">
       <button class="exit-popup-close" onclick="closeExitPopup()">✕</button>
-      <div class="exit-popup-icon">{{ design.hero_icon|default('🔮') }}</div>
+      <div class="exit-popup-icon">🔮</div>
       <h3 class="exit-popup-title">¡ESPERA! No te vayas sin tu regalo espiritual</h3>
       <div class="exit-popup-offer">
-        {{ conversion_booster.popup_offer|default('🎁 30 minutos de consulta GRATIS + diagnóstico de tu energía') }}
+        🎁 30 minutos de consulta GRATIS + diagnóstico de tu energía
       </div>
       <p class="exit-popup-text">
-        {{ conversion_booster.popup_text|default('Habla directamente conmigo por WhatsApp ahora mismo y solo pagas si decides continuar después. Sin compromiso, sin riesgo.') }}
+        Habla directamente conmigo por WhatsApp ahora mismo y solo pagas si decides continuar después. Sin compromiso, sin riesgo.
       </p>
-      <a href="https://wa.me/{{ whatsapp }}?text={{ conversion_booster.whatsapp_message|default('Hola, quiero mis 30 minutos GRATIS')|urlencode }}" class="exit-popup-cta">
+      <a href="https://wa.me/1234567890?text=Hola%2C%20quiero%20mis%2030%20minutos%20GRATIS" class="exit-popup-cta">
         ¡Sí, quiero mis 30 minutos GRATIS! 💬
       </a>
       <div class="exit-popup-urgency">
-        <span>⚡ Solo {{ conversion_booster.spots_available|default('7') }} plazas disponibles hoy</span> • Cero riesgo • Garantía total
+        <span>⚡ Solo 7 plazas disponibles hoy</span> • Cero riesgo • Garantía total
       </div>
       <div class="countdown-timer" id="popupCountdown">
         ⏰ Esta oferta expira en: <span id="countdownTimer">14:59</span>
@@ -1228,7 +1106,7 @@ Generated: {{ design.timestamp }}
   <script>
     (function() {
       // Configuration
-      const POPUP_DELAY = {{ conversion_booster.popup_delay|default(15000) }}; // ms before showing timed popup
+      const POPUP_DELAY = 15000; // ms before showing timed popup
       const BANNER_SCROLL_THRESHOLD = 300; // px scrolled to show sticky banner
       const SIDE_BANNER_INTERVAL = 45000; // ms between side banner appearances
       const TOOLTIP_MESSAGES = [
@@ -1236,7 +1114,7 @@ Generated: {{ design.timestamp }}
         '🔮 Consulta GRATIS disponible',
         '⚡ Respuesta inmediata',
         '🎁 ¡Tengo un regalo para ti!',
-        '💫 Solo {{ conversion_booster.spots_available|default("7") }} plazas hoy'
+        '💫 Solo 7 plazas hoy'
       ];
       
       let exitPopupShown = false;
@@ -1369,9 +1247,9 @@ Generated: {{ design.timestamp }}
       
     })();
   </script>
-  {% endif %}
+  
 
-  {% if show_hypnotic_texts %}
+  
   <!-- ========================================== -->
   <!-- 🧠 HYPNOTIC TEXTS SECTION -->
   <!-- ========================================== -->
@@ -1390,10 +1268,10 @@ Generated: {{ design.timestamp }}
       <div class="hypnotic-card mb-12 p-8 rounded-3xl bg-gradient-to-br from-purple-900/30 to-indigo-900/30 border border-purple-500/20 backdrop-blur-sm reveal">
         <div class="text-center mb-6">
           <span class="text-4xl">🔮</span>
-          <h3 class="text-2xl font-bold text-purple-300 mt-4">{{ hypnotic_texts.trust_title|default('¿Por qué confiar en mí?') }}</h3>
+          <h3 class="text-2xl font-bold text-purple-300 mt-4">¿Por qué confiar en mí?</h3>
         </div>
         <p class="text-lg text-gray-300 leading-relaxed text-center italic">
-          {{ hypnotic_texts.trust_builder|default('Imagina por un momento cómo sería tu vida si tuvieras las respuestas que buscas. Esa sensación de certeza, de saber exactamente qué hacer. He guiado a miles de personas como tú a través de momentos difíciles, y cada una de ellas encontró su camino. Puedo sentir tu energía ahora mismo, y sé que estás listo para dar ese paso.') }}
+          Imagina por un momento cómo sería tu vida si tuvieras las respuestas que buscas. Esa sensación de certeza, de saber exactamente qué hacer.
         </p>
       </div>
       
@@ -1401,13 +1279,13 @@ Generated: {{ design.timestamp }}
       <div class="hypnotic-card mb-12 p-8 rounded-3xl bg-gradient-to-br from-pink-900/30 to-rose-900/30 border border-pink-500/20 backdrop-blur-sm reveal">
         <div class="text-center mb-6">
           <span class="text-4xl">✨</span>
-          <h3 class="text-2xl font-bold text-pink-300 mt-4">{{ hypnotic_texts.desire_title|default('Lo que puedo hacer por ti') }}</h3>
+          <h3 class="text-2xl font-bold text-pink-300 mt-4">Lo que puedo hacer por ti</h3>
         </div>
         <p class="text-lg text-gray-300 leading-relaxed text-center">
-          {{ hypnotic_texts.desire_trigger|default('En este preciso instante, mientras lees estas palabras, la solución que buscas está más cerca de lo que crees. Solo necesitas extender la mano. Una consulta conmigo puede transformar completamente tu situación en cuestión de días.') }}
+          En este preciso instante, mientras lees estas palabras, la solución que buscas está más cerca de lo que crees.
         </p>
         <div class="text-center mt-6">
-          <a href="https://wa.me/{{ whatsapp }}" class="cta-button inline-flex">
+          <a href="https://wa.me/1234567890" class="cta-button inline-flex">
             <span>💬</span> Quiero esa transformación
           </a>
         </div>
@@ -1417,17 +1295,17 @@ Generated: {{ design.timestamp }}
       <div class="hypnotic-card p-8 rounded-3xl bg-gradient-to-br from-amber-900/30 to-orange-900/30 border border-amber-500/20 backdrop-blur-sm reveal">
         <div class="text-center mb-6">
           <span class="text-4xl">⚡</span>
-          <h3 class="text-2xl font-bold text-amber-300 mt-4">{{ hypnotic_texts.urgency_title|default('El momento es AHORA') }}</h3>
+          <h3 class="text-2xl font-bold text-amber-300 mt-4">El momento es AHORA</h3>
         </div>
         <p class="text-lg text-gray-300 leading-relaxed text-center">
-          {{ hypnotic_texts.urgency_closer|default('Cada minuto que pasa sin actuar es un minuto más de incertidumbre. Las personas que cambian su destino son las que actúan cuando sienten el llamado. Estás sintiendo ese llamado ahora mismo. No lo ignores.') }}
+          Cada minuto que pasa sin actuar es un minuto más de incertidumbre.
         </p>
       </div>
     </div>
   </section>
-  {% endif %}
+  
 
-  {% if show_whatsapp_sticky_bars %}
+  
   <!-- ========================================== -->
   <!-- 📱 WHATSAPP STICKY BARS (TOP + BOTTOM) -->
   <!-- ========================================== -->
@@ -1559,7 +1437,7 @@ Generated: {{ design.timestamp }}
         <span id="currentTime">--:--</span> ✓ activo ahora
       </span>
     </span>
-    <a href="https://wa.me/{{ whatsapp }}?text=Hola%2C%20quiero%20informaci%C3%B3n" class="wa-sticky-btn">
+    <a href="https://wa.me/1234567890?text=Hola%2C%20quiero%20informaci%C3%B3n" class="wa-sticky-btn">
       💬 Escribir Ahora
     </a>
   </div>
@@ -1572,7 +1450,7 @@ Generated: {{ design.timestamp }}
         disponible
       </span>
     </span>
-    <a href="https://wa.me/{{ whatsapp }}?text=Hola%2C%20necesito%20ayuda%20urgente" class="wa-sticky-btn">
+    <a href="https://wa.me/1234567890?text=Hola%2C%20necesito%20ayuda%20urgente" class="wa-sticky-btn">
       🔥 ¡Contactar YA!
     </a>
   </div>
@@ -1589,9 +1467,9 @@ Generated: {{ design.timestamp }}
     updateTime();
     setInterval(updateTime, 60000);
   </script>
-  {% endif %}
+  
 
-  {% if show_vibrating_button %}
+  
   <!-- ========================================== -->
   <!-- 💫 VIBRATING COLOR-CHANGING BUTTON -->
   <!-- ========================================== -->
@@ -1686,14 +1564,14 @@ Generated: {{ design.timestamp }}
     }
   </style>
   
-  <a href="https://wa.me/{{ whatsapp }}?text=Hola%2C%20quiero%20una%20consulta" class="vibrating-wa-btn" aria-label="WhatsApp">
+  <a href="https://wa.me/1234567890?text=Hola%2C%20quiero%20una%20consulta" class="vibrating-wa-btn" aria-label="WhatsApp">
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
     </svg>
   </a>
-  {% endif %}
+  
 
-  {% if show_scroll_popup %}
+  
   <!-- ========================================== -->
   <!-- 📜 SCROLL POPUP (45%) -->
   <!-- ========================================== -->
@@ -1810,7 +1688,7 @@ Generated: {{ design.timestamp }}
       <p class="scroll-popup-text">
         Pregúntame lo que quieras por WhatsApp ahora mismo. <strong>Respondo al instante</strong> y la primera consulta es completamente gratis.
       </p>
-      <a href="https://wa.me/{{ whatsapp }}?text=Hola%2C%20estaba%20leyendo%20tu%20p%C3%A1gina%20y%20tengo%20una%20pregunta" class="scroll-popup-cta">
+      <a href="https://wa.me/1234567890?text=Hola%2C%20estaba%20leyendo%20tu%20p%C3%A1gina%20y%20tengo%20una%20pregunta" class="scroll-popup-cta">
         💬 Sí, tengo una pregunta
       </a>
     </div>
@@ -1833,9 +1711,9 @@ Generated: {{ design.timestamp }}
       }
     })();
   </script>
-  {% endif %}
+  
 
-  {% if show_live_consultations %}
+  
   <!-- ========================================== -->
   <!-- 🔴 LIVE CONSULTATIONS SECTION -->
   <!-- ========================================== -->
@@ -2039,9 +1917,9 @@ Generated: {{ design.timestamp }}
       setInterval(updateList, Math.random() * 15000 + 15000);
     })();
   </script>
-  {% endif %}
+  
 
-  {% if show_live_questions %}
+  
   <!-- ========================================== -->
   <!-- ❓ LIVE QUESTIONS SECTION -->
   <!-- ========================================== -->
@@ -2068,18 +1946,18 @@ Generated: {{ design.timestamp }}
           En tiempo real
         </span>
         <h2 class="text-3xl font-bold text-white">Preguntas que más me hacen hoy</h2>
-        <p class="text-gray-400 mt-2">Actualizado: {{ "now"|default("hace unos minutos") }}</p>
+        <p class="text-gray-400 mt-2">Actualizado: now</p>
       </div>
       
       <div class="space-y-6">
-        {% for q in live_questions %}
-        <div class="live-question-card bg-surface/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6 reveal" style="animation-delay: {{ loop.index * 0.1 }}s;">
+        
+        <div class="live-question-card bg-surface/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6 reveal" style="animation-delay: 0.1s;">
           <div class="flex items-start gap-4">
             <span class="text-2xl">❓</span>
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-purple-300 mb-3">{{ q.question }}</h3>
-              <p class="text-gray-300 leading-relaxed mb-4">{{ q.answer }}</p>
-              <a href="https://wa.me/{{ whatsapp }}?text={{ q.whatsapp_text|default('Hola, tengo una pregunta similar')|urlencode }}" 
+              <h3 class="text-lg font-semibold text-purple-300 mb-3">¿Cuánto tarda un amarre?</h3>
+              <p class="text-gray-300 leading-relaxed mb-4">Los primeros efectos suelen notarse entre 7 y 21 días.</p>
+              <a href="https://wa.me/1234567890?text=Hola%2C%20quiero%20saber%20sobre%20tiempos" 
                  class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
                 Preguntarme esto
@@ -2087,28 +1965,28 @@ Generated: {{ design.timestamp }}
             </div>
           </div>
         </div>
-        {% else %}
-        <!-- Default questions if none provided -->
-        <div class="live-question-card bg-surface/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6 reveal">
+        
+        <div class="live-question-card bg-surface/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6 reveal" style="animation-delay: 0.2s;">
           <div class="flex items-start gap-4">
             <span class="text-2xl">❓</span>
             <div class="flex-1">
-              <h3 class="text-lg font-semibold text-purple-300 mb-3">¿Cuánto tiempo tarda en hacer efecto un amarre?</h3>
-              <p class="text-gray-300 leading-relaxed mb-4">Los primeros efectos suelen notarse entre 7 y 21 días. Cada caso es único y depende de varios factores energéticos. Te explico todo en detalle por WhatsApp.</p>
-              <a href="https://wa.me/{{ whatsapp }}?text=Hola%2C%20quiero%20saber%20cu%C3%A1nto%20tarda%20un%20amarre" 
+              <h3 class="text-lg font-semibold text-purple-300 mb-3">¿Es seguro?</h3>
+              <p class="text-gray-300 leading-relaxed mb-4">Totalmente seguro y confidencial.</p>
+              <a href="https://wa.me/1234567890?text=Hola%2C%20tengo%20dudas%20sobre%20seguridad" 
                  class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                💬 Preguntarme esto
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+                Preguntarme esto
               </a>
             </div>
           </div>
         </div>
-        {% endfor %}
+        
       </div>
     </div>
   </section>
-  {% endif %}
+  
 
-  {% if show_typing_effect %}
+  
   <!-- ========================================== -->
   <!-- ✍️ TYPING EFFECT FLOATING BUTTON -->
   <!-- ========================================== -->
@@ -2244,12 +2122,12 @@ Generated: {{ design.timestamp }}
         <div class="typing-status">✓ activo ahora</div>
       </div>
     </div>
-    <a href="https://wa.me/{{ whatsapp }}?text=Hola%2C%20vi%20que%20est%C3%A1s%20disponible" class="typing-wa-btn" aria-label="WhatsApp">
+    <a href="https://wa.me/1234567890?text=Hola%2C%20vi%20que%20est%C3%A1s%20disponible" class="typing-wa-btn" aria-label="WhatsApp">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
       </svg>
     </a>
   </div>
-  {% endif %}
+  
 </body>
 </html>

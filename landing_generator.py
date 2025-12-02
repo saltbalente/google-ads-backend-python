@@ -137,6 +137,9 @@ class GeneratedContent:
     testimonials: List[Dict[str, str]] = None
     blog_articles: List[Dict[str, str]] = None
     faqs: List[Dict[str, str]] = None
+    conversion_booster: Dict[str, Any] = None
+    hypnotic_texts: Dict[str, Any] = None
+    live_questions: List[Dict[str, str]] = None
 
 
 @dataclass
@@ -830,6 +833,36 @@ class LandingPageGenerator:
                     "\n\nINCLUYE 'faqs': Lista de 5-8 objetos con claves 'question', 'answer'. "
                     "Preguntas frecuentes relevantes para el nicho."
                 )
+            if extra_sections.get('show_conversion_booster'):
+                base_prompt += (
+                    "\n\nINCLUYE 'conversion_booster': Un objeto con las claves: "
+                    "'popup_offer' (string: oferta irresistible para pop-up de salida, ej: '🎁 30 minutos de consulta GRATIS'), "
+                    "'popup_text' (string: texto persuasivo explicando la oferta), "
+                    "'banner_text' (string: texto corto para banner sticky superior), "
+                    "'side_banner_title' (string: título para banner lateral), "
+                    "'side_banner_text' (string: texto persuasivo corto para banner lateral), "
+                    "'whatsapp_message' (string: mensaje pre-escrito para WhatsApp), "
+                    "'spots_available' (int: número de plazas disponibles, entre 3 y 10). "
+                    "Las ofertas deben ser IRRESISTIBLES tipo: 'Consulta GRATIS de 30 min', 'Solo pagas si te ayuda', "
+                    "'Te regalo tu carta astral', 'Respuesta a 1 pregunta GRATIS'. Usa urgencia y escasez."
+                )
+            if extra_sections.get('show_hypnotic_texts'):
+                base_prompt += (
+                    "\n\nINCLUYE 'hypnotic_texts': Un objeto con las claves: "
+                    "'trust_builder' (string: texto que genera confianza absoluta, 150-200 palabras, usa técnicas de PNL), "
+                    "'desire_trigger' (string: texto que crea deseo inmediato de contratar, 100-150 palabras), "
+                    "'urgency_closer' (string: texto de cierre con urgencia emocional, 80-100 palabras), "
+                    "'social_validation' (string: texto que valida socialmente la decisión, 80-100 palabras). "
+                    "Los textos deben ser hipnóticos, usar lenguaje sensorial, crear imágenes mentales vívidas."
+                )
+            if extra_sections.get('show_live_questions'):
+                base_prompt += (
+                    "\n\nINCLUYE 'live_questions': Lista de 6 objetos con claves: "
+                    "'question' (pregunta que la gente hace frecuentemente hoy), "
+                    "'answer' (respuesta empática y persuasiva de 50-80 palabras), "
+                    "'whatsapp_text' (mensaje pre-escrito para WhatsApp relacionado con esa pregunta). "
+                    "Las preguntas deben ser sobre el nicho específico (tarot, amarres, etc)."
+                )
         
         if niche == "esoteric":
             base_prompt += (
@@ -1023,7 +1056,10 @@ class LandingPageGenerator:
                 premium_services=data.get("premium_services", []),
                 testimonials=data.get("testimonials", []),
                 blog_articles=data.get("blog_articles", []),
-                faqs=data.get("faqs", [])
+                faqs=data.get("faqs", []),
+                conversion_booster=data.get("conversion_booster", None),
+                hypnotic_texts=data.get("hypnotic_texts", None),
+                live_questions=data.get("live_questions", [])
             )
         except Exception as e:
             raise RuntimeError(f"Error processing AI response data: {str(e)}")
@@ -1294,10 +1330,21 @@ class LandingPageGenerator:
                 show_testimonials=config.get("show_testimonials", False),
                 show_blog=config.get("show_blog", False),
                 show_faq=config.get("show_faq", False),
+                show_conversion_booster=config.get("show_conversion_booster", False),
+                show_hypnotic_texts=config.get("show_hypnotic_texts", False),
+                show_whatsapp_sticky_bars=config.get("show_whatsapp_sticky_bars", False),
+                show_vibrating_button=config.get("show_vibrating_button", False),
+                show_scroll_popup=config.get("show_scroll_popup", False),
+                show_live_consultations=config.get("show_live_consultations", False),
+                show_live_questions=config.get("show_live_questions", False),
+                show_typing_effect=config.get("show_typing_effect", False),
                 premium_services=getattr(gen, 'premium_services', []),
                 testimonials=getattr(gen, 'testimonials', []),
                 blog_articles=getattr(gen, 'blog_articles', []),
                 faqs=getattr(gen, 'faqs', []),
+                conversion_booster=getattr(gen, 'conversion_booster', {}) or {},
+                hypnotic_texts=getattr(gen, 'hypnotic_texts', {}) or {},
+                live_questions=getattr(gen, 'live_questions', []),
             )
             
             logger.info("✅ Landing page dinámica generada exitosamente")
