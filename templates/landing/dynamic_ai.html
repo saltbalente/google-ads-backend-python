@@ -600,38 +600,111 @@ Generated: {{ design.timestamp }}
   </section>
 
   <!-- ========================================== -->
-  <!-- TESTIMONIALS SECTION -->
+  <!-- DYNAMIC SECTIONS (PREMIUM, TESTIMONIALS, BLOG, FAQ) -->
   <!-- ========================================== -->
-  <section class="py-16 px-4" style="background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-background) 100%);">
-    <div class="max-w-5xl mx-auto">
+
+  {% if show_premium_services and premium_services %}
+  <!-- PREMIUM SERVICES SECTION -->
+  <section class="py-16 px-4 bg-surface/30 backdrop-blur-sm">
+    <div class="max-w-7xl mx-auto">
       <h2 class="font-heading text-3xl md:text-4xl text-center mb-12 reveal">
-        <span class="text-primary-light">✨</span>
         <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-          Testimonios Reales
+          Servicios Premium
         </span>
       </h2>
-      
-      <div class="grid md:grid-cols-3 gap-6">
-        {% set testimonials = [
-          {"name": "María G.", "text": "Increíble experiencia. Los resultados fueron exactamente lo que necesitaba."},
-          {"name": "Carlos R.", "text": "Profesional y efectivo. Muy recomendado para quien busca soluciones reales."},
-          {"name": "Laura M.", "text": "Después de años buscando, finalmente encontré a alguien que realmente sabe."}
-        ] %}
-        
-        {% for t in testimonials %}
-        <div class="testimonial-card reveal" style="animation-delay: {{ loop.index0 * 0.15 }}s;">
-          <div class="flex items-center gap-2 mb-3">
-            {% for _ in range(5) %}
-            <span class="text-yellow-400">⭐</span>
-            {% endfor %}
-          </div>
-          <p class="text-gray-300 italic mb-4">"{{ t.text }}"</p>
-          <p class="text-primary-light font-semibold">— {{ t.name }}</p>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {% for service in premium_services %}
+        <div class="bg-surface border border-primary/20 rounded-2xl p-8 hover:border-primary/50 transition-all duration-300 reveal hover:-translate-y-2 shadow-lg shadow-primary/5">
+          <div class="text-4xl mb-4">{{ ['🔮', '✨', '🌙', '⭐', '🕯️', '🧿'] | random }}</div>
+          <h3 class="text-xl font-bold text-primary-light mb-3">{{ service.title }}</h3>
+          <p class="text-gray-300 mb-6 leading-relaxed">{{ service.description }}</p>
+          <a href="https://wa.me/{{ whatsapp }}?text={{ service.whatsapp_message|urlencode }}" class="cta-button w-full text-sm py-3 justify-center">
+            Solicitar Ahora
+          </a>
         </div>
         {% endfor %}
       </div>
     </div>
   </section>
+  {% endif %}
+
+  {% if show_testimonials and testimonials %}
+  <!-- TESTIMONIALS CAROUSEL -->
+  <section class="py-20 px-4 overflow-hidden relative">
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none"></div>
+    <div class="max-w-7xl mx-auto relative z-10">
+      <h2 class="font-heading text-3xl md:text-4xl text-center mb-12 reveal">
+        Testimonios Reales
+      </h2>
+      <!-- Simple CSS Carousel -->
+      <div class="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory hide-scrollbar" style="-webkit-overflow-scrolling: touch;">
+        {% for t in testimonials %}
+        <div class="min-w-[300px] md:min-w-[400px] bg-surface/80 backdrop-blur-md p-8 rounded-2xl border border-white/10 snap-center reveal shadow-xl">
+          <div class="flex gap-1 mb-4 text-yellow-400 text-sm">★★★★★</div>
+          <p class="text-gray-300 italic mb-6 text-lg leading-relaxed">"{{ t.text }}"</p>
+          <div class="flex items-center gap-4 border-t border-white/10 pt-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold text-xl shadow-lg">
+              {{ t.name[0] }}
+            </div>
+            <div>
+              <p class="font-bold text-white">{{ t.name }}</p>
+              <p class="text-xs text-primary-light">{{ t.location|default('Cliente Verificado') }}</p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if show_blog and blog_articles %}
+  <!-- BLOG SECTION -->
+  <section class="py-20 px-4 bg-black/40">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="font-heading text-3xl md:text-4xl text-center mb-16 reveal">
+        <span class="border-b-2 border-primary pb-2">Artículos Esotéricos</span>
+      </h2>
+      <div class="space-y-16">
+        {% for article in blog_articles %}
+        <article class="reveal group">
+          <h3 class="text-2xl md:text-3xl font-bold text-primary-light mb-6 group-hover:text-secondary transition-colors">{{ article.title }}</h3>
+          <div class="prose prose-invert prose-lg max-w-none text-gray-300 leading-relaxed">
+            {{ article.content|safe }}
+          </div>
+          {% if not loop.last %}
+          <div class="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mt-16"></div>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if show_faq and faqs %}
+  <!-- FAQ SECTION -->
+  <section class="py-16 px-4">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="font-heading text-3xl md:text-4xl text-center mb-12 reveal">Preguntas Frecuentes</h2>
+      <div class="space-y-4">
+        {% for faq in faqs %}
+        <div class="border border-white/10 rounded-xl overflow-hidden reveal bg-surface/50 backdrop-blur-sm">
+          <details class="group">
+            <summary class="flex justify-between items-center p-6 cursor-pointer hover:bg-white/5 transition-colors list-none">
+              <span class="font-semibold text-lg pr-8">{{ faq.question }}</span>
+              <span class="transition-transform duration-300 group-open:rotate-180 text-primary">▼</span>
+            </summary>
+            <div class="p-6 pt-0 text-gray-300 border-t border-white/5">
+              <p class="mt-4 leading-relaxed">{{ faq.answer }}</p>
+            </div>
+          </details>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
 
   <!-- Bottom Image -->
   {% if user_image_bottom %}

@@ -591,6 +591,19 @@ def preview_landing():
         custom_template = data.get('customTemplate') or data.get('custom_template')
         selected_color_palette = data.get('selectedColorPalette') or data.get('selected_color_palette', 'mystical')
         
+        # Extract new section flags
+        show_premium_services = data.get('showPremiumServices', False)
+        show_testimonials = data.get('showTestimonials', False)
+        show_blog = data.get('showBlog', False)
+        show_faq = data.get('showFaq', False)
+        
+        extra_sections = {
+            'show_premium_services': show_premium_services,
+            'show_testimonials': show_testimonials,
+            'show_blog': show_blog,
+            'show_faq': show_faq
+        }
+        
         custom_template_content = None
         if custom_template:
             custom_template_content = custom_template.get('content', '')
@@ -607,7 +620,7 @@ def preview_landing():
         ctx = gen.extract_ad_group_context(customer_id, ad_group_id)
         
         # Generate content
-        content = gen.generate_content(ctx)
+        content = gen.generate_content(ctx, extra_sections=extra_sections)
         
         # Prepare config
         config = {
@@ -616,7 +629,11 @@ def preview_landing():
             "gtm_id": gtm_id,
             "primary_keyword": ctx.primary_keyword,
             "selected_template": selected_template,
-            "custom_template_content": custom_template_content
+            "custom_template_content": custom_template_content,
+            "show_premium_services": show_premium_services,
+            "show_testimonials": show_testimonials,
+            "show_blog": show_blog,
+            "show_faq": show_faq
         }
         
         # Render HTML

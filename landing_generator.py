@@ -133,6 +133,10 @@ class GeneratedContent:
     seo_description: str
     additional_ctas: List[Dict[str, str]]
     optimized_paragraph: str = ""
+    premium_services: List[Dict[str, str]] = None
+    testimonials: List[Dict[str, str]] = None
+    blog_articles: List[Dict[str, str]] = None
+    faqs: List[Dict[str, str]] = None
 
 
 @dataclass
@@ -794,7 +798,7 @@ class LandingPageGenerator:
                 )
                 return output_buf.getvalue()
 
-    def _system_prompt(self, niche: str = "general", paragraph_template_text: Optional[str] = None) -> str:
+    def _system_prompt(self, niche: str = "general", paragraph_template_text: Optional[str] = None, extra_sections: Dict[str, bool] = None) -> str:
         base_prompt = (
             "Eres un generador experto de contenido para Landing Pages de alta conversión. "
             "Recibirás contexto de un Ad Group de Google Ads con keywords principales, mensajes de anuncios y ubicación. "
@@ -803,6 +807,29 @@ class LandingPageGenerator:
             "seo_title, seo_description, additional_ctas (lista de 4 objetos, cada uno con 'headline', 'tag', 'description'), "
             "optimized_paragraph (string, párrafo de alta conversión basado en el template proporcionado). "
         )
+        
+        if extra_sections:
+            if extra_sections.get('show_premium_services'):
+                base_prompt += (
+                    "\n\nINCLUYE 'premium_services': Lista de 4-6 objetos con claves 'title', 'description', 'whatsapp_message'. "
+                    "Deben ser servicios de alto ticket (Lectura Tarot Completa, Carta Astral, Limpieza Energética, etc). "
+                    "Descripciones emocionales y persuasivas."
+                )
+            if extra_sections.get('show_testimonials'):
+                base_prompt += (
+                    "\n\nINCLUYE 'testimonials': Lista de 8-12 objetos con claves 'name', 'text', 'location'. "
+                    "Testimonios detallados y creíbles sobre resultados exitosos."
+                )
+            if extra_sections.get('show_blog'):
+                base_prompt += (
+                    "\n\nINCLUYE 'blog_articles': Lista de 6-8 objetos con claves 'title', 'summary', 'content'. "
+                    "Artículos esotéricos optimizados para SEO (150-200 palabras de resumen/contenido)."
+                )
+            if extra_sections.get('show_faq'):
+                base_prompt += (
+                    "\n\nINCLUYE 'faqs': Lista de 5-8 objetos con claves 'question', 'answer'. "
+                    "Preguntas frecuentes relevantes para el nicho."
+                )
         
         if niche == "esoteric":
             base_prompt += (
@@ -833,7 +860,7 @@ class LandingPageGenerator:
         base_prompt += "\n\nUsa el idioma del usuario en español mexicano."
         return base_prompt
 
-    def generate_content(self, ctx: AdGroupContext, paragraph_template: Optional[str] = None) -> GeneratedContent:
+    def generate_content(self, ctx: AdGroupContext, paragraph_template: Optional[str] = None, extra_sections: Dict[str, bool] = None) -> GeneratedContent:
         """Generate landing page content using AI with comprehensive error handling."""
         if not ctx or not isinstance(ctx, AdGroupContext):
             raise ValueError("Valid AdGroupContext is required")
@@ -866,9 +893,9 @@ class LandingPageGenerator:
 
         try:
             if self.openai_model.startswith("gemini"):
-                content = self._generate_with_gemini(payload, niche, template_text)
+                content = self._generate_with_gemini(payload, niche, template_text, extra_sections)
             else:
-                content = self._generate_with_openai(payload, niche, template_text)
+                content = self._generate_with_openai(payload, niche, template_text, extra_sections)
         except Exception as e:
             logger.error(f"AI content generation failed: {str(e)}")
             raise RuntimeError(f"Failed to generate content with {self.openai_model}: {str(e)}")
@@ -876,7 +903,7 @@ class LandingPageGenerator:
         logger.info("AI response received, processing JSON")
         return self._parse_ai_response(content)
 
-    def _generate_with_gemini(self, payload: dict, niche: str = "general", template_text: Optional[str] = None) -> str:
+    def _generate_with_gemini(self, payload: dict, niche: str = "general", template_text: Optional[str] = None, extra_sections: Dict[str, bool] = None) -> str:
         """Generate content using Google Gemini API."""
         try:
             import google.generativeai as genai
@@ -890,7 +917,7 @@ class LandingPageGenerator:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(self.openai_model)
 
-        prompt = f"{self._system_prompt(niche, template_text)}\n\nContexto:\n{json.dumps(payload, ensure_ascii=False)}"
+        prompt = f"{self._system_prompt(niche, template_text, extra_sections)}\n\nContexto:\n{json.dumps(payload, ensure_ascii=False)}"
 
         generation_config = genai.types.GenerationConfig(temperature=0.7)
 
@@ -905,7 +932,7 @@ class LandingPageGenerator:
 
         return response.text
 
-    def _generate_with_openai(self, payload: dict, niche: str = "general", template_text: Optional[str] = None) -> str:
+    def _generate_with_openai(self, payload: dict, niche: str = "general", template_text: Optional[str] = None, extra_sections: Dict[str, bool] = None) -> str:
         """Generate content using OpenAI API."""
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
@@ -919,7 +946,7 @@ class LandingPageGenerator:
         request_payload = {
             "model": self.openai_model,
             "messages": [
-                {"role": "system", "content": self._system_prompt(niche, template_text)},
+                {"role": "system", "content": self._system_prompt(niche, template_text, extra_sections)},
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}
             ],
             "response_format": {"type": "json_object"},
@@ -992,7 +1019,11 @@ class LandingPageGenerator:
                 seo_title=str(data["seo_title"]).strip(),
                 seo_description=str(data["seo_description"]).strip(),
                 additional_ctas=data.get("additional_ctas", []),
-                optimized_paragraph=str(data.get("optimized_paragraph", "")).strip()
+                optimized_paragraph=str(data.get("optimized_paragraph", "")).strip(),
+                premium_services=data.get("premium_services", []),
+                testimonials=data.get("testimonials", []),
+                blog_articles=data.get("blog_articles", []),
+                faqs=data.get("faqs", [])
             )
         except Exception as e:
             raise RuntimeError(f"Error processing AI response data: {str(e)}")
@@ -1112,6 +1143,10 @@ class LandingPageGenerator:
                 seo_description=gen.seo_description,
                 additional_ctas=additional_ctas,
                 optimized_paragraph=getattr(gen, 'optimized_paragraph', ''),
+                premium_services=getattr(gen, 'premium_services', []),
+                testimonials=getattr(gen, 'testimonials', []),
+                blog_articles=getattr(gen, 'blog_articles', []),
+                faqs=getattr(gen, 'faqs', []),
                 whatsapp_number=config["whatsapp_number"],
                 phone_number=config.get("phone_number", config["whatsapp_number"]),
                 webhook_url=config.get("webhook_url", ""),
@@ -1253,6 +1288,16 @@ class LandingPageGenerator:
                 user_images=user_images,
                 user_videos=user_videos,
                 **img_context,
+
+                # New Sections
+                show_premium_services=config.get("show_premium_services", False),
+                show_testimonials=config.get("show_testimonials", False),
+                show_blog=config.get("show_blog", False),
+                show_faq=config.get("show_faq", False),
+                premium_services=getattr(gen, 'premium_services', []),
+                testimonials=getattr(gen, 'testimonials', []),
+                blog_articles=getattr(gen, 'blog_articles', []),
+                faqs=getattr(gen, 'faqs', []),
             )
             
             logger.info("✅ Landing page dinámica generada exitosamente")
