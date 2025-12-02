@@ -652,11 +652,11 @@ def delete_landing(folder_name):
 @app.route('/api/landing/update', methods=['POST', 'OPTIONS'])
 def update_landing():
     if request.method == 'OPTIONS':
-        result = jsonify({}), 200
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        result.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        result.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        return result
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        return response, 200
     
     try:
         data = request.json
@@ -2273,18 +2273,18 @@ def save_custom_template():
         result_data = custom_template_manager.save_template(data)
         logger.info(f"✅ Template guardado exitosamente: {result_data.get('template', {}).get('id', 'unknown')}")
         
-        result = jsonify(result_data), 200
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        response = jsonify(result_data)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 200
         
     except Exception as e:
         logger.error(f"Error saving custom template: {str(e)}")
-        result = jsonify({
+        response = jsonify({
             'success': False,
             'error': f'Error al guardar template: {str(e)}'
-        }), 500
-        result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
 
 def sync_templates_from_github() -> list:
     """
