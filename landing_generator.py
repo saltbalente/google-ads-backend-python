@@ -977,64 +977,16 @@ class LandingPageGenerator:
             custom_template_content = config.get("custom_template_content")
             
             if custom_template_content:
-                # Use the custom template content directly
-                # This is a complete HTML file, not a Jinja2 template
+                # Use the custom template content directly with AI-enhanced substitutions
                 logger.info(f"🎨 Using custom template content ({len(custom_template_content)} chars)")
                 
-                # The custom template is already a complete HTML, just do variable substitutions
-                html = custom_template_content
-                import re
-                
-                # Get values from config
-                whatsapp_number = config.get("whatsapp_number", "")
-                phone_number = config.get("phone_number", whatsapp_number)
-                gtm_id = config.get("gtm_id", "")
-                
-                # Replace WhatsApp URLs - multiple patterns
-                if whatsapp_number:
-                    # Clean the number for URL (remove +, spaces, dashes)
-                    clean_number = whatsapp_number.replace("+", "").replace(" ", "").replace("-", "")
-                    
-                    # Pattern 1: wa.me URLs
-                    html = re.sub(r'href="https://wa\.me/\d+"', f'href="https://wa.me/{clean_number}"', html)
-                    html = re.sub(r"href='https://wa\.me/\d+'", f"href='https://wa.me/{clean_number}'", html)
-                    
-                    # Pattern 2: api.whatsapp.com URLs
-                    html = re.sub(r'href="https://api\.whatsapp\.com/send\?phone=\d+"', f'href="https://api.whatsapp.com/send?phone={clean_number}"', html)
-                    html = re.sub(r"href='https://api\.whatsapp\.com/send\?phone=\d+'", f"href='https://api.whatsapp.com/send?phone={clean_number}'", html)
-                    
-                    # Pattern 3: Replace phone numbers in text content (formatted display)
-                    # Look for patterns like +1 803 549 8658 or +18035498658
-                    html = re.sub(r'\+1\s*\d{3}\s*\d{3}\s*\d{4}', whatsapp_number, html)
-                    html = re.sub(r'\+\d{10,15}', whatsapp_number, html)
-                    
-                    logger.info(f"📱 Replaced WhatsApp number with: {whatsapp_number}")
-                
-                # Replace phone numbers in tel: links
-                if phone_number:
-                    # Pattern for tel: links
-                    html = re.sub(r'href="tel:\+?\d+"', f'href="tel:{phone_number}"', html)
-                    html = re.sub(r"href='tel:\+?\d+'", f"href='tel:{phone_number}'", html)
-                    logger.info(f"📞 Replaced phone number with: {phone_number}")
-                
-                # Replace GTM ID
-                if gtm_id:
-                    html = re.sub(r'GTM-[A-Z0-9]{6,10}', gtm_id, html)
-                    logger.info(f"📊 Replaced GTM ID with: {gtm_id}")
-                
-                # Add tracking pixels if not present
-                if gtm_id and 'gtm.js' not in html.lower():
-                    gtm_script = f'''
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':
-    new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    }})(window,document,'script','dataLayer','{gtm_id}');</script>
-    <!-- End Google Tag Manager -->'''
-                    # Insert after <head> tag
-                    html = re.sub(r'(<head[^>]*>)', r'\1' + gtm_script, html, count=1)
-                    logger.info(f"📈 Injected GTM script for: {gtm_id}")
+                # Process the custom template with generated content
+                html = self._process_custom_template(
+                    custom_template_content, 
+                    gen, 
+                    config,
+                    color_palette
+                )
                 
                 return html
             
@@ -1135,6 +1087,184 @@ class LandingPageGenerator:
             )
         except Exception as e:
             raise RuntimeError(f"Template rendering failed: {str(e)}")
+
+    def _process_custom_template(self, html: str, gen: GeneratedContent, config: Dict[str, Any], color_palette: Dict[str, str]) -> str:
+        """
+        Process a custom template HTML with generated content and configuration.
+        This method applies intelligent substitutions while preserving the template's design.
+        """
+        import re
+        from bs4 import BeautifulSoup
+        
+        logger.info("🔧 Processing custom template with AI-generated content...")
+        
+        # Get configuration values
+        whatsapp_number = config.get("whatsapp_number", "")
+        phone_number = config.get("phone_number", whatsapp_number)
+        gtm_id = config.get("gtm_id", "")
+        primary_keyword = config.get("primary_keyword", "")
+        
+        # Clean WhatsApp number for URLs
+        clean_number = whatsapp_number.replace("+", "").replace(" ", "").replace("-", "") if whatsapp_number else ""
+        
+        # ========== 1. SEO SUBSTITUTIONS ==========
+        # Replace <title> tag
+        if gen.seo_title:
+            html = re.sub(r'<title>[^<]*</title>', f'<title>{gen.seo_title}</title>', html, flags=re.IGNORECASE)
+            logger.info(f"📝 Updated title: {gen.seo_title[:50]}...")
+        
+        # Replace meta description
+        if gen.seo_description:
+            html = re.sub(
+                r'<meta\s+name=["\']description["\']\s+content=["\'][^"\']*["\']',
+                f'<meta name="description" content="{gen.seo_description}"',
+                html, flags=re.IGNORECASE
+            )
+            logger.info(f"📝 Updated meta description")
+        
+        # Replace og:title
+        if gen.seo_title:
+            html = re.sub(
+                r'<meta\s+property=["\']og:title["\']\s+content=["\'][^"\']*["\']',
+                f'<meta property="og:title" content="{gen.seo_title}"',
+                html, flags=re.IGNORECASE
+            )
+        
+        # Replace og:description
+        if gen.seo_description:
+            html = re.sub(
+                r'<meta\s+property=["\']og:description["\']\s+content=["\'][^"\']*["\']',
+                f'<meta property="og:description" content="{gen.seo_description}"',
+                html, flags=re.IGNORECASE
+            )
+        
+        # ========== 2. PHONE/WHATSAPP SUBSTITUTIONS ==========
+        if whatsapp_number:
+            # wa.me URLs
+            html = re.sub(r'href="https://wa\.me/\d+"', f'href="https://wa.me/{clean_number}"', html)
+            html = re.sub(r"href='https://wa\.me/\d+'", f"href='https://wa.me/{clean_number}'", html)
+            
+            # api.whatsapp.com URLs
+            html = re.sub(r'href="https://api\.whatsapp\.com/send\?phone=\d+"', f'href="https://api.whatsapp.com/send?phone={clean_number}"', html)
+            html = re.sub(r"href='https://api\.whatsapp\.com/send\?phone=\d+'", f"href='https://api.whatsapp.com/send?phone={clean_number}'", html)
+            
+            # Phone numbers in text (various formats)
+            html = re.sub(r'\+1[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{4}', whatsapp_number, html)
+            html = re.sub(r'\+\d{10,15}(?=["\'<\s])', whatsapp_number, html)
+            
+            logger.info(f"📱 Updated WhatsApp: {whatsapp_number}")
+        
+        # tel: links
+        if phone_number:
+            html = re.sub(r'href="tel:\+?\d+"', f'href="tel:{phone_number}"', html)
+            html = re.sub(r"href='tel:\+?\d+'", f"href='tel:{phone_number}'", html)
+            logger.info(f"📞 Updated phone: {phone_number}")
+        
+        # Schema.org telephone
+        if phone_number:
+            html = re.sub(r'"telephone":\s*"\+?\d+"', f'"telephone": "{phone_number}"', html)
+        
+        # ========== 3. GTM SUBSTITUTIONS ==========
+        if gtm_id:
+            # Replace existing GTM IDs
+            html = re.sub(r'GTM-[A-Z0-9]{6,10}', gtm_id, html)
+            
+            # Inject GTM script if not present
+            if 'gtm.js' not in html.lower() and 'googletagmanager' not in html.lower():
+                gtm_script = f'''
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':
+    new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    }})(window,document,'script','dataLayer','{gtm_id}');</script>
+    <!-- End Google Tag Manager -->'''
+                html = re.sub(r'(<head[^>]*>)', r'\1' + gtm_script, html, count=1)
+                logger.info(f"📈 Injected GTM: {gtm_id}")
+        
+        # ========== 4. CONTENT SUBSTITUTIONS (H1, SUBHEADLINES) ==========
+        try:
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Update first H1 with generated headline
+            if gen.headline_h1:
+                h1_tag = soup.find('h1')
+                if h1_tag:
+                    # Preserve the tag's attributes but update content
+                    h1_tag.string = gen.headline_h1
+                    logger.info(f"📝 Updated H1: {gen.headline_h1[:50]}...")
+            
+            # Update first H2 after hero section with subheadline
+            if gen.subheadline:
+                h2_tags = soup.find_all('h2')
+                if h2_tags and len(h2_tags) > 0:
+                    # Update the first H2 (usually the main subheadline)
+                    h2_tags[0].string = gen.subheadline
+                    logger.info(f"📝 Updated subheadline: {gen.subheadline[:50]}...")
+            
+            # Update CTA button texts
+            if gen.cta_text:
+                # Find buttons/links with CTA-like classes
+                cta_elements = soup.find_all(['a', 'button'], class_=lambda c: c and any(
+                    x in str(c).lower() for x in ['cta', 'button', 'whatsapp', 'contact', 'consulta']
+                ))
+                for elem in cta_elements[:3]:  # Update first 3 CTAs
+                    if elem.string:
+                        elem.string = gen.cta_text
+                    elif elem.get_text(strip=True):
+                        # Has nested content, try to update visible text
+                        for text_node in elem.find_all(string=True):
+                            if text_node.strip() and len(text_node.strip()) > 3:
+                                text_node.replace_with(gen.cta_text)
+                                break
+                logger.info(f"📝 Updated CTAs: {gen.cta_text}")
+            
+            # Convert back to string
+            html = str(soup)
+            
+        except Exception as soup_error:
+            logger.warning(f"⚠️ BeautifulSoup processing failed: {soup_error}, using regex fallback")
+            # Fallback: simple regex replacements
+            if gen.headline_h1:
+                html = re.sub(r'(<h1[^>]*>)[^<]*(</h1>)', rf'\1{gen.headline_h1}\2', html, count=1)
+        
+        # ========== 5. BENEFITS INJECTION ==========
+        if gen.benefits and len(gen.benefits) > 0:
+            # Try to find and update benefit list items
+            benefits_html = ''.join([f'<li>{b}</li>' for b in gen.benefits[:5]])
+            # Look for existing benefit lists
+            html = re.sub(
+                r'(<ul[^>]*class="[^"]*benefit[^"]*"[^>]*>).*?(</ul>)',
+                rf'\1{benefits_html}\2',
+                html, flags=re.DOTALL | re.IGNORECASE
+            )
+        
+        # ========== 6. USER IMAGES ==========
+        user_images = config.get("user_images", [])
+        if user_images:
+            for img in user_images:
+                pos = img.get("position", "").lower()
+                url = img.get("url", "")
+                if pos and url:
+                    # Try to replace images by position class or data attribute
+                    html = re.sub(
+                        rf'(<amp-img[^>]*(?:class="[^"]*{pos}[^"]*"|data-position="{pos}")[^>]*src=")[^"]*(")',
+                        rf'\1{url}\2',
+                        html, flags=re.IGNORECASE
+                    )
+                    html = re.sub(
+                        rf'(<img[^>]*(?:class="[^"]*{pos}[^"]*"|data-position="{pos}")[^>]*src=")[^"]*(")',
+                        rf'\1{url}\2',
+                        html, flags=re.IGNORECASE
+                    )
+        
+        # ========== 7. FINAL CLEANUP ==========
+        # Ensure proper encoding declaration
+        if '<?xml' not in html and 'charset' not in html[:500].lower():
+            html = html.replace('<head>', '<head>\n  <meta charset="utf-8">', 1)
+        
+        logger.info("✅ Custom template processing complete")
+        return html
 
     def get_available_templates(self) -> List[str]:
         """Get list of available landing page templates."""
