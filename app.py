@@ -535,6 +535,9 @@ def build_landing():
         show_live_questions = data.get('showLiveQuestions', False)
         show_typing_effect = data.get('showTypingEffect', False)
         
+        # Premium Popups
+        premium_popups = data.get('premiumPopups', [])
+        
         # Widget style variants
         sticky_bars_style = data.get('stickyBarsStyle', 'whatsapp')
         vibrating_button_style = data.get('vibratingButtonStyle', 'circular')
@@ -558,6 +561,7 @@ def build_landing():
         if show_live_consultations: enabled_optionals.append(f'Live Consultations ({live_consultations_style})')
         if show_live_questions: enabled_optionals.append(f'Live Questions ({live_questions_style})')
         if show_typing_effect: enabled_optionals.append(f'Typing Effect ({typing_effect_style})')
+        if premium_popups: enabled_optionals.append(f'Premium Popups ({len(premium_popups)} selected)')
         
         if enabled_optionals:
             logger.info(f"✨ Optional widgets enabled: {', '.join(enabled_optionals)}")
@@ -606,6 +610,8 @@ def build_landing():
             'live_questions_style': live_questions_style,
             'hypnotic_texts_style': hypnotic_texts_style,
             'typing_effect_style': typing_effect_style,
+            # Premium Popups
+            'premium_popups': premium_popups,
         }
         
         gen = LandingPageGenerator(google_ads_client_provider=lambda: get_client_from_request())

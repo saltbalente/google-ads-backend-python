@@ -1796,6 +1796,28 @@ class LandingPageGenerator:
         except Exception as e:
             logger.error(f"❌ Error injecting widgets: {e}")
         
+        # 🎯 INJECT PREMIUM POPUPS if enabled
+        premium_popups = config.get('premium_popups', [])
+        if premium_popups and len(premium_popups) > 0:
+            logger.info(f"🎯 Injecting {len(premium_popups)} premium popups...")
+            try:
+                from premium_popups_injector import inject_premium_popups
+                
+                popup_config = {
+                    'whatsapp_number': config.get('whatsapp_number', ''),
+                    'phone_number': config.get('phone_number', config.get('whatsapp_number', '')),
+                    'primary_color': config.get('primary_color', '#8B5CF6'),
+                    'secondary_color': config.get('secondary_color', '#6B46C1'),
+                }
+                
+                html = inject_premium_popups(html, premium_popups, popup_config)
+                logger.info(f"✅ Premium popups injected: {', '.join(premium_popups)}")
+                
+            except ImportError as e:
+                logger.warning(f"⚠️ premium_popups_injector not available: {e}")
+            except Exception as e:
+                logger.error(f"❌ Error injecting premium popups: {e}")
+        
         return html
 
     def get_available_templates(self) -> List[str]:
