@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ seo_title }}</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://cdn.jsdelivr.net/gh/saltbalente/monorepo-landings@main/static/apple-touch-icon.png">
+
+  <!-- SEO Optimizado -->
+  <meta name="description" content="{{ seo_description }}" />
+  <meta name="keywords" content="{{ primary_keyword }}, amarres de amor, retorno de pareja, endulzamientos, brujeria de amor, hechizos de amor" />
+  <meta property="og:title" content="{{ seo_title }}" />
+  <meta property="og:description" content="{{ seo_description }}" />
+  <meta property="og:type" content="website" />
+  
+  <!-- Schema.org -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "name": "{{ headline_h1 }}",
+    "description": "{{ seo_description }}",
+    "telephone": "{{ phone_number }}",
+    "priceRange": "$$"
+  }
+  </script>
+
+  <!-- Fonts: Cinzel (Mystical) & Plus Jakarta Sans (Modern/Clean) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            serif: ['Cinzel', 'serif'],
+          },
+          colors: {
+            love: {
+              100: '#ffe4e6',
+              200: '#fecdd3',
+              300: '#fda4af',
+              400: '#fb7185',
+              500: '#f43f5e',
+              600: '#e11d48',
+              700: '#be123c',
+              800: '#9f1239',
+              900: '#881337',
+              950: '#4c0519',
+            },
+            gold: {
+              100: '#FBF5D4',
+              200: '#F5E8A3',
+              300: '#EFDB73',
+              400: '#E9CE42',
+              500: '#D4B728',
+              600: '#AA9220',
+              700: '#806D18',
+              800: '#554910',
+            },
+            void: {
+              800: '#2a0a12',
+              900: '#1a0508',
+              950: '#0f0204',
+            }
+          },
+          backgroundImage: {
+            'mystic-gradient': 'radial-gradient(circle at center, #4c0519 0%, #0f0204 100%)',
+            'love-gradient': 'linear-gradient(135deg, #e11d48 0%, #be123c 50%, #881337 100%)',
+            'gold-gradient': 'linear-gradient(135deg, #D4B728 0%, #F5E8A3 50%, #AA9220 100%)',
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-glow': 'pulseGlow 3s infinite',
+            'heartbeat': 'heartbeat 1.5s ease-in-out infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-20px)' },
+            },
+            pulseGlow: {
+              '0%, 100%': { opacity: '1', boxShadow: '0 0 20px rgba(225, 29, 72, 0.3)' },
+              '50%': { opacity: '0.8', boxShadow: '0 0 40px rgba(225, 29, 72, 0.6)' },
+            },
+            heartbeat: {
+              '0%, 100%': { transform: 'scale(1)' },
+              '50%': { transform: 'scale(1.1)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
+  <!-- AOS Animation -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #0f0204; }
+    ::-webkit-scrollbar-thumb { background: #4c0519; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #e11d48; }
+
+    /* Particle Effects */
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(225, 29, 72, 0.4);
+      pointer-events: none;
+    }
+    
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(225, 29, 72, 0.1);
+    }
+
+    .text-love-gradient {
+      background: linear-gradient(to right, #fb7185, #e11d48, #fb7185);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-size: 200% auto;
+      animation: shine 4s linear infinite;
+    }
+
+    @keyframes shine {
+      to { background-position: 200% center; }
+    }
+  </style>
+</head>
+<body class="bg-void-950 text-gray-200 font-sans antialiased overflow-x-hidden" x-data="{ mobileMenuOpen: false, scrolled: false }" @scroll.window="scrolled = (window.pageYOffset > 20)">
+
+  <!-- Particles Container -->
+  <div id="particles" class="fixed inset-0 pointer-events-none z-0"></div>
+
+  <!-- Navbar -->
+  <nav :class="{ 'bg-void-950/90 backdrop-blur-md border-b border-love-900/30': scrolled, 'bg-transparent': !scrolled }" class="fixed w-full z-50 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        <div class="flex-shrink-0">
+          <span class="font-serif text-2xl font-bold text-love-500 tracking-wider">AMARRES ETERNOS</span>
+        </div>
+        <div class="hidden md:block">
+          <div class="ml-10 flex items-baseline space-x-8">
+            <a href="#inicio" class="hover:text-love-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Inicio</a>
+            <a href="#servicios" class="hover:text-love-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Servicios</a>
+            <a href="#testimonios" class="hover:text-love-400 transition-colors px-3 py-2 rounded-md text-sm font-medium">Testimonios</a>
+            <a href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}" class="bg-love-600 hover:bg-love-500 text-white px-6 py-2 rounded-full font-bold transition-all transform hover:scale-105 shadow-[0_0_15px_rgba(225,29,72,0.4)]">
+              Consulta de Amor
+            </a>
+          </div>
+        </div>
+        <!-- Mobile menu button -->
+        <div class="-mr-2 flex md:hidden">
+          <button @click="mobileMenuOpen = !mobileMenuOpen" class="inline-flex items-center justify-center p-2 rounded-md text-love-500 hover:text-white focus:outline-none">
+            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Mobile Menu -->
+    <div x-show="mobileMenuOpen" x-transition class="md:hidden bg-void-900 border-b border-love-900/30">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+        <a href="#inicio" class="block px-3 py-2 rounded-md text-base font-medium hover:text-love-400">Inicio</a>
+        <a href="#servicios" class="block px-3 py-2 rounded-md text-base font-medium hover:text-love-400">Servicios</a>
+        <a href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}" class="block w-full text-center mt-4 bg-love-600 text-white px-4 py-3 rounded-lg font-bold">
+          Recuperar a mi Pareja
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="inicio" class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    <!-- Background Image with Overlay -->
+    <div class="absolute inset-0 z-0">
+      <div class="absolute inset-0 bg-gradient-to-b from-void-950/90 via-void-950/70 to-void-950 z-10"></div>
+      <img src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=2070&auto=format&fit=crop" alt="Background Love Spell" class="w-full h-full object-cover opacity-50 scale-110 animate-pulse-slow">
+    </div>
+
+    <div class="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div data-aos="fade-up" data-aos-duration="1000">
+        <span class="inline-block py-1 px-3 rounded-full bg-love-500/10 border border-love-500/30 text-love-400 text-sm font-semibold tracking-widest mb-6 uppercase">
+          Alta Magia Roja y Amarres de Amor
+        </span>
+        <h1 class="text-5xl md:text-7xl font-serif font-bold text-white mb-6 leading-tight">
+          {{ headline_h1 }}
+        </h1>
+        <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-300 font-light leading-relaxed">
+          {{ subheadline }}
+        </p>
+        
+        <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+          <a href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}" class="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-love-600 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-love-500 hover:bg-love-700 hover:scale-105 shadow-[0_0_30px_rgba(225,29,72,0.6)] animate-heartbeat">
+            <span class="mr-2">RECUPERAR A MI AMOR</span>
+            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+          </a>
+          <a href="#servicios" class="inline-flex items-center justify-center px-8 py-4 text-lg font-medium text-white transition-all duration-200 border border-white/20 rounded-full hover:bg-white/5 hover:border-love-500/50">
+            Ver Rituales
+          </a>
+        </div>
+        
+        <div class="mt-12 flex items-center justify-center space-x-8 text-sm text-gray-400">
+          <div class="flex items-center"><span class="text-love-500 mr-2">❤</span> Uniones Eternas</div>
+          <div class="flex items-center"><span class="text-love-500 mr-2">❤</span> Sin Daño Kármico</div>
+          <div class="flex items-center"><span class="text-love-500 mr-2">❤</span> Resultados Rápidos</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mystical Divider 1 -->
+    <div class="absolute bottom-0 left-0 w-full overflow-hidden leading-none rotate-180 z-20">
+        <svg class="relative block w-[calc(100%+1.3px)] h-[60px]" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" class="fill-void-900"></path>
+        </svg>
+    </div>
+  </section>
+
+  <!-- Problem/Agitation Section -->
+  <section class="py-24 bg-void-900 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16" data-aos="fade-up">
+        <h2 class="text-3xl md:text-4xl font-serif font-bold text-white mb-4">¿Tu relación se está desmoronando?</h2>
+        <div class="w-24 h-1 bg-love-600 mx-auto rounded-full"></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Card 1 -->
+        <div class="glass-panel p-8 rounded-2xl hover:border-love-500/50 transition-all duration-300 group" data-aos="fade-up" data-aos-delay="100">
+          <div class="w-14 h-14 bg-void-800 rounded-full flex items-center justify-center mb-6 group-hover:bg-love-600 transition-colors">
+            <svg class="w-8 h-8 text-love-500 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">Alejamiento Repentino</h3>
+          <p class="text-gray-400">Tu pareja cambió de la noche a la mañana, se muestra fría, distante y ya no te busca como antes.</p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="glass-panel p-8 rounded-2xl hover:border-love-500/50 transition-all duration-300 group" data-aos="fade-up" data-aos-delay="200">
+          <div class="w-14 h-14 bg-void-800 rounded-full flex items-center justify-center mb-6 group-hover:bg-love-600 transition-colors">
+            <svg class="w-8 h-8 text-love-500 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">Terceras Personas</h3>
+          <p class="text-gray-400">Hay alguien más interfiriendo en tu relación, amantes, familiares envidiosos o ex parejas que no sueltan.</p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="glass-panel p-8 rounded-2xl hover:border-love-500/50 transition-all duration-300 group" data-aos="fade-up" data-aos-delay="300">
+          <div class="w-14 h-14 bg-void-800 rounded-full flex items-center justify-center mb-6 group-hover:bg-love-600 transition-colors">
+            <svg class="w-8 h-8 text-love-500 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">El Tiempo se Agota</h3>
+          <p class="text-gray-400">Sientes que si no haces algo AHORA MISMO, perderás a esa persona especial para siempre.</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mystical Divider 2 -->
+    <div class="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20">
+        <svg class="relative block w-[calc(100%+1.3px)] h-[50px]" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="M1200 120L0 16.48 0 0 1200 0 1200 120z" class="fill-void-950"></path>
+        </svg>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section id="servicios" class="py-24 bg-void-950 relative overflow-hidden">
+    <!-- Decorative Elements -->
+    <div class="absolute top-0 left-0 w-64 h-64 bg-love-600/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+    <div class="absolute bottom-0 right-0 w-96 h-96 bg-purple-900/20 rounded-full blur-3xl translate-x-1/3 translate-y-1/3"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="text-center mb-20">
+        <h2 class="text-4xl md:text-5xl font-serif font-bold text-white mb-6">Rituales de Amor Poderosos</h2>
+        <p class="text-xl text-gray-400 max-w-2xl mx-auto">Trabajos garantizados para unir almas, despertar la pasión y asegurar la fidelidad eterna.</p>
+      </div>
+
+      <div class="space-y-24">
+        <!-- Service 1 -->
+        <div class="flex flex-col md:flex-row items-center gap-12" data-aos="fade-right">
+          <div class="w-full md:w-1/2">
+            <div class="relative rounded-2xl overflow-hidden shadow-2xl border border-love-500/20 group">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
+              <img src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=2070&auto=format&fit=crop" alt="Amarre de Amor" class="w-full h-[400px] object-cover transform group-hover:scale-110 transition-transform duration-700">
+            </div>
+          </div>
+          <div class="w-full md:w-1/2">
+            <h3 class="text-3xl font-serif font-bold text-love-400 mb-4">Amarres de Amor Eternos</h3>
+            <p class="text-gray-300 text-lg leading-relaxed mb-6">
+              Hago que esa persona regrese a ti suplicando perdón y amor. Ato sus sentimientos, pensamientos y deseo sexual solo a ti. Nadie podrá separarlos jamás.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center text-gray-400"><span class="text-love-500 mr-3">❤</span> Retorno inmediato de pareja</li>
+              <li class="flex items-center text-gray-400"><span class="text-love-500 mr-3">❤</span> Dominio de mente y voluntad</li>
+              <li class="flex items-center text-gray-400"><span class="text-love-500 mr-3">❤</span> Fidelidad absoluta garantizada</li>
+            </ul>
+            <a href="https://wa.me/{{ whatsapp_number }}?text=Hola, quiero recuperar a mi pareja urgentemente" class="text-love-400 font-bold hover:text-love-300 flex items-center">
+              Quiero este amarre <span class="ml-2">→</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Service 2 -->
+        <div class="flex flex-col md:flex-row-reverse items-center gap-12" data-aos="fade-left">
+          <div class="w-full md:w-1/2">
+            <div class="relative rounded-2xl overflow-hidden shadow-2xl border border-love-500/20 group">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
+              <img src="https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?q=80&w=2070&auto=format&fit=crop" alt="Endulzamiento" class="w-full h-[400px] object-cover transform group-hover:scale-110 transition-transform duration-700">
+            </div>
+          </div>
+          <div class="w-full md:w-1/2">
+            <h3 class="text-3xl font-serif font-bold text-love-400 mb-4">Endulzamientos y Pasión</h3>
+            <p class="text-gray-300 text-lg leading-relaxed mb-6">
+              Si la relación se ha enfriado, avivo la llama de la pasión. Hago que te vea con ojos de deseo nuevamente y que solo tenga intimidad contigo.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center text-gray-400"><span class="text-love-500 mr-3">❤</span> Despertar deseo sexual</li>
+              <li class="flex items-center text-gray-400"><span class="text-love-500 mr-3">❤</span> Acabar con la monotonía</li>
+              <li class="flex items-center text-gray-400"><span class="text-love-500 mr-3">❤</span> Que solo tenga ojos para ti</li>
+            </ul>
+            <a href="https://wa.me/{{ whatsapp_number }}?text=Hola, necesito avivar la pasión en mi relación" class="text-love-400 font-bold hover:text-love-300 flex items-center">
+              Quiero endulzar mi relación <span class="ml-2">→</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mystical Divider 3 -->
+    <div class="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20">
+        <svg class="relative block w-[calc(100%+1.3px)] h-[70px]" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" opacity=".25" class="fill-love-600"></path>
+            <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" opacity=".5" class="fill-love-600"></path>
+            <path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z" class="fill-love-600"></path>
+        </svg>
+    </div>
+  </section>
+
+  <!-- CTA Break -->
+  <section class="py-20 bg-love-700 relative overflow-hidden">
+    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+    <div class="max-w-5xl mx-auto px-4 text-center relative z-10">
+      <h2 class="text-3xl md:text-5xl font-serif font-bold text-white mb-6">No sufras más por amor</h2>
+      <p class="text-xl text-white/90 mb-10 font-medium">Tengo el poder para traerlo de vuelta a tus pies, manso y enamorado. Solo necesito tu decisión.</p>
+      <a href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}" class="inline-block bg-white text-love-700 px-10 py-4 rounded-full font-bold text-lg shadow-2xl hover:bg-gray-100 transition-colors transform hover:-translate-y-1">
+        {{ cta_text }}
+      </a>
+    </div>
+    
+    <!-- Mystical Divider 4 -->
+    <div class="absolute bottom-0 left-0 w-full overflow-hidden leading-none rotate-180 z-20">
+        <svg class="relative block w-[calc(100%+1.3px)] h-[60px]" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="M1200 120L0 16.48 0 0 1200 0 1200 120z" class="fill-void-900"></path>
+        </svg>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section id="testimonios" class="py-24 bg-void-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-center text-3xl md:text-4xl font-serif font-bold text-white mb-16">Parejas Unidas</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Testimonial 1 -->
+        <div class="bg-void-950 p-8 rounded-2xl border border-love-900/30 relative" data-aos="zoom-in" data-aos-delay="100">
+          <div class="text-love-500 text-6xl font-serif absolute top-4 left-6 opacity-20">"</div>
+          <p class="text-gray-300 italic mb-6 relative z-10">"Mi esposo se había ido con otra mujer. En 3 días regresó llorando pidiéndome perdón. Hoy somos más felices que nunca."</p>
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-love-600 rounded-full flex items-center justify-center font-bold text-white">M</div>
+            <div class="ml-3">
+              <p class="text-white font-bold">María G.</p>
+              <p class="text-love-500 text-xs">Recuperó su matrimonio</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Testimonial 2 -->
+        <div class="bg-void-950 p-8 rounded-2xl border border-love-900/30 relative" data-aos="zoom-in" data-aos-delay="200">
+          <div class="text-love-500 text-6xl font-serif absolute top-4 left-6 opacity-20">"</div>
+          <p class="text-gray-300 italic mb-6 relative z-10">"Pensé que lo había perdido para siempre. Gracias al amarre, él me buscó y ahora no se despega de mí. Es increíble."</p>
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-love-600 rounded-full flex items-center justify-center font-bold text-white">S</div>
+            <div class="ml-3">
+              <p class="text-white font-bold">Sofía R.</p>
+              <p class="text-love-500 text-xs">Unión de pareja</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Testimonial 3 -->
+        <div class="bg-void-950 p-8 rounded-2xl border border-love-900/30 relative" data-aos="zoom-in" data-aos-delay="300">
+          <div class="text-love-500 text-6xl font-serif absolute top-4 left-6 opacity-20">"</div>
+          <p class="text-gray-300 italic mb-6 relative z-10">"Había mucha envidia y peleas. Después del trabajo de endulzamiento, todo es paz y amor en mi casa. Gracias maestro."</p>
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-love-600 rounded-full flex items-center justify-center font-bold text-white">P</div>
+            <div class="ml-3">
+              <p class="text-white font-bold">Patricia L.</p>
+              <p class="text-love-500 text-xs">Armonización</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mystical Divider 5 -->
+    <div class="absolute bottom-0 left-0 w-full overflow-hidden leading-none z-20">
+        <svg class="relative block w-[calc(100%+1.3px)] h-[50px]" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="M985.66,92.83C906.67,72,823.78,31,738.38,14.66c-82.26-17.34-168.06-16.33-250.45.39-57.84,11.73-114,31.07-172,41.86A600.21,600.21,0,0,1,0,27.35V120H1200V95.8C1132.19,118.92,1055.71,111.31,985.66,92.83Z" class="fill-void-950"></path>
+        </svg>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-void-950 border-t border-white/10 pt-16 pb-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+        <div>
+          <span class="font-serif text-2xl font-bold text-love-500 tracking-wider block mb-6">AMARRES ETERNOS</span>
+          <p class="text-gray-500 text-sm leading-relaxed">
+            Especialista en alta magia roja, uniones de pareja y retornos inmediatos. Recupera la felicidad que te mereces.
+          </p>
+        </div>
+        <div>
+          <h4 class="text-white font-bold mb-6">Contacto Directo</h4>
+          <ul class="space-y-4">
+            <li class="flex items-center text-gray-400">
+              <svg class="w-5 h-5 text-love-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              {{ phone_number }}
+            </li>
+            <li class="flex items-center text-gray-400">
+              <svg class="w-5 h-5 text-love-500 mr-3" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.017-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+              WhatsApp Disponible 24/7
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-white font-bold mb-6">Enlaces Rápidos</h4>
+          <ul class="space-y-2 text-sm text-gray-500">
+            <li><a href="#" class="hover:text-love-500 transition-colors">Política de Privacidad</a></li>
+            <li><a href="#" class="hover:text-love-500 transition-colors">Términos de Servicio</a></li>
+            <li><a href="#" class="hover:text-love-500 transition-colors">Aviso Legal</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-white/5 pt-8 text-center">
+        <p class="text-gray-600 text-xs">
+          &copy; 2024 Todos los derechos reservados. Este sitio es para fines de entretenimiento y ayuda espiritual.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Floating WhatsApp Button -->
+  <a href="https://wa.me/{{ whatsapp_number }}?text={{ whatsapp_message }}" class="fixed bottom-6 right-6 z-50 bg-green-500 text-white p-4 rounded-full shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-110 transition-transform duration-300 animate-bounce" aria-label="Chat en WhatsApp">
+    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.017-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+  </a>
+
+  <!-- Scripts -->
+  <script>
+    // Initialize AOS
+    AOS.init({
+      once: true,
+      offset: 100,
+      duration: 800,
+      easing: 'ease-out-cubic',
+    });
+
+    // Simple Particle System
+    function createParticles() {
+      const container = document.getElementById('particles');
+      const particleCount = 30;
+
+      for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        
+        const size = Math.random() * 4 + 1;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+        
+        particle.style.left = `${Math.random() * 100}%`;
+        particle.style.top = `${Math.random() * 100}%`;
+        
+        const duration = Math.random() * 20 + 10;
+        particle.style.animation = `float ${duration}s infinite linear`;
+        particle.style.opacity = Math.random() * 0.5;
+        
+        container.appendChild(particle);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', createParticles);
+  </script>
+</body>
+</html>
