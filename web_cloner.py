@@ -725,11 +725,13 @@ class ContentProcessor:
         # Analyze and fix accessibility issues (contrast problems, etc.)
         self._analyze_and_fix_accessibility(soup, base_url)
                 
-        # Apply content replacements
+        return soup, resource_urls
+
+    def finalize_html(self, soup: BeautifulSoup) -> str:
+        """Finalize HTML processing: convert to string and apply replacements"""
         html_str = str(soup)
         html_str = self._apply_replacements(html_str)
-        
-        return html_str, resource_urls
+        return html_str
         
     def process_css(self, css_content: str, base_url: str) -> Tuple[str, List[str]]:
         """
@@ -2780,14 +2782,7 @@ class WebCloner:
         
         # Process HTML and extract resources
         logger.info("📄 Processing HTML content...")
-        processed_html, resource_list = self.processor.process_html(html_str, url)
-        
-        # Store main HTML
-        self.resources['index.html'] = {
-            'content': processed_html.encode('utf-8'),
-            'type': 'text/html',
-            'url': url
-        }
+        soup, resource_list = self.processor.process_html(html_str, url)
         
         # Download resources
         logger.info(f"📦 Downloading {len(resource_list)} resources...")
@@ -2806,6 +2801,26 @@ class WebCloner:
                 if not resource_result:
                     failed_count += 1
                     logger.warning(f"❌ Failed to download: {resource_url}")
+                    
+                    # Intelligent removal of missing resources
+                    if element:
+                        try:
+                            if resource_type == 'video':
+                                if element.name == 'source':
+                                    parent = element.parent
+                                    element.decompose()
+                                    if parent and parent.name == 'video' and not parent.find_all('source') and not parent.get('src'):
+                                        parent.decompose()
+                                        logger.info(f"🗑️ Removed empty video element due to missing source: {resource_url}")
+                                else:
+                                    element.decompose()
+                                    logger.info(f"🗑️ Removed video element due to missing file: {resource_url}")
+                            elif resource_type == 'img':
+                                element.decompose()
+                                logger.info(f"🗑️ Removed image element due to missing file: {resource_url}")
+                        except Exception as e:
+                            logger.warning(f"Failed to remove element for {resource_url}: {e}")
+                    
                     continue
                     
                 resource_content, resource_content_type = resource_result
@@ -2861,6 +2876,16 @@ class WebCloner:
                 logger.warning(f"Unexpected error downloading {resource_url}: {str(e)}")
                 continue
         
+        # Finalize HTML after processing resources
+        processed_html = self.processor.finalize_html(soup)
+        
+        # Store main HTML
+        self.resources['index.html'] = {
+            'content': processed_html.encode('utf-8'),
+            'type': 'text/html',
+            'url': url
+        }
+
         logger.info(f"✅ Downloaded {downloaded_count} resources successfully, {failed_count} failed")
         
         # Save to disk if output_dir specified
