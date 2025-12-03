@@ -1830,10 +1830,10 @@ class LandingPageGenerator:
                 return sorted(templates)
             else:
                 # Fallback to hardcoded list if directory not found
-                return ["base.html", "mystical.html", "prosperity.html", "romantic.html"]
+                return ["base.html", "base2.html", "mystical.html", "prosperity.html", "romantic.html"]
         except Exception as e:
             logger.warning(f"Could not list templates: {str(e)}, using fallback list")
-            return ["base.html", "mystical.html", "prosperity.html", "romantic.html"]
+            return ["base.html", "base2.html", "mystical.html", "prosperity.html", "romantic.html"]
 
     def get_template_info(self) -> Dict[str, Dict[str, str]]:
         """Get information about available templates for iOS app selection."""
@@ -1848,6 +1848,12 @@ class LandingPageGenerator:
                 template_info[template] = {
                     "name": "Clásica",
                     "description": "Diseño clásico y profesional",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "base2":
+                template_info[template] = {
+                    "name": "💎 Premium Dark Mode",
+                    "description": "Diseño de lujo ($5k+) • Alta Conversión • Místico & Elegante",
                     "preview_url": f"/api/templates/preview/{template_name}"
                 }
             elif template_name == "base_optimized":
@@ -1991,7 +1997,7 @@ class LandingPageGenerator:
     def get_templates_static() -> Dict[str, Dict[str, str]]:
         """Static method to get template information without requiring full initialization."""
         templates = [
-            "base.html", "base_optimized.html", "mystical.html", "romantic.html", "prosperity.html", "llama-gemela.html", 
+            "base.html", "base2.html", "base_optimized.html", "mystical.html", "romantic.html", "prosperity.html", "llama-gemela.html", 
             "llamado-del-alma.html", "el-libro-prohibido.html", "la-luz.html", "amarre-eterno.html",
             "tarot-akashico.html", "brujeria-blanca.html", "santeria-prosperidad.html", 
             "curanderismo-ancestral.html", "brujeria-negra-venganza.html", "ritual-amor-eterno.html",
@@ -2008,6 +2014,12 @@ class LandingPageGenerator:
                 template_info[template] = {
                     "name": "Clásica",
                     "description": "Diseño clásico y profesional",
+                    "preview_url": f"/api/templates/preview/{template_name}"
+                }
+            elif template_name == "base2":
+                template_info[template] = {
+                    "name": "💎 Premium Dark Mode",
+                    "description": "Diseño de lujo ($5k+) • Alta Conversión • Místico & Elegante",
                     "preview_url": f"/api/templates/preview/{template_name}"
                 }
             elif template_name == "base_optimized":
