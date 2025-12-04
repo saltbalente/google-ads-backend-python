@@ -1412,8 +1412,26 @@ class LandingPageGenerator:
         # ========== 1. SEO SUBSTITUTIONS ==========
         # Replace <title> tag
         if gen.seo_title:
-            html = re.sub(r'<title>[^<]*</title>', f'<title>{gen.seo_title}</title>', html, flags=re.IGNORECASE)
-            logger.info(f"📝 Updated title: {gen.seo_title[:50]}...")
+            def _to_title_case(s: str) -> str:
+                return ' '.join([w.capitalize() for w in str(s).lower().split()])
+            def _smart_truncate_title(s: str, limit: int) -> str:
+                t = _to_title_case(s).strip()
+                if len(t) <= limit:
+                    return t
+                cut = t[:limit].rstrip()
+                if len(t) > limit and not t[limit].isspace():
+                    last_space = cut.rfind(' ')
+                    if last_space > 0:
+                        cut = cut[:last_space]
+                # Avoid ending with connectors like 'de', 'y', 'en'
+                connectors = {'y','de','del','la','el','en','con','para','por','a'}
+                parts = cut.split(' ')
+                if parts and parts[-1].lower() in connectors:
+                    cut = ' '.join(parts[:-1])
+                return cut
+            cleaned_title = _smart_truncate_title(gen.seo_title, 60)
+            html = re.sub(r'<title>[^<]*</title>', f'<title>{cleaned_title}</title>', html, flags=re.IGNORECASE)
+            logger.info(f"📝 Updated title (title case + smart truncate): {cleaned_title}")
         
         # Replace meta description
         if gen.seo_description:
@@ -1428,7 +1446,7 @@ class LandingPageGenerator:
         if gen.seo_title:
             html = re.sub(
                 r'<meta\s+property=["\']og:title["\']\s+content=["\'][^"\']*["\']',
-                f'<meta property="og:title" content="{gen.seo_title}"',
+                f'<meta property="og:title" content="{cleaned_title}"',
                 html, flags=re.IGNORECASE
             )
         

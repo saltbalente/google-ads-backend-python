@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Landing Personalizada</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .hero {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 15px 40px;
+            background: white;
+            color: #667eea;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 30px;
+        }
+    </style>
+
+<!-- 🔌 WIDGETS CSS START -->
+<style id="widgets-injected-css">
+
+/* 🛡️ WIDGETS PRIORITY CSS - Always visible */
+.wa-sticky-bar, .vibrating-wa-btn, .scroll-popup-overlay, 
+.live-consults-container, .typing-indicator {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+#widgets-container {
+    display: block !important;
+    visibility: visible !important;
+}
+
+
+/* Sticky Bars Widget - Ultra High Priority */
+.wa-sticky-bar {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 2147483647 !important; /* Max z-index */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+    padding: 10px 16px !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3) !important;
+    transition: transform 0.3s ease !important;
+}
+.wa-sticky-top { top: 0 !important; }
+.wa-sticky-bottom { bottom: 0 !important; }
+.wa-sticky-text { font-size: 14px !important; font-weight: 600 !important; }
+.wa-sticky-btn {
+    padding: 8px 20px !important;
+    border-radius: 25px !important;
+    text-decoration: none !important;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+    transition: all 0.3s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+.wa-sticky-btn:hover { transform: scale(1.05) !important; }
+.wa-sticky-status {
+    font-size: 11px !important;
+    padding: 4px 10px !important;
+    border-radius: 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+}
+.wa-sticky-status .dot {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    animation: pulse 1.5s infinite !important;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+@media (max-width: 640px) {
+    .wa-sticky-bar { flex-wrap: wrap !important; padding: 8px 12px !important; gap: 8px !important; }
+    .wa-sticky-text { font-size: 12px !important; }
+    .wa-sticky-btn { padding: 6px 14px !important; font-size: 12px !important; }
+}
+
+.wa-sticky-bar { background: linear-gradient(135deg, #128C7E, #075E54); }
+.wa-sticky-text { color: white; }
+.wa-sticky-btn { background: #25D366; color: white; }
+.wa-sticky-status { background: rgba(37,211,102,0.2); color: #dcfce7; }
+.wa-sticky-status .dot { background: #25D366; }
+
+
+/* Vibrating Button Widget - Ultra High Priority */
+.vibrating-wa-btn {
+    position: fixed !important;
+    bottom: 90px !important;
+    right: 20px !important;
+    z-index: 2147483646 !important; /* Max z-index - 1 */
+    cursor: pointer !important;
+    animation: vibrate 2s infinite !important;
+    transition: all 0.3s ease !important;
+    display: block !important;
+    visibility: visible !important;
+}
+.vibrating-wa-btn:hover { animation: none !important; transform: scale(1.15) !important; }
+@keyframes vibrate {
+    0%, 100% { transform: rotate(0deg); }
+    10% { transform: rotate(-5deg) scale(1.1); }
+    20% { transform: rotate(5deg) scale(1.1); }
+    30% { transform: rotate(-5deg); }
+    40% { transform: rotate(5deg); }
+    50%, 100% { transform: rotate(0deg); }
+}
+.vibrating-wa-btn a {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+    color: white !important;
+    font-size: 28px !important;
+}
+@media (max-width: 640px) {
+    .vibrating-wa-btn { bottom: 100px !important; right: 15px !important; }
+    .vibrating-wa-btn a { font-size: 24px !important; }
+}
+
+.vibrating-wa-btn a {
+    width: 60px; height: 60px;
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    border-radius: 50%;
+    box-shadow: 0 5px 25px rgba(37,211,102,0.4);
+}
+
+
+/* Scroll Popup Widget */
+.scroll-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+.scroll-popup-overlay.active { display: flex; }
+.scroll-popup {
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    color: white;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    animation: popupIn 0.4s ease-out;
+}
+@keyframes popupIn {
+    from { opacity: 0; transform: scale(0.8) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.scroll-popup h3 { font-size: 1.5rem; margin-bottom: 10px; }
+.scroll-popup p { color: #c4b5fd; margin-bottom: 20px; }
+.scroll-popup-btn {
+    display: inline-block;
+    padding: 14px 30px;
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    color: white;
+    text-decoration: none;
+    border-radius: 30px;
+    font-weight: 700;
+    transition: transform 0.3s;
+}
+.scroll-popup-btn:hover { transform: scale(1.05); }
+.scroll-popup-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+
+/* Live Consultations Widget */
+.live-notification {
+    position: fixed;
+    bottom: 160px;
+    left: 20px;
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    border: 1px solid rgba(139,92,246,0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 9997;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    animation: slideInLeft 0.5s ease-out;
+    max-width: 280px;
+    opacity: 0;
+    transform: translateX(-100%);
+    transition: all 0.5s ease;
+}
+.live-notification.show { opacity: 1; transform: translateX(0); }
+@keyframes slideInLeft { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.live-notification-avatar {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #8b5cf6, #a855f7);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+}
+.live-notification-content { flex: 1; }
+.live-notification-text { color: #e0e7ff; font-size: 13px; font-weight: 500; }
+.live-notification-time { color: #a78bfa; font-size: 11px; margin-top: 2px; }
+@media (max-width: 640px) {
+    .live-notification { left: 10px; right: 10px; max-width: none; bottom: 170px; }
+}
+
+
+/* Live Questions Widget */
+.live-questions-section {
+    padding: 40px 20px;
+    background: linear-gradient(180deg, rgba(139,92,246,0.1) 0%, transparent 100%);
+}
+.live-questions-container { max-width: 800px; margin: 0 auto; }
+.live-questions-title {
+    text-align: center;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 30px;
+}
+.live-question-item {
+    background: rgba(30,27,75,0.8);
+    border: 1px solid rgba(139,92,246,0.3);
+    border-radius: 12px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+.live-question-q {
+    padding: 16px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #e0e7ff;
+    font-weight: 600;
+}
+.live-question-q:hover { background: rgba(139,92,246,0.1); }
+.live-question-a {
+    padding: 0 20px;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    color: #a78bfa;
+}
+.live-question-item.open .live-question-a { max-height: 200px; padding: 16px 20px; }
+.live-question-item.open .live-question-arrow { transform: rotate(180deg); }
+.live-question-arrow { transition: transform 0.3s; }
+
+
+/* Hypnotic Texts Widget */
+.hypnotic-section {
+    padding: 60px 20px;
+    background: linear-gradient(180deg, rgba(139,92,246,0.15) 0%, transparent 100%);
+    text-align: center;
+}
+.hypnotic-container { max-width: 800px; margin: 0 auto; }
+.hypnotic-message {
+    font-size: 1.5rem;
+    color: #c4b5fd;
+    font-style: italic;
+    padding: 20px 30px;
+    background: rgba(30,27,75,0.5);
+    border-left: 4px solid #8b5cf6;
+    border-radius: 0 12px 12px 0;
+    margin-bottom: 20px;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.8s ease forwards;
+}
+.hypnotic-message:nth-child(1) { animation-delay: 0.2s; }
+.hypnotic-message:nth-child(2) { animation-delay: 0.5s; }
+.hypnotic-message:nth-child(3) { animation-delay: 0.8s; }
+@keyframes fadeInUp {
+    to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 640px) {
+    .hypnotic-message { font-size: 1.1rem; padding: 15px 20px; }
+}
+
+
+/* Typing Effect Widget */
+.typing-indicator {
+    position: fixed;
+    bottom: 160px;
+    right: 20px;
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    border: 1px solid rgba(139,92,246,0.3);
+    border-radius: 20px 20px 4px 20px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 9996;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.4s ease;
+}
+.typing-indicator.show { opacity: 1; transform: translateY(0); }
+.typing-dots { display: flex; gap: 4px; }
+.typing-dot {
+    width: 8px; height: 8px;
+    background: #8b5cf6;
+    border-radius: 50%;
+    animation: typingBounce 1.4s infinite ease-in-out;
+}
+.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
+}
+.typing-text { color: #c4b5fd; font-size: 13px; }
+@media (max-width: 640px) {
+    .typing-indicator { right: 10px; left: 10px; bottom: 100px; }
+}
+
+</style>
+<!-- 🔌 WIDGETS CSS END -->
+
+<style id="premium-popups-css">
+/* 🎯 PREMIUM POPUPS - Base Styles */
+.premium-popup {
+    position: fixed;
+    z-index: 2147483647;
+    display: none;
+    animation: premiumFadeIn 0.3s ease-out;
+}
+
+.premium-popup.active {
+    display: flex !important;
+}
+
+.premium-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 2147483646;
+}
+
+.premium-popup-content {
+    position: relative;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: premiumSlideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.premium-popup-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #333;
+    transition: all 0.3s;
+    z-index: 10;
+}
+
+.premium-popup-close:hover {
+    background: rgba(0, 0, 0, 0.2);
+    transform: rotate(90deg);
+}
+
+.premium-btn {
+    display: inline-block;
+    padding: 15px 40px;
+    background: #8B5CF6;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.premium-btn:hover {
+    background: #6B46C1;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+@keyframes premiumFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes premiumSlideUp {
+    from { transform: translateY(50px) scale(0.9); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes premiumPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes premiumShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .premium-popup-content {
+        max-width: 95%;
+        border-radius: 15px;
+    }
+    
+    .premium-btn {
+        padding: 12px 30px;
+        font-size: 16px;
+    }
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>🔮 Transforma Tu Vida Hoy</h1>
+            <p>Consulta con nuestros expertos y descubre tu destino</p>
+            <a href="https://wa.me/573001234567" class="cta-button">Consultar Ahora</a>
+        </div>
+        
+        <div class="features">
+            <h2>¿Por qué elegirnos?</h2>
+            <ul>
+                <li>✨ Expertos con más de 10 años de experiencia</li>
+                <li>🔒 100% Confidencial</li>
+                <li>⚡ Respuesta inmediata</li>
+                <li>💰 Primera consulta GRATIS</li>
+            </ul>
+        </div>
+        
+        <div class="testimonials">
+            <h2>Lo que dicen nuestros clientes</h2>
+            <blockquote>
+                "Increíble experiencia, cambió mi vida completamente"
+                <footer>- María G.</footer>
+            </blockquote>
+        </div>
+    </div>
+
+<!-- 🔌 WIDGETS HTML START -->
+<div id="widgets-container">
+
+<!-- Sticky Bar Top -->
+<div class="wa-sticky-bar wa-sticky-top">
+    <span class="wa-sticky-text">💬 💬 ¡Consulta GRATIS ahora mismo!</span>
+    <span class="wa-sticky-status"><span class="dot"></span> En línea</span>
+    <a href="https://wa.me/573001234567?text=Hola%2C%20quiero%20informaci%C3%B3n" class="wa-sticky-btn" target="_blank">📱 WhatsApp</a>
+</div>
+<!-- Sticky Bar Bottom -->
+<div class="wa-sticky-bar wa-sticky-bottom">
+    <span class="wa-sticky-text">⚡ Respuesta inmediata garantizada</span>
+    <a href="https://wa.me/573001234567?text=Hola%2C%20quiero%20informaci%C3%B3n" class="wa-sticky-btn" target="_blank">💬 Consulta Ahora</a>
+</div>
+
+
+<!-- Vibrating WhatsApp Button -->
+<div class="vibrating-wa-btn">
+    <a href="https://wa.me/573001234567?text=Hola" target="_blank" aria-label="WhatsApp">💬</a>
+</div>
+
+
+<!-- Scroll Popup -->
+<div class="scroll-popup-overlay" id="scrollPopup">
+    <div class="scroll-popup">
+        <button class="scroll-popup-close" onclick="document.getElementById('scrollPopup').classList.remove('active')">✕</button>
+        <h3>🔮 ¡Espera! ¿Te vas sin tu consulta gratis?</h3>
+        <p>Un experto está disponible ahora mismo para ayudarte</p>
+        <a href="https://wa.me/573001234567?text=Quiero%20mi%20consulta%20gratis" class="scroll-popup-btn" target="_blank">💬 Sí, quiero mi consulta</a>
+    </div>
+</div>
+
+
+<!-- Live Consultations Notification -->
+<div class="live-notification" id="liveNotification">
+    <div class="live-notification-avatar">👤</div>
+    <div class="live-notification-content">
+        <div class="live-notification-text" id="liveNotifText">María de CDMX acaba de consultar</div>
+        <div class="live-notification-time">Hace unos segundos</div>
+    </div>
+</div>
+
+
+<!-- Live Questions Section -->
+<section class="live-questions-section">
+    <div class="live-questions-container">
+        <h2 class="live-questions-title">🔮 Preguntas Frecuentes</h2>
+        
+<div class="live-question-item" data-q="0">
+    <div class="live-question-q" onclick="this.parentElement.classList.toggle('open')">
+        <span>¿Cuánto tiempo tardan los resultados?</span>
+        <span class="live-question-arrow">▼</span>
+    </div>
+    <div class="live-question-a">Los primeros efectos se sienten en 24-48 horas.</div>
+</div>
+
+<div class="live-question-item" data-q="1">
+    <div class="live-question-q" onclick="this.parentElement.classList.toggle('open')">
+        <span>¿Es 100% confidencial?</span>
+        <span class="live-question-arrow">▼</span>
+    </div>
+    <div class="live-question-a">Absolutamente. Tu privacidad es sagrada para nosotros.</div>
+</div>
+
+<div class="live-question-item" data-q="2">
+    <div class="live-question-q" onclick="this.parentElement.classList.toggle('open')">
+        <span>¿Funcionará en mi caso?</span>
+        <span class="live-question-arrow">▼</span>
+    </div>
+    <div class="live-question-a">Cada situación es única. Consulta gratis para evaluación.</div>
+</div>
+
+    </div>
+</section>
+
+
+<!-- Hypnotic Texts Section -->
+<section class="hypnotic-section">
+    <div class="hypnotic-container">
+        <div class="hypnotic-message">"Tu destino está a punto de cambiar..."</div>
+<div class="hypnotic-message">"Las energías se están alineando a tu favor..."</div>
+<div class="hypnotic-message">"El universo conspira para tu felicidad..."</div>
+
+    </div>
+</section>
+
+
+<!-- Typing Effect Indicator -->
+<div class="typing-indicator" id="typingIndicator">
+    <div class="typing-dots">
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+    </div>
+    <span class="typing-text" id="typingText">Un experto está escribiendo...</span>
+</div>
+
+</div>
+<!-- 🔌 WIDGETS HTML END -->
+
+<!-- 🔌 WIDGETS JS START -->
+<script id="widgets-injected-js">
+
+(function() {
+    'use strict';
+    
+    // 🛡️ SISTEMA DE RETRY AUTOMÁTICO
+    var MAX_RETRIES = 3;
+    var RETRY_DELAY = 1000;
+    
+    function safeExecute(fn, name, retryCount) {
+        retryCount = retryCount || 0;
+        try {
+            fn();
+            console.log('✅ Widget loaded: ' + name);
+        } catch(e) {
+            console.warn('⚠️ Widget error (' + name + '):', e);
+            if (retryCount < MAX_RETRIES) {
+                console.log('🔄 Retrying ' + name + ' in ' + RETRY_DELAY + 'ms...');
+                setTimeout(function() {
+                    safeExecute(fn, name, retryCount + 1);
+                }, RETRY_DELAY);
+            }
+        }
+    }
+    
+    // 🛡️ VERIFICAR QUE EL DOM ESTÁ LISTO
+    function whenReady(callback) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', callback);
+        } else {
+            callback();
+        }
+    }
+    
+    // 🛡️ INICIALIZACIÓN PRINCIPAL
+    whenReady(function() {
+        console.log('🔌 Inicializando widgets...');
+        
+        // Pequeño delay para asegurar que todo está cargado
+        setTimeout(function() {
+            
+// Scroll Popup Logic
+(function() {
+    let popupShown = false;
+    window.addEventListener('scroll', function() {
+        if (popupShown) return;
+        const scrollPercent = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+        if (scrollPercent > 50) {
+            document.getElementById('scrollPopup').classList.add('active');
+            popupShown = true;
+        }
+    });
+})();
+
+
+// Live Consultations Logic
+(function() {
+    const names = ['María', 'Carlos', 'Ana', 'Juan', 'Laura', 'Pedro', 'Sofía', 'Diego'];
+    const cities = ['CDMX', 'Bogotá', 'Lima', 'Madrid', 'Buenos Aires', 'Guadalajara'];
+    const actions = ['acaba de consultar', 'inició su ritual', 'recibió resultados', 'está en consulta'];
+    
+    function showNotification() {
+        const name = names[Math.floor(Math.random() * names.length)];
+        const city = cities[Math.floor(Math.random() * cities.length)];
+        const action = actions[Math.floor(Math.random() * actions.length)];
+        
+        const notif = document.getElementById('liveNotification');
+        const text = document.getElementById('liveNotifText');
+        text.textContent = `${name} de ${city} ${action}`;
+        
+        notif.classList.add('show');
+        setTimeout(() => notif.classList.remove('show'), 5000);
+    }
+    
+    setTimeout(showNotification, 3000);
+    setInterval(showNotification, 15000 + Math.random() * 10000);
+})();
+
+
+
+
+// Typing Effect Logic
+(function() {
+    const messages = ["Un experto est\u00e1 revisando tu caso...", "Preparando tu consulta personalizada...", "Conectando con las energ\u00edas universales..."];
+    let idx = 0;
+    
+    function showTyping() {
+        const indicator = document.getElementById('typingIndicator');
+        const text = document.getElementById('typingText');
+        text.textContent = messages[idx % messages.length];
+        idx++;
+        
+        indicator.classList.add('show');
+        setTimeout(() => indicator.classList.remove('show'), 4000);
+    }
+    
+    setTimeout(showTyping, 5000);
+    setInterval(showTyping, 20000);
+})();
+
+        }, 200);
+    });
+    
+    // 🛡️ BACKUP: También ejecutar en window.load
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            // Re-verificar que los widgets están visibles
+            var containers = document.querySelectorAll('[class*="wa-sticky"], [class*="vibrating"], [class*="scroll-popup"]');
+            if (containers.length === 0) {
+                console.warn('⚠️ Widgets no encontrados, reinyectando...');
+                // Los widgets se reinyectarán por el sistema de fallback
+            }
+        }, 1000);
+    });
+})();
+
+</script>
+<!-- 🔌 WIDGETS JS END -->
+
+<div id="premium-popup-exit-intent" class="premium-popup" style="align-items: center; justify-content: center;">
+    <div class="premium-popup-overlay" onclick="closePremiumPopup('exit-intent')"></div>
+    <div class="premium-popup-content" style="padding: 40px; text-align: center; max-width: 550px;">
+        <button class="premium-popup-close" onclick="closePremiumPopup('exit-intent')">×</button>
+        
+        <div style="font-size: 64px; margin-bottom: 20px;">🛑</div>
+        <h2 style="color: #1a1a1a; font-size: 32px; margin-bottom: 15px;">¡Espera! No te vayas sin tu consulta</h2>
+        <p style="color: #666; font-size: 18px; margin-bottom: 30px;">
+            Miles de personas han transformado su vida con nuestra ayuda. ¿Seguro que quieres irte sin intentarlo?
+        </p>
+        
+        <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 25px; border-radius: 15px; margin-bottom: 30px;">
+            <p style="font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px;">
+                🎁 Bonus Especial para Ti
+            </p>
+            <p style="font-size: 16px; color: #666;">
+                Primera consulta 100% GRATIS + Lectura energética de regalo
+            </p>
+        </div>
+        
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <a href="https://wa.me/573001234567" class="premium-btn">
+                Sí, Quiero Mi Consulta 💬
+            </a>
+            <button onclick="closePremiumPopup('exit-intent')" style="padding: 15px 40px; background: transparent; color: #999; border: 2px solid #ddd; border-radius: 50px; font-size: 16px; cursor: pointer;">
+                No, gracias
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<div id="premium-popup-wheel-fortune" class="premium-popup" style="align-items: center; justify-content: center;">
+    <div class="premium-popup-overlay" onclick="closePremiumPopup('wheel-fortune')"></div>
+    <div class="premium-popup-content" style="padding: 40px; text-align: center; max-width: 500px;">
+        <button class="premium-popup-close" onclick="closePremiumPopup('wheel-fortune')">×</button>
+        
+        <h2 style="color: #1a1a1a; font-size: 28px; margin-bottom: 15px;">🎡 Gira la Ruleta de la Suerte</h2>
+        <p style="color: #666; font-size: 16px; margin-bottom: 30px;">¡Todos ganan! Descubre tu premio especial</p>
+        
+        <div id="fortune-wheel" style="width: 300px; height: 300px; margin: 0 auto 30px; border-radius: 50%; background: conic-gradient(from 0deg, #ff6b6b 0deg 60deg, #4ecdc4 60deg 120deg, #ffe66d 120deg 180deg, #a8e6cf 180deg 240deg, #ffd3b6 240deg 300deg, #ffaaa5 300deg 360deg); position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: white; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #8B5CF6;">
+                GIRA
+            </div>
+            <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 30px;">🔽</div>
+        </div>
+        
+        <div id="wheel-result" style="display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+            <div style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">🎉 ¡Felicidades!</div>
+            <div id="wheel-prize" style="font-size: 18px;">Has ganado: Consulta GRATIS + Lectura Tarot</div>
+        </div>
+        
+        <button onclick="spinWheel()" id="spin-btn" class="premium-btn">
+            Girar Ahora 🎯
+        </button>
+        
+        <a href="https://wa.me/573001234567" id="claim-prize-btn" class="premium-btn" style="display: none;">
+            Reclamar Mi Premio 🎁
+        </a>
+    </div>
+</div>
+
+
+<script id="premium-popups-js">
+(function() {
+    'use strict';
+    
+    const POPUP_IDS = ["exit_intent", "wheel_fortune"];
+    const WHATSAPP = '+573001234567';
+    
+    // 🎯 Control de popups
+    let popupsShown = new Set();
+    let currentPopup = null;
+    
+    // Cerrar popup
+    window.closePremiumPopup = function(id) {
+        const popup = document.getElementById('premium-popup-' + id);
+        if (popup) {
+            popup.classList.remove('active');
+            popupsShown.add(id);
+            currentPopup = null;
+        }
+    };
+    
+    // Mostrar popup
+    function showPopup(id) {
+        if (popupsShown.has(id) || currentPopup) return;
+        
+        const popup = document.getElementById('premium-popup-' + id);
+        if (popup) {
+            popup.classList.add('active');
+            currentPopup = id;
+            
+            // Ejecutar lógica específica del popup
+            if (id === 'urgency-timer') startUrgencyTimer();
+            if (id === 'social-proof') animateSocialProof();
+            if (id === 'notification-stack') startNotifications();
+            if (id === 'floating-cta') showFloatingCTA();
+        }
+    }
+    
+    // ⏰ Temporizador de urgencia
+    function startUrgencyTimer() {
+        const endTime = Date.now() + (2 * 60 * 60 * 1000); // 2 horas
+        
+        function updateTimer() {
+            const now = Date.now();
+            const diff = Math.max(0, endTime - now);
+            
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            const h = document.getElementById('urgency-hours');
+            const m = document.getElementById('urgency-minutes');
+            const s = document.getElementById('urgency-seconds');
+            
+            if (h) h.textContent = String(hours).padStart(2, '0');
+            if (m) m.textContent = String(minutes).padStart(2, '0');
+            if (s) s.textContent = String(seconds).padStart(2, '0');
+            
+            if (diff > 0) {
+                setTimeout(updateTimer, 1000);
+            }
+        }
+        
+        updateTimer();
+    }
+    
+    // 👥 Animar prueba social
+    function animateSocialProof() {
+        const el = document.getElementById('social-visitors');
+        if (!el) return;
+        
+        let count = 2847;
+        setInterval(() => {
+            count += Math.floor(Math.random() * 5);
+            el.textContent = count.toLocaleString();
+        }, 5000);
+    }
+    
+    // 🎡 Girar ruleta
+    window.spinWheel = function() {
+        const wheel = document.getElementById('fortune-wheel');
+        const btn = document.getElementById('spin-btn');
+        const result = document.getElementById('wheel-result');
+        const claimBtn = document.getElementById('claim-prize-btn');
+        
+        if (!wheel || !btn) return;
+        
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        
+        const spins = 5 + Math.random() * 3;
+        const degrees = (spins * 360) + (Math.random() * 360);
+        wheel.style.transform = `rotate(${degrees}deg)`;
+        
+        setTimeout(() => {
+            if (result) result.style.display = 'block';
+            if (claimBtn) {
+                claimBtn.style.display = 'inline-block';
+                btn.style.display = 'none';
+            }
+        }, 4000);
+    };
+    
+    // 📝 Quiz
+    window.nextQuizQuestion = function(num) {
+        document.querySelectorAll('.quiz-question').forEach(q => q.style.display = 'none');
+        const next = document.getElementById('quiz-question-' + num);
+        if (next) next.style.display = 'block';
+        
+        const bar = document.getElementById('quiz-bar');
+        if (bar) bar.style.width = (num * 33) + '%';
+    };
+    
+    window.showQuizResult = function() {
+        document.querySelectorAll('.quiz-question').forEach(q => q.style.display = 'none');
+        const result = document.getElementById('quiz-result');
+        if (result) result.style.display = 'block';
+        
+        const bar = document.getElementById('quiz-bar');
+        if (bar) bar.style.width = '100%';
+    };
+    
+    // 🔔 Notificaciones
+    function startNotifications() {
+        const container = document.getElementById('premium-popup-notification-stack');
+        if (!container) return;
+        
+        const notifications = [
+            { name: 'María G.', city: 'Bogotá', action: 'acaba de consultar' },
+            { name: 'Carlos R.', city: 'Medellín', action: 'recibió su lectura' },
+            { name: 'Ana L.', city: 'Cali', action: 'confirmó su cita' },
+            { name: 'José M.', city: 'Barranquilla', action: 'está en consulta' },
+        ];
+        
+        let index = 0;
+        
+        function showNotification() {
+            const notif = notifications[index % notifications.length];
+            index++;
+            
+            const el = document.createElement('div');
+            el.style.cssText = 'background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 15px; animation: premiumSlideUp 0.3s ease-out;';
+            el.innerHTML = `
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #8B5CF6, #6B46C1); flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; color: #333; font-size: 14px;">${notif.name} - ${notif.city}</div>
+                    <div style="color: #666; font-size: 13px;">${notif.action}</div>
+                </div>
+            `;
+            
+            container.appendChild(el);
+            
+            setTimeout(() => {
+                el.style.animation = 'premiumFadeOut 0.3s ease-out';
+                setTimeout(() => el.remove(), 300);
+            }, 5000);
+            
+            setTimeout(showNotification, 8000 + Math.random() * 4000);
+        }
+        
+        showNotification();
+    }
+    
+    // 💬 CTA Flotante
+    function showFloatingCTA() {
+        const cta = document.getElementById('premium-popup-floating-cta');
+        if (cta) {
+            setTimeout(() => {
+                cta.style.display = 'block';
+            }, 3000);
+        }
+    }
+    
+    // 🎯 Estrategia de activación
+    function activatePopups() {
+        if (!POPUP_IDS || POPUP_IDS.length === 0) return;
+        
+        // Exit Intent
+        if (POPUP_IDS.includes('exit_intent')) {
+            let hasExited = false;
+            document.addEventListener('mouseleave', (e) => {
+                if (e.clientY < 10 && !hasExited) {
+                    hasExited = true;
+                    showPopup('exit-intent');
+                }
+            });
+        }
+        
+        // Welcome Mat (inmediato)
+        if (POPUP_IDS.includes('welcome_mat')) {
+            setTimeout(() => showPopup('welcome-mat'), 1000);
+        }
+        
+        // Urgency Timer (5 segundos)
+        if (POPUP_IDS.includes('urgency_timer')) {
+            setTimeout(() => showPopup('urgency-timer'), 5000);
+        }
+        
+        // Flash Offer (10 segundos)
+        if (POPUP_IDS.includes('flash_offer')) {
+            setTimeout(() => showPopup('flash-offer'), 10000);
+        }
+        
+        // Social Proof (15 segundos)
+        if (POPUP_IDS.includes('social_proof')) {
+            setTimeout(() => showPopup('social-proof'), 15000);
+        }
+        
+        // Wheel Fortune (20 segundos)
+        if (POPUP_IDS.includes('wheel_fortune')) {
+            setTimeout(() => showPopup('wheel-fortune'), 20000);
+        }
+        
+        // Quiz Lead (25 segundos)
+        if (POPUP_IDS.includes('quiz_lead')) {
+            setTimeout(() => showPopup('quiz-lead'), 25000);
+        }
+        
+        // Video Popup (30 segundos)
+        if (POPUP_IDS.includes('video_popup')) {
+            setTimeout(() => showPopup('video'), 30000);
+        }
+        
+        // Floating CTA (scroll 50%)
+        if (POPUP_IDS.includes('floating_cta')) {
+            let shown = false;
+            window.addEventListener('scroll', () => {
+                if (shown) return;
+                const scrolled = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+                if (scrolled > 50) {
+                    shown = true;
+                    showFloatingCTA();
+                }
+            });
+        }
+        
+        // Notification Stack (inmediato si está incluido)
+        if (POPUP_IDS.includes('notification_stack')) {
+            startNotifications();
+        }
+    }
+    
+    // Iniciar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', activatePopups);
+    } else {
+        activatePopups();
+    }
+    
+    console.log('🎯 Premium Popups loaded:', POPUP_IDS.length, 'popups');
+})();
+</script>
+</body>
+</html>

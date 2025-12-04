@@ -8092,10 +8092,33 @@ def diagnostic():
 # WEB CLONER ENDPOINTS
 # ============================================================================
 
-# In-memory storage for cloning jobs (use Redis in production)
-cloning_jobs = {}
+# File-based storage for cloning jobs (persistent across restarts)
+import json
 from threading import Lock
+
+CLONING_JOBS_FILE = '/tmp/cloning_jobs.json'
 jobs_lock = Lock()
+
+def load_cloning_jobs():
+    """Load jobs from file"""
+    try:
+        if os.path.exists(CLONING_JOBS_FILE):
+            with open(CLONING_JOBS_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading cloning jobs: {e}")
+    return {}
+
+def save_cloning_jobs(jobs):
+    """Save jobs to file"""
+    try:
+        with open(CLONING_JOBS_FILE, 'w') as f:
+            json.dump(jobs, f)
+    except Exception as e:
+        logger.error(f"Error saving cloning jobs: {e}")
+
+# Initialize from file
+cloning_jobs = load_cloning_jobs()
 
 
 def validate_url(url: str) -> Tuple[bool, Optional[str]]:
@@ -8155,6 +8178,8 @@ def clone_website_task(job_id: str, url: str, site_name: str, whatsapp: str, pho
             })
             if data:
                 cloning_jobs[job_id].update(data)
+            # Persist to file
+            save_cloning_jobs(cloning_jobs)
     
     try:
         update_status('cloning', 10, 'Downloading website resources...')
@@ -8285,6 +8310,8 @@ def clone_website_endpoint():
                 'created_at': datetime.now().isoformat(),
                 'updated_at': datetime.now().isoformat()
             }
+            # Persist immediately
+            save_cloning_jobs(cloning_jobs)
         
         # Start background task
         import threading
