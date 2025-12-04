@@ -668,6 +668,10 @@ class PlaywrightCloner:
                     # Update URLs to relative
                     text = self._convert_urls_to_relative(text)
                     
+                    # For CSS files, also replace url() references
+                    if 'css' in content_type or filename.endswith('.css'):
+                        text = self._replace_css_urls(text)
+                    
                     resource['content'] = text.encode('utf-8')
                     
                 except Exception as e:
@@ -688,16 +692,49 @@ class PlaywrightCloner:
         return re.sub(url_pattern, replace_url, content)
     
     def _replace_css_urls(self, css: str) -> str:
-        """Replace URLs in CSS content"""
-        pattern = r'url\(["\']?([^"\')]+)["\']?\)'
+        """Replace URLs in CSS content (background-image, etc.)"""
+        # Pattern to match url() in CSS - captures the URL part
+        pattern = r'url\(\s*["\']?([^"\')]+)["\']?\s*\)'
         
         def replace(match):
-            url = match.group(1)
+            url = match.group(1).strip()
+            
+            # Skip data URLs
             if url.startswith('data:'):
                 return match.group(0)
-            filename = self._url_to_filename(url)
-            if filename in self.resources:
-                return f'url("{filename}")'
+            
+            # Skip empty URLs
+            if not url or url == '#':
+                return match.group(0)
+            
+            # Check if it's an absolute URL
+            if url.startswith('http://') or url.startswith('https://'):
+                # Try to find this resource in our downloads
+                filename = self._url_to_filename(url)
+                if filename in self.resources:
+                    return f'url("{filename}")'
+                # If not found, try to extract just the filename
+                try:
+                    parsed = urlparse(url)
+                    just_filename = Path(parsed.path).name
+                    if just_filename and just_filename in self.resources:
+                        return f'url("{just_filename}")'
+                except:
+                    pass
+            else:
+                # Relative URL - try to find it in resources
+                # Clean the URL (remove ./, ../, etc.)
+                clean_url = url.lstrip('./')
+                clean_url = clean_url.split('/')[-1]  # Get just the filename
+                
+                if clean_url in self.resources:
+                    return f'url("{clean_url}")'
+                
+                # Also try the original relative path
+                if url in self.resources:
+                    return f'url("{url}")'
+            
+            # If we can't find the resource, return original
             return match.group(0)
         
         return re.sub(pattern, replace, css)
