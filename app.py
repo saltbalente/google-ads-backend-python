@@ -8263,7 +8263,7 @@ def clone_website_task(job_id: str, url: str, site_name: str, whatsapp: str, pho
         upload_result = uploader.upload_cloned_website(
             site_name=site_name,
             resources=resources,
-            optimize_for_jsdelivr=False  # Use relative paths for GitHub Pages compatibility
+            optimize_for_jsdelivr=True  # Use jsDelivr CDN URLs for reliability
         )
         
         if not upload_result.get('success'):
