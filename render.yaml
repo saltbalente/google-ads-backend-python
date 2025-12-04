@@ -1,0 +1,16 @@
+# Render.com configuration for the Google Ads Backend
+# This file configures the deployment settings
+
+services:
+  - type: web
+    name: google-ads-backend
+    env: python
+    region: ohio
+    plan: free
+    buildCommand: pip install -r requirements.txt && python -m playwright install chromium && python -m playwright install-deps chromium || true
+    startCommand: gunicorn app:app --config gunicorn_config.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: /opt/render/.cache/ms-playwright

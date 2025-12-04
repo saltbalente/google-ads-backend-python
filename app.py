@@ -8166,7 +8166,7 @@ def sanitize_site_name(name: str) -> str:
 
 
 def clone_website_task(job_id: str, url: str, site_name: str, whatsapp: str, phone: str, gtm_id: str):
-    """Background task to clone website"""
+    """Background task to clone website using Playwright (primary) or requests (fallback)"""
     
     def update_status(status: str, progress: int, message: str, data: dict = None):
         with jobs_lock:
@@ -8181,41 +8181,82 @@ def clone_website_task(job_id: str, url: str, site_name: str, whatsapp: str, pho
             # Persist to file
             save_cloning_jobs(cloning_jobs)
     
+    resources = None
+    result = None
+    use_playwright = True
+    
     try:
-        update_status('cloning', 10, 'Downloading website resources...')
-        
-        # Initialize cloner
-        config = WebClonerConfig()
-        config.timeout = 30
-        config.max_retries = 3
-        cloner = WebCloner(config)
-        
-        # Clone website
-        update_status('cloning', 30, 'Processing HTML and assets...')
-        result = cloner.clone_website(
-            url=url,
-            whatsapp=whatsapp or None,
-            phone=phone or None,
-            gtm_id=gtm_id or None
-        )
-        
-        # Validate result structure
-        if not isinstance(result, dict):
-            update_status('failed', 0, 'Invalid response from cloner')
-            return
+        # Try Playwright first (better for sites with anti-bot protection)
+        try:
+            from playwright_cloner import clone_with_playwright, PLAYWRIGHT_AVAILABLE
             
-        if not result.get('success', False):
-            error_msg = result.get('error', 'Unknown error during cloning')
-            update_status('failed', 0, f"Failed to clone: {error_msg}")
-            return
+            if PLAYWRIGHT_AVAILABLE:
+                update_status('cloning', 5, '🎭 Iniciando navegador Playwright...')
+                
+                def progress_callback(pct, msg):
+                    # Map Playwright progress to our progress range (5-60)
+                    mapped_pct = 5 + int(pct * 0.55)
+                    update_status('cloning', mapped_pct, msg)
+                
+                result, resources = clone_with_playwright(
+                    url=url,
+                    whatsapp=whatsapp or None,
+                    phone=phone or None,
+                    gtm_id=gtm_id or None,
+                    progress_callback=progress_callback
+                )
+                
+                if result.get('success') and resources and len(resources) > 0:
+                    logger.info(f"✅ Playwright cloning successful: {len(resources)} resources")
+                else:
+                    logger.warning(f"⚠️ Playwright failed, falling back to requests: {result.get('error', 'Unknown')}")
+                    use_playwright = False
+                    resources = None
+            else:
+                logger.info("Playwright not available, using requests fallback")
+                use_playwright = False
+                
+        except ImportError as e:
+            logger.info(f"Playwright not installed, using requests fallback: {e}")
+            use_playwright = False
+        except Exception as e:
+            logger.warning(f"Playwright error, falling back to requests: {e}")
+            use_playwright = False
+        
+        # Fallback to requests-based cloner
+        if not use_playwright or not resources:
+            update_status('cloning', 10, 'Downloading website resources (fallback mode)...')
+            
+            config = WebClonerConfig()
+            config.timeout = 30
+            config.max_retries = 3
+            cloner = WebCloner(config)
+            
+            update_status('cloning', 30, 'Processing HTML and assets...')
+            result = cloner.clone_website(
+                url=url,
+                whatsapp=whatsapp or None,
+                phone=phone or None,
+                gtm_id=gtm_id or None
+            )
+            
+            if not isinstance(result, dict):
+                update_status('failed', 0, 'Invalid response from cloner')
+                return
+                
+            if not result.get('success', False):
+                error_msg = result.get('error', 'Unknown error during cloning')
+                update_status('failed', 0, f"Failed to clone: {error_msg}")
+                return
+            
+            resources = cloner.get_resources()
         
         # Validate resources were downloaded
-        resources = cloner.get_resources()
         if not resources or len(resources) == 0:
             update_status('failed', 0, 'No resources were downloaded')
             return
             
-        update_status('uploading', 60, f'Uploading {len(resources)} files to GitHub...')
+        update_status('uploading', 65, f'Uploading {len(resources)} files to GitHub...')
         
         # Upload to GitHub
         uploader = GitHubClonerUploader()
@@ -8231,14 +8272,16 @@ def clone_website_task(job_id: str, url: str, site_name: str, whatsapp: str, pho
             return
             
         # Success!
-        update_status('completed', 100, 'Website cloned successfully!', {
+        cloning_method = "Playwright" if use_playwright else "requests"
+        update_status('completed', 100, f'Website cloned successfully! (via {cloning_method})', {
             'github_url': upload_result.get('github_url'),
             'jsdelivr_url': upload_result.get('jsdelivr_url'),
             'raw_url': upload_result.get('raw_url'),
             'files_uploaded': upload_result.get('uploaded_files', 0),
             'total_files': upload_result.get('total_files', len(resources)),
             'total_resources': len(resources),
-            'resources_by_type': result.get('resources_by_type', {})
+            'resources_by_type': result.get('resources_by_type', {}) if result else {},
+            'cloning_method': cloning_method
         })
         
     except Exception as e:
