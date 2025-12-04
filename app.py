@@ -8273,7 +8273,31 @@ def clone_website_task(job_id: str, url: str, site_name: str, whatsapp: str, pho
             
         # Success!
         cloning_method = "Playwright" if use_playwright else "requests"
-        update_status('completed', 100, f'Website cloned successfully! (via {cloning_method})', {
+        update_status('verifying', 85, 'Verificando calidad del sitio clonado...')
+        
+        # Run automatic verification
+        verification_result = None
+        try:
+            from web_cloner import verify_cloned_site
+            
+            # Get the HTML from the cloned resources
+            html_content = ""
+            if 'index.html' in resources:
+                content = resources['index.html'].get('content', b'')
+                if isinstance(content, bytes):
+                    html_content = content.decode('utf-8', errors='ignore')
+                else:
+                    html_content = content
+            
+            if html_content:
+                verification_result = verify_cloned_site(html_content, url)
+                logger.info(f"✅ Verification complete: Score {verification_result.get('score', 0)}/100")
+        except Exception as e:
+            logger.warning(f"Verification failed (non-critical): {e}")
+            verification_result = {'score': -1, 'status': 'skipped', 'message': str(e)}
+        
+        # Build final result
+        final_data = {
             'github_url': upload_result.get('github_url'),
             'jsdelivr_url': upload_result.get('jsdelivr_url'),
             'raw_url': upload_result.get('raw_url'),
@@ -8282,7 +8306,30 @@ def clone_website_task(job_id: str, url: str, site_name: str, whatsapp: str, pho
             'total_resources': len(resources),
             'resources_by_type': result.get('resources_by_type', {}) if result else {},
             'cloning_method': cloning_method
-        })
+        }
+        
+        # Add verification results if available
+        if verification_result:
+            final_data['verification'] = {
+                'score': verification_result.get('score', -1),
+                'status': verification_result.get('status', 'unknown'),
+                'issues_count': len(verification_result.get('issues', [])),
+                'warnings_count': len(verification_result.get('warnings', [])),
+                'checks_passed': verification_result.get('checks_passed', 0),
+                'total_checks': verification_result.get('total_checks', 0)
+            }
+        
+        # Determine final message based on verification
+        if verification_result and verification_result.get('score', 0) >= 80:
+            final_message = f'✅ Sitio clonado y verificado exitosamente! (Score: {verification_result["score"]}/100)'
+        elif verification_result and verification_result.get('score', 0) >= 60:
+            final_message = f'⚠️ Sitio clonado con advertencias (Score: {verification_result["score"]}/100)'
+        elif verification_result and verification_result.get('score', 0) >= 0:
+            final_message = f'⚠️ Sitio clonado pero necesita revisión (Score: {verification_result["score"]}/100)'
+        else:
+            final_message = f'Website cloned successfully! (via {cloning_method})'
+        
+        update_status('completed', 100, final_message, final_data)
         
     except Exception as e:
         logger.error(f"Error in clone_website_task: {str(e)}")
@@ -8445,6 +8492,10 @@ def get_clone_status(job_id):
             response_data['files_uploaded'] = job['files_uploaded']
         if job.get('total_files'):
             response_data['total_files'] = job['total_files']
+        if job.get('cloning_method'):
+            response_data['cloning_method'] = job['cloning_method']
+        if job.get('verification'):
+            response_data['verification'] = job['verification']
             
         response = jsonify(response_data)
         response.headers.add('Access-Control-Allow-Origin', '*')
