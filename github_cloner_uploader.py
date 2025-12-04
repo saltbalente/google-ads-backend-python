@@ -132,23 +132,31 @@ class GitHubClonerUploader:
         # Create folder structure
         folder_path = f"clonedwebs/{site_name}"
         
-        # Keep original resources for Vercel/deployment (relative paths)
-        deployment_resources = resources.copy()
+        # Create files to upload dict
+        files_to_upload = {}
         
         # Create optimized version for jsDelivr preview if enabled
         if optimize_for_jsdelivr and 'index.html' in resources:
+            # Keep original index.html for Vercel deployment
+            original_index = resources['index.html'].copy()
+            
+            # Create optimized version with jsDelivr URLs
             preview_resources = self._optimize_for_jsdelivr(resources, folder_path)
-            # Save optimized version as index.html (for jsDelivr preview)
-            # Save original as index-vercel.html (for Vercel deployment)
-            if 'index.html' in preview_resources:
-                deployment_resources['index-vercel.html'] = resources['index.html'].copy()
-                resources = preview_resources
+            
+            # Add all optimized resources (including optimized index.html)
+            files_to_upload.update(preview_resources)
+            
+            # Add original index.html as index-vercel.html
+            files_to_upload['index-vercel.html'] = original_index
+        else:
+            # No optimization, just upload as-is
+            files_to_upload = resources
             
         # Upload each resource
         uploaded_files = []
         failed_files = []
         
-        for filename, data in resources.items():
+        for filename, data in files_to_upload.items():
             file_path = f"{folder_path}/{filename}"
             
             try:
