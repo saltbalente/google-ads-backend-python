@@ -425,6 +425,66 @@ class PlaywrightCloner:
                         filename = self._url_to_filename(url)
                         if filename in self.resources:
                             img[attr] = filename
+            
+            # Clean srcset attribute (multiple URLs with size descriptors)
+            if img.get('srcset'):
+                srcset = img['srcset']
+                # Parse srcset entries (format: "url 2048w, url 1024w, ...")
+                entries = []
+                for entry in srcset.split(','):
+                    entry = entry.strip()
+                    if not entry:
+                        continue
+                    
+                    # Split URL and descriptor (e.g., "image.jpg 2048w")
+                    parts = entry.split()
+                    if len(parts) >= 1:
+                        url = parts[0]
+                        descriptor = parts[1] if len(parts) > 1 else ''
+                        
+                        # Only keep entries with valid URLs
+                        if self._should_localize_url(url) and not url.endswith('w'):
+                            filename = self._url_to_filename(url)
+                            if filename in self.resources:
+                                if descriptor:
+                                    entries.append(f"{filename} {descriptor}")
+                                else:
+                                    entries.append(filename)
+                
+                # Update or remove srcset
+                if entries:
+                    img['srcset'] = ', '.join(entries)
+                else:
+                    # Remove invalid srcset to avoid errors
+                    del img['srcset']
+        
+        # Update source elements (used in <picture> tags)
+        for source in soup.find_all('source'):
+            if source.get('srcset'):
+                srcset = source['srcset']
+                entries = []
+                for entry in srcset.split(','):
+                    entry = entry.strip()
+                    if not entry:
+                        continue
+                    
+                    parts = entry.split()
+                    if len(parts) >= 1:
+                        url = parts[0]
+                        descriptor = parts[1] if len(parts) > 1 else ''
+                        
+                        if self._should_localize_url(url) and not url.endswith('w'):
+                            filename = self._url_to_filename(url)
+                            if filename in self.resources:
+                                if descriptor:
+                                    entries.append(f"{filename} {descriptor}")
+                                else:
+                                    entries.append(filename)
+                
+                if entries:
+                    source['srcset'] = ', '.join(entries)
+                else:
+                    del source['srcset']
         
         # Update background images in style attributes
         for element in soup.find_all(style=True):
