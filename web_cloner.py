@@ -400,7 +400,15 @@ class WebClonerConfig:
     def __init__(self):
         self.timeout = 30
         self.max_file_size = 50 * 1024 * 1024  # 50MB
-        self.user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        # User agents rotativos para evitar bloqueos
+        self.user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+        ]
+        self.user_agent = self.user_agents[0]
         self.max_retries = 3
         self.retry_delay = 2
         self.download_images = True
@@ -412,23 +420,47 @@ class WebClonerConfig:
 
 
 class ResourceDownloader:
-    """Handles downloading of web resources with retry logic"""
+    """Handles downloading of web resources with retry logic and anti-bot bypass"""
     
     def __init__(self, config: WebClonerConfig):
         self.config = config
         self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': config.user_agent,
-            'Accept': '*/*',
-            'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive'
-        })
+        self._current_ua_index = 0
+        self._setup_session()
         self.downloaded_urls: Set[str] = set()
+    
+    def _setup_session(self):
+        """Configure session with realistic browser headers"""
+        ua = self.config.user_agents[self._current_ua_index]
+        
+        # Headers completos que imitan un navegador real
+        self.session.headers.update({
+            'User-Agent': ua,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'es-ES,es;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"Windows"',
+            'Cache-Control': 'max-age=0',
+            'DNT': '1',
+        })
+    
+    def _rotate_user_agent(self):
+        """Rotate to next user agent"""
+        self._current_ua_index = (self._current_ua_index + 1) % len(self.config.user_agents)
+        self._setup_session()
+        logger.info(f"🔄 Rotated to User-Agent #{self._current_ua_index + 1}")
         
     def download(self, url: str, referer: Optional[str] = None) -> Optional[Tuple[bytes, str]]:
         """
-        Download a resource from URL
+        Download a resource from URL with anti-bot bypass techniques
         Returns: Tuple of (content_bytes, content_type) or None if failed
         """
         if url in self.downloaded_urls:
@@ -439,14 +471,28 @@ class ResourceDownloader:
         if not self._is_valid_url(url):
             logger.warning(f"Invalid URL: {url}")
             return None
+        
+        # Parse domain for referer
+        parsed_url = urlparse(url)
+        base_domain = f"{parsed_url.scheme}://{parsed_url.netloc}"
             
-        headers = {}
-        if referer:
-            headers['Referer'] = referer
+        # Build request headers
+        request_headers = {
+            'Referer': referer or base_domain,
+            'Origin': base_domain,
+        }
+        
+        # Add host header
+        request_headers['Host'] = parsed_url.netloc
             
         for attempt in range(self.config.max_retries):
             try:
                 logger.debug(f"Downloading {url} (attempt {attempt + 1}/{self.config.max_retries})")
+                
+                # Rotate user agent on retry (except first attempt)
+                if attempt > 0:
+                    self._rotate_user_agent()
+                    time.sleep(self.config.retry_delay * (attempt + 1))  # Incremental delay
                 
                 # Use longer timeout for larger files
                 timeout = self.config.timeout
@@ -455,7 +501,7 @@ class ResourceDownloader:
                 
                 response = self.session.get(
                     url,
-                    headers=headers,
+                    headers=request_headers,
                     timeout=timeout,
                     stream=True,
                     allow_redirects=True
@@ -465,6 +511,15 @@ class ResourceDownloader:
                 if response.status_code == 404:
                     logger.warning(f"Resource not found (404): {url}")
                     return None
+                
+                # Handle 403 Forbidden - try alternative methods
+                if response.status_code == 403:
+                    logger.warning(f"⚠️ Access forbidden (403): {url} - Trying bypass...")
+                    result = self._try_bypass_403(url, request_headers)
+                    if result:
+                        return result
+                    # If bypass failed, continue with next attempt
+                    continue
                     
                 response.raise_for_status()
                 
@@ -513,6 +568,108 @@ class ResourceDownloader:
                 time.sleep(self.config.retry_delay)
                 
         logger.error(f"❌ Failed to download after {self.config.max_retries} attempts: {url}")
+        return None
+    
+    def _try_bypass_403(self, url: str, base_headers: dict) -> Optional[Tuple[bytes, str]]:
+        """
+        Try various techniques to bypass 403 Forbidden errors
+        """
+        parsed = urlparse(url)
+        
+        # Technique 1: Try with different Accept headers
+        bypass_headers_list = [
+            {
+                **base_headers,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+            },
+            {
+                **base_headers,
+                'Accept': '*/*',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            {
+                # Minimal headers - some sites block on too many headers
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            },
+        ]
+        
+        for i, headers in enumerate(bypass_headers_list):
+            try:
+                logger.info(f"🔓 Trying bypass technique #{i + 1} for {url}")
+                
+                # Create a new session for this attempt
+                bypass_session = requests.Session()
+                bypass_session.headers.update(headers)
+                
+                # Add cookies if the site set any
+                bypass_session.cookies.update(self.session.cookies)
+                
+                response = bypass_session.get(
+                    url,
+                    timeout=self.config.timeout,
+                    allow_redirects=True,
+                    verify=True
+                )
+                
+                if response.status_code == 200:
+                    content = response.content
+                    content_type = response.headers.get('content-type', 'text/html')
+                    self.downloaded_urls.add(url)
+                    logger.info(f"✅ Bypass successful with technique #{i + 1}: {url}")
+                    return (content, content_type)
+                    
+            except Exception as e:
+                logger.debug(f"Bypass technique #{i + 1} failed: {str(e)}")
+                continue
+        
+        # Technique 2: Try with Google cache (for main HTML pages only)
+        if url.endswith('/') or not '.' in parsed.path.split('/')[-1]:
+            try:
+                cache_url = f"https://webcache.googleusercontent.com/search?q=cache:{url}"
+                logger.info(f"🔓 Trying Google cache for {url}")
+                
+                response = requests.get(
+                    cache_url,
+                    headers={'User-Agent': self.config.user_agents[0]},
+                    timeout=15
+                )
+                
+                if response.status_code == 200:
+                    content = response.content
+                    self.downloaded_urls.add(url)
+                    logger.info(f"✅ Retrieved from Google cache: {url}")
+                    return (content, 'text/html')
+                    
+            except Exception as e:
+                logger.debug(f"Google cache failed: {str(e)}")
+        
+        # Technique 3: Try archive.org Wayback Machine
+        try:
+            wayback_url = f"https://web.archive.org/web/2/{url}"
+            logger.info(f"🔓 Trying Wayback Machine for {url}")
+            
+            response = requests.get(
+                wayback_url,
+                headers={'User-Agent': self.config.user_agents[0]},
+                timeout=20,
+                allow_redirects=True
+            )
+            
+            if response.status_code == 200:
+                content = response.content
+                self.downloaded_urls.add(url)
+                logger.info(f"✅ Retrieved from Wayback Machine: {url}")
+                return (content, 'text/html')
+                
+        except Exception as e:
+            logger.debug(f"Wayback Machine failed: {str(e)}")
+        
+        logger.warning(f"❌ All bypass techniques failed for {url}")
         return None
         
     def _is_valid_url(self, url: str) -> bool:
