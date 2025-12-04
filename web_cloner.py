@@ -884,10 +884,24 @@ class ContentProcessor:
                 
         return soup, resource_urls
 
-    def finalize_html(self, soup: BeautifulSoup) -> str:
+    def finalize_html(self, soup: BeautifulSoup, base_url: str = None) -> str:
         """Finalize HTML processing: convert to string and apply replacements"""
         html_str = str(soup)
         html_str = self._apply_replacements(html_str)
+        
+        # Final cleanup: remove any remaining escaped domain references
+        if base_url:
+            from urllib.parse import urlparse
+            parsed = urlparse(base_url)
+            domain = parsed.netloc
+            
+            # Clean escaped URLs (common in WordPress JSON)
+            html_str = re.sub(rf'https?:\\/\\/{re.escape(domain)}[^\s"\'<>]*', '', html_str)
+            html_str = re.sub(rf'https?://{re.escape(domain)}[^\s"\'<>]*', '', html_str)
+            
+            # Clean any remaining plain domain references
+            html_str = html_str.replace(domain, '')
+        
         return html_str
         
     def process_css(self, css_content: str, base_url: str) -> Tuple[str, List[str]]:
@@ -1332,6 +1346,10 @@ class ContentProcessor:
         original_domain = parsed_url.netloc
         original_domain_https = f"https://{original_domain}"
         original_domain_http = f"http://{original_domain}"
+        # Also handle escaped URLs (common in JSON data)
+        original_domain_escaped = original_domain.replace('.', '\\.')
+        original_domain_https_escaped = f"https:\\/\\/{original_domain.replace('.', '.')}"
+        original_domain_http_escaped = f"http:\\/\\/{original_domain.replace('.', '.')}"
         
         references_removed = 0
         
@@ -1342,13 +1360,13 @@ class ContentProcessor:
                 references_removed += 1
         
         # Remove WordPress API links
-        for link in soup.find_all('link', rel=lambda r: r and ('api.w.org' in r or 'wp-json' in r or 'rsd' in r or 'oembed' in r)):
+        for link in soup.find_all('link', rel=lambda r: r and ('api.w.org' in str(r) or 'wp-json' in str(r) or 'rsd' in str(r) or 'oembed' in str(r))):
             if link.get('href') and original_domain in link['href']:
                 link.decompose()
                 references_removed += 1
         
         # Remove canonical and shortlink URLs
-        for link in soup.find_all('link', rel=lambda r: r and ('canonical' in r or 'shortlink' in r)):
+        for link in soup.find_all('link', rel=lambda r: r and ('canonical' in str(r) or 'shortlink' in str(r))):
             if link.get('href') and original_domain in link['href']:
                 link.decompose()
                 references_removed += 1
@@ -1363,10 +1381,23 @@ class ContentProcessor:
                 meta.decompose()
                 references_removed += 1
         
-        # Remove script tags that load from the original domain
+        # Remove script tags that load from the original domain (but NOT inline scripts with JSON data)
         for script in soup.find_all('script', src=True):
             if original_domain in script['src']:
                 script.decompose()
+                references_removed += 1
+        
+        # Clean inline scripts that contain domain references (JSON data, settings, etc.)
+        for script in soup.find_all('script', src=False):
+            if script.string and original_domain in script.string:
+                # Replace domain references in script content
+                cleaned = script.string
+                cleaned = cleaned.replace(f'https:\\/\\/{original_domain}', '')
+                cleaned = cleaned.replace(f'http:\\/\\/{original_domain}', '')
+                cleaned = cleaned.replace(original_domain_https, '')
+                cleaned = cleaned.replace(original_domain_http, '')
+                cleaned = cleaned.replace(original_domain, '')
+                script.string = cleaned
                 references_removed += 1
         
         # Remove conditional comments that reference the original domain
@@ -1376,17 +1407,24 @@ class ContentProcessor:
                 references_removed += 1
         
         # Remove link tags (CSS, etc.) that load from the original domain
+        # BUT only if they are NOT stylesheets (stylesheets should be downloaded, not removed)
         for link in soup.find_all('link', href=True):
             rel_attr = link.get('rel', '')
             if isinstance(rel_attr, list):
                 rel_attr = ' '.join(rel_attr)
-            if original_domain in link['href'] and not rel_attr.startswith('icon'):
+            # Skip stylesheets - they should already be processed and have local paths
+            if 'stylesheet' in rel_attr:
+                continue
+            if original_domain in link['href'] and not 'icon' in rel_attr:
                 link.decompose()
                 references_removed += 1
         
         # Remove any remaining href attributes that point to the original domain
         for element in soup.find_all(href=True):
             if original_domain in element['href']:
+                # Don't modify stylesheet links that have been converted to local
+                if element.name == 'link' and 'stylesheet' in str(element.get('rel', '')):
+                    continue
                 # Replace with # to prevent broken links
                 element['href'] = '#'
                 references_removed += 1
@@ -1399,12 +1437,25 @@ class ContentProcessor:
         
         # Clean up any remaining references in text content
         for element in soup.find_all(text=True):
-            if element.parent.name not in ['script', 'style']:  # Don't modify script/style content
-                if original_domain in element.string:
+            if element.parent.name not in ['script', 'style']:  # Don't modify script/style content (already handled)
+                text = str(element.string) if element.string else ''
+                if original_domain in text:
                     # Replace domain references with generic text
-                    element.string = element.string.replace(original_domain_https, '[SITIO WEB]')
-                    element.string = element.string.replace(original_domain_http, '[SITIO WEB]')
+                    text = text.replace(original_domain_https, '[SITIO WEB]')
+                    text = text.replace(original_domain_http, '[SITIO WEB]')
+                    text = text.replace(original_domain, '[SITIO WEB]')
+                    element.replace_with(text)
                     references_removed += 1
+        
+        # Clean up style attributes that might contain domain references
+        for element in soup.find_all(style=True):
+            style = element['style']
+            if original_domain in style:
+                style = style.replace(original_domain_https, '')
+                style = style.replace(original_domain_http, '')
+                style = style.replace(original_domain, '')
+                element['style'] = style
+                references_removed += 1
         
         if references_removed > 0:
             logger.info(f"Removed {references_removed} references to original domain {original_domain}")
@@ -3034,7 +3085,7 @@ class WebCloner:
                 continue
         
         # Finalize HTML after processing resources
-        processed_html = self.processor.finalize_html(soup)
+        processed_html = self.processor.finalize_html(soup, url)
         
         # Store main HTML
         self.resources['index.html'] = {
