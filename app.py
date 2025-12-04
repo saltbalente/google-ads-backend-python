@@ -8353,19 +8353,57 @@ def get_clone_status(job_id):
         return response
     
     try:
+        job = None
+        
+        # First try from memory
         with jobs_lock:
             job = cloning_jobs.get(job_id)
+        
+        # If not in memory, try reloading from file (handles multi-instance or restart cases)
+        if not job:
+            logger.info(f"Job {job_id} not in memory, trying to reload from file...")
+            reloaded_jobs = load_cloning_jobs()
+            job = reloaded_jobs.get(job_id)
+            
+            # If found in file, update memory cache
+            if job:
+                with jobs_lock:
+                    cloning_jobs[job_id] = job
+                logger.info(f"Job {job_id} reloaded from file")
             
         if not job:
+            logger.warning(f"Job {job_id} not found in memory or file")
             return jsonify({
                 'success': False,
                 'error': 'Job not found'
             }), 404
-            
-        response = jsonify({
+        
+        # Return job data directly (not wrapped in 'job' key for iOS compatibility)
+        response_data = {
             'success': True,
-            'job': job
-        })
+            'job_id': job.get('job_id', job_id),
+            'status': job.get('status', 'unknown'),
+            'progress': job.get('progress', 0),
+            'message': job.get('message', ''),
+            'url': job.get('url', ''),
+            'site_name': job.get('site_name', ''),
+            'created_at': job.get('created_at', ''),
+            'updated_at': job.get('updated_at', ''),
+        }
+        
+        # Add optional fields if present
+        if job.get('github_url'):
+            response_data['github_url'] = job['github_url']
+        if job.get('jsdelivr_url'):
+            response_data['jsdelivr_url'] = job['jsdelivr_url']
+        if job.get('raw_url'):
+            response_data['raw_url'] = job['raw_url']
+        if job.get('files_uploaded'):
+            response_data['files_uploaded'] = job['files_uploaded']
+        if job.get('total_files'):
+            response_data['total_files'] = job['total_files']
+            
+        response = jsonify(response_data)
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
         
