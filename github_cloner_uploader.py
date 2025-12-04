@@ -115,7 +115,7 @@ class GitHubClonerUploader:
         Args:
             site_name: Unique name for the cloned site
             resources: Dict of {filename: {content, type, url}}
-            optimize_for_jsdelivr: Replace local paths with jsDelivr CDN URLs
+            optimize_for_jsdelivr: Create optimized version for jsDelivr preview
             
         Returns:
             Dict with upload results and URLs
@@ -132,9 +132,17 @@ class GitHubClonerUploader:
         # Create folder structure
         folder_path = f"clonedwebs/{site_name}"
         
-        # Optimize resources for jsDelivr if enabled
-        if optimize_for_jsdelivr:
-            resources = self._optimize_for_jsdelivr(resources, folder_path)
+        # Keep original resources for Vercel/deployment (relative paths)
+        deployment_resources = resources.copy()
+        
+        # Create optimized version for jsDelivr preview if enabled
+        if optimize_for_jsdelivr and 'index.html' in resources:
+            preview_resources = self._optimize_for_jsdelivr(resources, folder_path)
+            # Save optimized version as index.html (for jsDelivr preview)
+            # Save original as index-vercel.html (for Vercel deployment)
+            if 'index.html' in preview_resources:
+                deployment_resources['index-vercel.html'] = resources['index.html'].copy()
+                resources = preview_resources
             
         # Upload each resource
         uploaded_files = []
