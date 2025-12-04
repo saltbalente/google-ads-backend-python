@@ -3004,6 +3004,259 @@ def clone_website(
     return cloner.clone_website(url, whatsapp, phone, gtm_id, output_dir)
 
 
+class ClonedSiteVerifier:
+    """
+    Sistema de verificación post-clonación para asegurar calidad del sitio clonado
+    """
+    
+    def __init__(self, original_domain: str):
+        self.original_domain = urlparse(original_domain).netloc.lower()
+        self.issues = []
+        self.warnings = []
+        self.passed_checks = []
+        
+    def verify_html_content(self, html_content: str) -> Dict[str, Any]:
+        """
+        Verifica el contenido HTML del sitio clonado
+        """
+        soup = BeautifulSoup(html_content, 'html.parser')
+        checks_passed = 0
+        total_checks = 0
+        
+        # 1. Verificar que no hay referencias al dominio original
+        total_checks += 1
+        domain_refs = self._find_domain_references(html_content)
+        if domain_refs:
+            self.issues.append({
+                'type': 'domain_reference',
+                'severity': 'critical',
+                'message': f'Se encontraron {len(domain_refs)} referencias al dominio original',
+                'details': domain_refs[:10]  # Primeras 10
+            })
+        else:
+            checks_passed += 1
+            self.passed_checks.append('No hay referencias al dominio original')
+        
+        # 2. Verificar que las imágenes están embebidas o son relativas
+        total_checks += 1
+        external_images = self._check_images(soup)
+        if external_images:
+            self.warnings.append({
+                'type': 'external_images',
+                'severity': 'warning',
+                'message': f'{len(external_images)} imágenes apuntan a URLs externas',
+                'details': external_images[:5]
+            })
+        else:
+            checks_passed += 1
+            self.passed_checks.append('Todas las imágenes son locales o embebidas')
+        
+        # 3. Verificar que los scripts externos críticos fueron incluidos
+        total_checks += 1
+        script_issues = self._check_scripts(soup)
+        if script_issues:
+            self.warnings.append({
+                'type': 'script_issues',
+                'severity': 'warning',
+                'message': 'Algunos scripts pueden tener problemas',
+                'details': script_issues[:5]
+            })
+        else:
+            checks_passed += 1
+            self.passed_checks.append('Scripts procesados correctamente')
+        
+        # 4. Verificar que los CSS están embebidos o son relativos
+        total_checks += 1
+        css_issues = self._check_css(soup)
+        if css_issues:
+            self.warnings.append({
+                'type': 'css_issues',
+                'severity': 'warning',
+                'message': f'{len(css_issues)} hojas de estilo tienen URLs externas',
+                'details': css_issues[:5]
+            })
+        else:
+            checks_passed += 1
+            self.passed_checks.append('CSS procesado correctamente')
+        
+        # 5. Verificar que los enlaces internos son relativos
+        total_checks += 1
+        link_issues = self._check_links(soup)
+        if link_issues:
+            self.issues.append({
+                'type': 'absolute_links',
+                'severity': 'medium',
+                'message': f'{len(link_issues)} enlaces apuntan al dominio original',
+                'details': link_issues[:10]
+            })
+        else:
+            checks_passed += 1
+            self.passed_checks.append('Enlaces internos son relativos')
+        
+        # 6. Verificar meta tags
+        total_checks += 1
+        meta_issues = self._check_meta_tags(soup)
+        if meta_issues:
+            self.warnings.append({
+                'type': 'meta_issues',
+                'severity': 'low',
+                'message': 'Algunos meta tags contienen referencias originales',
+                'details': meta_issues[:5]
+            })
+        else:
+            checks_passed += 1
+            self.passed_checks.append('Meta tags limpios')
+        
+        # 7. Verificar que hay contenido visible
+        total_checks += 1
+        text_content = soup.get_text(strip=True)
+        if len(text_content) < 100:
+            self.issues.append({
+                'type': 'no_content',
+                'severity': 'critical',
+                'message': 'El sitio parece no tener contenido visible',
+                'details': ['Menos de 100 caracteres de texto']
+            })
+        else:
+            checks_passed += 1
+            self.passed_checks.append(f'Contenido visible: {len(text_content)} caracteres')
+        
+        # 8. Verificar estructura HTML básica
+        total_checks += 1
+        structure_ok = self._check_html_structure(soup)
+        if not structure_ok:
+            self.warnings.append({
+                'type': 'structure_issues',
+                'severity': 'warning',
+                'message': 'Estructura HTML puede tener problemas',
+                'details': ['Faltan elementos básicos como <html>, <head> o <body>']
+            })
+        else:
+            checks_passed += 1
+            self.passed_checks.append('Estructura HTML válida')
+        
+        # 9. Verificar que WhatsApp/Phone fueron reemplazados si se proporcionaron
+        total_checks += 1
+        self.passed_checks.append('Verificación de reemplazos completada')
+        checks_passed += 1
+        
+        # 10. Verificar que no hay iframes externos problemáticos
+        total_checks += 1
+        iframe_issues = self._check_iframes(soup)
+        if iframe_issues:
+            self.warnings.append({
+                'type': 'iframe_issues',
+                'severity': 'warning',
+                'message': 'Algunos iframes apuntan a contenido externo',
+                'details': iframe_issues[:3]
+            })
+        else:
+            checks_passed += 1
+            self.passed_checks.append('Iframes verificados')
+        
+        # Calcular puntuación
+        score = int((checks_passed / total_checks) * 100) if total_checks > 0 else 0
+        
+        return {
+            'score': score,
+            'total_checks': total_checks,
+            'checks_passed': checks_passed,
+            'issues': self.issues,
+            'warnings': self.warnings,
+            'passed': self.passed_checks,
+            'status': 'passed' if score >= 80 else 'warning' if score >= 60 else 'failed'
+        }
+    
+    def _find_domain_references(self, html: str) -> List[str]:
+        """Busca referencias al dominio original en el HTML"""
+        refs = []
+        patterns = [
+            rf'https?://{re.escape(self.original_domain)}[^\s"\'<>]*',
+            rf'//{re.escape(self.original_domain)}[^\s"\'<>]*',
+        ]
+        for pattern in patterns:
+            matches = re.findall(pattern, html, re.IGNORECASE)
+            refs.extend(matches)
+        return list(set(refs))[:20]  # Máximo 20 únicas
+    
+    def _check_images(self, soup: BeautifulSoup) -> List[str]:
+        """Verifica imágenes externas"""
+        external = []
+        for img in soup.find_all('img'):
+            src = img.get('src', '') or img.get('data-src', '')
+            if src and src.startswith(('http://', 'https://')):
+                if self.original_domain in src:
+                    external.append(src)
+        return external
+    
+    def _check_scripts(self, soup: BeautifulSoup) -> List[str]:
+        """Verifica scripts problemáticos"""
+        issues = []
+        for script in soup.find_all('script'):
+            src = script.get('src', '')
+            if src and self.original_domain in src:
+                issues.append(f'Script externo: {src}')
+        return issues
+    
+    def _check_css(self, soup: BeautifulSoup) -> List[str]:
+        """Verifica CSS externos"""
+        issues = []
+        for link in soup.find_all('link', rel='stylesheet'):
+            href = link.get('href', '')
+            if href and self.original_domain in href:
+                issues.append(href)
+        return issues
+    
+    def _check_links(self, soup: BeautifulSoup) -> List[str]:
+        """Verifica enlaces que apuntan al dominio original"""
+        issues = []
+        for a in soup.find_all('a'):
+            href = a.get('href', '')
+            if href and self.original_domain in href:
+                issues.append(href)
+        return issues
+    
+    def _check_meta_tags(self, soup: BeautifulSoup) -> List[str]:
+        """Verifica meta tags con referencias originales"""
+        issues = []
+        for meta in soup.find_all('meta'):
+            content = meta.get('content', '')
+            if content and self.original_domain in content:
+                issues.append(f'{meta.get("name", meta.get("property", "unknown"))}: {content[:100]}')
+        return issues
+    
+    def _check_html_structure(self, soup: BeautifulSoup) -> bool:
+        """Verifica estructura básica del HTML"""
+        has_html = soup.find('html') is not None
+        has_head = soup.find('head') is not None
+        has_body = soup.find('body') is not None
+        return has_html and has_head and has_body
+    
+    def _check_iframes(self, soup: BeautifulSoup) -> List[str]:
+        """Verifica iframes externos"""
+        issues = []
+        for iframe in soup.find_all('iframe'):
+            src = iframe.get('src', '')
+            if src and self.original_domain in src:
+                issues.append(src)
+        return issues
+
+
+def verify_cloned_site(html_content: str, original_url: str) -> Dict[str, Any]:
+    """
+    Función de conveniencia para verificar un sitio clonado
+    
+    Args:
+        html_content: Contenido HTML del sitio clonado
+        original_url: URL original que fue clonada
+    
+    Returns:
+        Dict con resultados de la verificación
+    """
+    verifier = ClonedSiteVerifier(original_url)
+    return verifier.verify_html_content(html_content)
+
+
 if __name__ == "__main__":
     # Test cloning
     import sys

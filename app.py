@@ -8449,3 +8449,159 @@ def delete_cloned_site(site_name):
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
+
+
+@app.route('/api/verify-cloned-site', methods=['POST', 'OPTIONS'])
+def verify_cloned_site_endpoint():
+    """
+    Verificar la calidad de un sitio clonado
+    
+    Body:
+    {
+        "site_url": "https://cdn.jsdelivr.net/.../index.html",  # URL del sitio clonado
+        "original_url": "https://original-domain.com"          # URL original
+    }
+    
+    o
+    
+    {
+        "site_name": "sitio-clonado",           # Nombre del sitio en el repo
+        "original_url": "https://original-domain.com"
+    }
+    """
+    
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+    
+    try:
+        from web_cloner import verify_cloned_site
+        
+        data = request.get_json()
+        site_url = data.get('site_url')
+        site_name = data.get('site_name')
+        original_url = data.get('original_url', '')
+        
+        html_content = None
+        
+        # Obtener el HTML del sitio clonado
+        if site_url:
+            # Descargar desde la URL proporcionada
+            resp = requests.get(site_url, timeout=30)
+            resp.raise_for_status()
+            html_content = resp.text
+        elif site_name:
+            # Construir URL desde el nombre del sitio
+            github_owner = os.getenv('GITHUB_CLONED_OWNER', 'saltbalente')
+            github_repo = os.getenv('GITHUB_CLONED_REPO', 'cloned-websites')
+            cdn_url = f"https://cdn.jsdelivr.net/gh/{github_owner}/{github_repo}@main/{site_name}/index.html"
+            
+            resp = requests.get(cdn_url, timeout=30)
+            resp.raise_for_status()
+            html_content = resp.text
+        else:
+            response = jsonify({
+                'success': False,
+                'error': 'Se requiere site_url o site_name'
+            })
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response, 400
+        
+        # Verificar el sitio
+        verification_result = verify_cloned_site(html_content, original_url)
+        
+        response = jsonify({
+            'success': True,
+            'verification': verification_result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except requests.RequestException as e:
+        logger.error(f"Error fetching cloned site: {str(e)}")
+        response = jsonify({
+            'success': False,
+            'error': f'Error al obtener el sitio: {str(e)}'
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+        
+    except Exception as e:
+        logger.error(f"Error in verify_cloned_site: {str(e)}")
+        response = jsonify({
+            'success': False,
+            'error': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+
+@app.route('/api/verify-cloned-site/<site_name>', methods=['GET', 'OPTIONS'])
+def verify_cloned_site_by_name(site_name):
+    """
+    Verificar un sitio clonado por nombre (GET simple)
+    
+    Busca el original_url en el job de clonación si está disponible
+    """
+    
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        return response
+    
+    try:
+        from web_cloner import verify_cloned_site
+        
+        # Construir URL del CDN
+        github_owner = os.getenv('GITHUB_CLONED_OWNER', 'saltbalente')
+        github_repo = os.getenv('GITHUB_CLONED_REPO', 'cloned-websites')
+        cdn_url = f"https://cdn.jsdelivr.net/gh/{github_owner}/{github_repo}@main/{site_name}/index.html"
+        
+        # Descargar el HTML
+        resp = requests.get(cdn_url, timeout=30)
+        resp.raise_for_status()
+        html_content = resp.text
+        
+        # Intentar encontrar la URL original en los jobs guardados
+        original_url = ''
+        jobs = load_cloning_jobs()
+        for job_id, job in jobs.items():
+            if job.get('site_name') == site_name or job.get('folder_name') == site_name:
+                original_url = job.get('url', job.get('original_url', ''))
+                break
+        
+        # Verificar
+        verification_result = verify_cloned_site(html_content, original_url)
+        
+        response = jsonify({
+            'success': True,
+            'site_name': site_name,
+            'cdn_url': cdn_url,
+            'original_url': original_url or 'No encontrada',
+            'verification': verification_result
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except requests.RequestException as e:
+        logger.error(f"Error fetching cloned site {site_name}: {str(e)}")
+        response = jsonify({
+            'success': False,
+            'error': f'No se pudo obtener el sitio: {str(e)}'
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 404
+        
+    except Exception as e:
+        logger.error(f"Error in verify_cloned_site_by_name: {str(e)}")
+        response = jsonify({
+            'success': False,
+            'error': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
