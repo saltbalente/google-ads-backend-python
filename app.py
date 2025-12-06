@@ -7665,17 +7665,17 @@ def start_automation():
             result = jsonify({
                 "success": False,
                 "error": "numberOfGroups debe estar entre 1 y 20"
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            return result, 400
         
         if not (1 <= data['adsPerGroup'] <= 5):
             result = jsonify({
                 "success": False,
                 "error": "adsPerGroup debe estar entre 1 y 5"
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+            return result, 400
         
         # Extraer credenciales de headers (multi-tenant support)
         refresh_token = request.headers.get('X-Google-Ads-Refresh-Token')
@@ -7724,8 +7724,7 @@ def start_automation():
             "status": "queued"
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
-
-        return response, 400, 202  # 202 Accepted
+        return response, 202  # 202 Accepted
         
     except Exception as e:
         import traceback
