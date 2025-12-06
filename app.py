@@ -6497,6 +6497,10 @@ def create_campaign():
         budget_resource_name = data.get('budgetResourceName')
         status = data.get('status', 'PAUSED')
         
+        # Nuevos parámetros opcionales para copia exacta
+        bidding_strategy = data.get('biddingStrategy', 'MANUAL_CPC')
+        network_settings = data.get('networkSettings', {})
+        
         if not all([customer_id, name, budget_resource_name]):
             result = jsonify({
                 'success': False,
@@ -6507,6 +6511,8 @@ def create_campaign():
             return result, 400
         
         print(f"🚀 Creando campaña: {name}")
+        print(f"   Estrategia: {bidding_strategy}")
+        print(f"   Redes: {network_settings}")
         
         client = get_client_from_request()
         campaign_service = client.get_service("CampaignService")
@@ -6536,12 +6542,26 @@ def create_campaign():
         except ImportError:
             # Fallback: usar el valor numérico directamente (2 = DOES_NOT_CONTAIN)
             campaign.contains_eu_political_advertising = 2
-        campaign.manual_cpc.enhanced_cpc_enabled = False
+            
+        # Configurar Estrategia de Puja
+        # Mapeo de estrategias simples
+        if bidding_strategy == 'MAXIMIZE_CONVERSIONS':
+            campaign.maximize_conversions.target_cpa_micros = 0 # Opcional, si se quiere Target CPA
+        elif bidding_strategy == 'MAXIMIZE_CLICKS':
+            campaign.maximize_clicks.target_spend_micros = 0 # Opcional
+        elif bidding_strategy == 'TARGET_CPA':
+            campaign.target_cpa.target_cpa_micros = 10000000 # Valor dummy, idealmente se pasa
+        elif bidding_strategy == 'TARGET_ROAS':
+            campaign.target_roas.target_roas = 1.0 # Valor dummy
+        else:
+            # Default MANUAL_CPC
+            campaign.manual_cpc.enhanced_cpc_enabled = False
         
-        campaign.network_settings.target_google_search = True
-        campaign.network_settings.target_search_network = True
-        campaign.network_settings.target_content_network = False
-        campaign.network_settings.target_partner_search_network = False
+        # Configurar Redes
+        campaign.network_settings.target_google_search = network_settings.get('targetGoogleSearch', True)
+        campaign.network_settings.target_search_network = network_settings.get('targetSearchNetwork', True)
+        campaign.network_settings.target_content_network = network_settings.get('targetContentNetwork', False)
+        campaign.network_settings.target_partner_search_network = network_settings.get('targetPartnerSearchNetwork', False)
         
         
         print(f"DEBUG - Campaign antes de mutation:")
