@@ -6415,6 +6415,7 @@ def create_campaign_budget():
         customer_id = data.get('customerId', '').replace('-', '')
         name = data.get('name')
         amount_micros = int(data.get('amountMicros', 0))
+        is_shared = data.get('isShared', True)  # Por defecto True para compatibilidad
         
         if not all([customer_id, name, amount_micros]):
             result = jsonify({
@@ -6424,7 +6425,7 @@ def create_campaign_budget():
             result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
-        print(f"💰 Creando budget: {name} con ${amount_micros/1_000_000} COP")
+        print(f"💰 Creando budget: {name} con ${amount_micros/1_000_000} COP (shared: {is_shared})")
         
         client = get_client_from_request()
         campaign_budget_service = client.get_service("CampaignBudgetService")
@@ -6435,6 +6436,7 @@ def create_campaign_budget():
         campaign_budget.name = name
         campaign_budget.amount_micros = amount_micros
         campaign_budget.delivery_method = client.enums.BudgetDeliveryMethodEnum.STANDARD
+        campaign_budget.explicitly_shared = is_shared  # Aplicar el parámetro isShared
         
         response = campaign_budget_service.mutate_campaign_budgets(
             customer_id=customer_id,
@@ -6547,8 +6549,8 @@ def create_campaign():
         # Mapeo de estrategias simples
         if bidding_strategy == 'MAXIMIZE_CONVERSIONS':
             # MAXIMIZE_CONVERSIONS con presupuesto no compartido
-            # Simplemente activar la estrategia sin target CPA
-            pass  # La estrategia se establece automáticamente
+            # target_cpa_micros = 0 significa sin target (optimización automática)
+            campaign.maximize_conversions.target_cpa_micros = 0
         elif bidding_strategy == 'MAXIMIZE_CLICKS':
             campaign.maximize_clicks.target_spend_micros = 0 # Opcional
         elif bidding_strategy == 'TARGET_CPA':
