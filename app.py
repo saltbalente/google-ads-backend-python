@@ -795,11 +795,11 @@ def delete_landing(folder_name):
 @app.route('/api/landing/update', methods=['POST', 'OPTIONS'])
 def update_landing():
     if request.method == 'OPTIONS':
-        result = jsonify({}), 200
+        result = jsonify({})
         result.headers.add('Access-Control-Allow-Origin', '*')
         result.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
         result.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        return result
+        return result, 200
     
     try:
         data = request.json
@@ -1081,8 +1081,7 @@ def system_status():
         return jsonify({
             "status": "error",
             "error": str(e)
-        }), 500
-
+        })
 @app.route('/api/templates', methods=['GET'])
 def get_templates():
     """Obtiene la lista de templates disponibles para landing pages"""
@@ -2407,7 +2406,7 @@ def save_custom_template():
             result = jsonify({
                 'success': False,
                 'error': f'Campos requeridos faltantes: {", ".join(missing_fields)}'
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
@@ -2531,7 +2530,8 @@ def get_custom_templates():
             }
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
-        return response, 200
+
+        return response, 400, 200
         
     except Exception as e:
         logger.error(f"Error getting custom templates: {str(e)}")
@@ -2969,7 +2969,7 @@ def serve_custom_template_preview(filename):
         result = jsonify({
             'success': False,
             'error': f'Error al servir preview: {str(e)}'
-        }), 500
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
@@ -2987,7 +2987,8 @@ def create_ad():
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response
+
+        return response, 500
     
     try:
         data = request.json
@@ -3114,19 +3115,18 @@ def create_ad():
             "error": "Error de Google Ads API",
             "errors": errors,
             "request_id": ex.request_id
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
         
     except Exception as ex:
         result = jsonify({
             "success": False,
             "error": str(ex)
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        return result, 500
 
 @app.route('/api/demographics/get', methods=['POST', 'OPTIONS'])
 def get_demographics():
@@ -3149,8 +3149,7 @@ def get_demographics():
             return jsonify({
                 "success": False,
                 "message": "Faltan customerId o adGroupId"
-            }), 400
-        
+            })
         # Crear cliente
         client = get_client_from_request()
         google_ads_service = client.get_service("GoogleAdsService")
@@ -3284,7 +3283,8 @@ def update_demographics():
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response
+
+        return response, 400
     
     try:
         data = request.json
@@ -3473,19 +3473,18 @@ def update_demographics():
             "errors": errors,
             "error_details": error_details,
             "request_id": ex.request_id
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
         
     except Exception as ex:
         result = jsonify({
             "success": False,
             "message": str(ex)
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        return result, 500
 
 @app.route('/api/adgroup/create', methods=['POST', 'OPTIONS'])
 def create_ad_group():
@@ -3511,8 +3510,7 @@ def create_ad_group():
             return jsonify({
                 "success": False,
                 "message": "Faltan campos requeridos: customerId, campaignId, name"
-            }), 400
-        
+            })
         # Si no se proporciona CPC, usar valor por defecto (1 USD = 1,000,000 micros)
         if not cpc_bid_micros:
             cpc_bid_micros = 1000000
@@ -3604,7 +3602,8 @@ def add_keywords():
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response
+
+        return response, 400
     
     try:
         data = request.json
@@ -3719,20 +3718,21 @@ def add_keywords():
             "errors": errors,
             "error_details": error_details,
             "request_id": ex.request_id
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        
+        return result, 500
         
     except Exception as ex:
         print(f"❌ Error inesperado: {str(ex)}")
         result = jsonify({
             "success": False,
             "message": str(ex)
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        return result, 500
 
 @app.route('/api/demographics/stats', methods=['POST', 'OPTIONS'])
 def get_demographic_stats():
@@ -3759,7 +3759,7 @@ def get_demographic_stats():
             result = jsonify({
                 "success": False,
                 "message": "Faltan customerId o adGroupId"
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
@@ -4032,7 +4032,8 @@ def import_repository():
         response.headers['Access-Control-Allow-Origin'] = '*'
         response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return response, 200
+
+        return response, 400, 200
     
     try:
         data = request.json
@@ -4146,7 +4147,7 @@ def get_campaign_analytics():
                 'success': False,
                 'error': 'Faltan parámetros requeridos',
                 'required': ['customer_id', 'campaign_id', 'start_date', 'end_date']
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
@@ -4397,7 +4398,8 @@ def pause_keyword():
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response
+
+        return response, 400
     
     try:
         data = request.get_json()
@@ -4410,9 +4412,10 @@ def pause_keyword():
                 'success': False,
                 'error': 'Faltan parámetros requeridos',
                 'required': ['customer_id', 'ad_group_id', 'criterion_id']
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+
+            return result, 400
         
         # Crear cliente
         client = get_client_from_request()
@@ -4453,10 +4456,11 @@ def pause_keyword():
             'success': True,
             'message': 'Keyword pausada exitosamente',
             'resource_name': response.results[0].resource_name
-        }), 200
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        
+        return result, 200
         
     except GoogleAdsException as ex:
         print(f"❌ Google Ads API Error: {ex}")
@@ -4470,20 +4474,21 @@ def pause_keyword():
             'success': False,
             'error': error_message,
             'errors': errors
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        
+        return result, 500
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         result = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-    return result
+
+        return result, 500
 
 
 # Assets
@@ -4539,7 +4544,7 @@ def create_image_asset():
             return res
         raw = base64.b64decode(image_b64)
         if len(raw) > 5 * 1024 * 1024:
-            return jsonify({"success": False, "policyViolation": "Imagen supera 5MB"}), 400
+            return jsonify({"success": False, "policyViolation": "Imagen supera 5MB"})
         img = Image.open(BytesIO(raw))
         w, h = img.size
         if fmt == 'MARKETING':
@@ -5811,7 +5816,8 @@ def pause_ad():
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response
+
+    return response, 400
     
     try:
         data = request.get_json()
@@ -5868,10 +5874,9 @@ def pause_ad():
             'success': True,
             'message': 'Anuncio pausado exitosamente',
             'resource_name': response.results[0].resource_name
-        }), 200
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 200
         
     except GoogleAdsException as ex:
         print(f"❌ Google Ads API Error: {ex}")
@@ -5885,20 +5890,21 @@ def pause_ad():
             'success': False,
             'error': error_message,
             'errors': errors
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        
+        return result, 500
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         result = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        return result, 500
 
 @app.route('/api/keyword/update-bid', methods=['POST', 'OPTIONS'])
 def update_keyword_bid():
@@ -5932,7 +5938,7 @@ def update_keyword_bid():
                 'success': False,
                 'error': 'Faltan parámetros requeridos',
                 'required': ['customer_id', 'ad_group_id', 'criterion_id', 'new_bid_micros']
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
@@ -6055,7 +6061,8 @@ def search_ads():
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response
+
+        return response, 400
     
     try:
         data = request.get_json()
@@ -6067,9 +6074,10 @@ def search_ads():
             result = jsonify({
                 'success': False,
                 'error': 'Falta parámetro requerido: customerId'
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+
+            return result, 400
         
         # Crear cliente
         client = get_client_from_request()
@@ -6163,10 +6171,11 @@ def search_ads():
             'success': True,
             'ads': ads,
             'count': len(ads)
-        }), 200
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        
+        return result, 200
         
     except GoogleAdsException as ex:
         print(f"❌ Google Ads API Error: {ex}")
@@ -6180,20 +6189,21 @@ def search_ads():
             'success': False,
             'error': error_message,
             'errors': errors
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        
+        return result, 500
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         result = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        return result, 500
 
 
 # ==========================================
@@ -6410,7 +6420,7 @@ def create_campaign_budget():
             result = jsonify({
                 'success': False,
                 'error': 'Faltan parámetros requeridos'
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
@@ -6437,10 +6447,10 @@ def create_campaign_budget():
         result = jsonify({
             'success': True,
             'resourceName': resource_name
-        }), 200
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 200
         
     except GoogleAdsException as ex:
         print(f"❌ Google Ads API Error: {ex}")
@@ -6453,20 +6463,20 @@ def create_campaign_budget():
             'success': False,
             'error': 'Google Ads API Error',
             'errors': errors
-        }), 500
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         result = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
 
 @app.route('/api/create-campaign', methods=['POST', 'OPTIONS'])
 def create_campaign():
@@ -6477,7 +6487,8 @@ def create_campaign():
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response
+
+        return response, 400
     
     try:
         data = request.json
@@ -6490,9 +6501,10 @@ def create_campaign():
             result = jsonify({
                 'success': False,
                 'error': 'Faltan parámetros requeridos'
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+
+            return result, 400
         
         print(f"🚀 Creando campaña: {name}")
         
@@ -6550,10 +6562,10 @@ def create_campaign():
             'success': True,
             'resourceName': resource_name,
             'campaignId': campaign_id
-        }), 200
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 200
         
     except GoogleAdsException as ex:
         print(f"❌ Google Ads API Error: {ex}")
@@ -6566,20 +6578,20 @@ def create_campaign():
             'success': False,
             'error': 'Google Ads API Error',
             'errors': errors
-        }), 500
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         result = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
 
 @app.route('/api/create-adgroup', methods=['POST', 'OPTIONS'])
 def create_ad_group_copy():
@@ -6603,9 +6615,11 @@ def create_ad_group_copy():
             result = jsonify({
                 'success': False,
                 'error': 'Faltan parámetros requeridos'
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+
+        
+        return result, 400
         
         print(f"📂 Creando ad group: {name}")
         
@@ -6650,10 +6664,10 @@ def create_ad_group_copy():
             'success': True,
             'resourceName': resource_name,
             'adGroupId': ad_group_id
-        }), 200
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 200
         
     except GoogleAdsException as ex:
         print(f"❌ Google Ads API Error: {ex}")
@@ -6666,20 +6680,20 @@ def create_ad_group_copy():
             'success': False,
             'error': 'Google Ads API Error',
             'errors': errors
-        }), 500
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         result = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
 
 @app.route('/api/create-keyword', methods=['POST', 'OPTIONS'])
 def create_keyword():
@@ -6704,9 +6718,11 @@ def create_keyword():
             result = jsonify({
                 'success': False,
                 'error': 'Faltan parámetros requeridos'
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
-            return result
+
+        
+        return result, 400
         
         print(f"🔑 Creando keyword: {keyword_text} ({match_type})")
         
@@ -6741,10 +6757,10 @@ def create_keyword():
         result = jsonify({
             'success': True,
             'resourceName': resource_name
-        }), 200
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 200
         
     except GoogleAdsException as ex:
         print(f"❌ Google Ads API Error: {ex}")
@@ -6757,20 +6773,20 @@ def create_keyword():
             'success': False,
             'error': 'Google Ads API Error',
             'errors': errors
-        }), 500
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         result = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
+        })
         
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
 
 # Agregar este endpoint al final de app.py antes de la última línea
 
@@ -6963,8 +6979,7 @@ def get_keyword_ideas():
         
         # Validar que al menos uno exista
         if not keyword_texts and not page_url:
-            return jsonify({'error': 'Must provide either keywords or pageUrl'}), 400
-
+            return jsonify({'error': 'Must provide either keywords or pageUrl'})
         # Obtener cliente
         client = get_client_from_request()
 
@@ -7011,7 +7026,9 @@ def get_keyword_ideas():
             
         result = jsonify({'results': results})
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        
+        return result, 400
 
     except Exception as e:
         print(f"Error generating keyword ideas: {e}")
@@ -7057,8 +7074,7 @@ def get_google_trends():
         resolution = data.get('resolution', 'COUNTRY')
         
         if not keywords or len(keywords) == 0:
-            return jsonify({'success': False, 'error': 'Se requiere al menos un keyword'}), 400
-        
+            return jsonify({'success': False, 'error': 'Se requiere al menos un keyword'})
         print(f"🔍 Trends Request: {keywords} | Geo: {geo or 'Global'} | Range: {time_range}")
         
         # NIVEL 1: Intentar con Scraping Manual (PRIORIDAD MÁXIMA)
@@ -7102,7 +7118,8 @@ def get_google_trends():
         
         response = jsonify({'success': False, 'error': str(e)})
         response.headers.add('Access-Control-Allow-Origin', '*')
-        return response, 500
+
+        return response, 400, 500
 
 
 def get_trends_from_google_ads(keywords, geo, time_range, resolution):
@@ -7615,7 +7632,7 @@ def start_automation():
                 "success": False,
                 "error": f"Faltan campos requeridos: {', '.join(missing)}",
                 "required": required
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
@@ -7683,7 +7700,8 @@ def start_automation():
             "status": "queued"
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
-        return response, 202  # 202 Accepted
+
+        return response, 400, 202  # 202 Accepted
         
     except Exception as e:
         import traceback
@@ -7808,7 +7826,7 @@ def get_automation_history():
             result = jsonify({
                 "success": False,
                 "error": "customerId es requerido"
-            }), 400
+            })
             result.headers.add('Access-Control-Allow-Origin', '*')
             return result
         
@@ -7855,7 +7873,9 @@ def cancel_automation(job_id):
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response
+
+        
+        return response, 400
     
     try:
         cancelled = automation_worker.cancel_job(job_id)
@@ -7869,23 +7889,22 @@ def cancel_automation(job_id):
             result = jsonify({
                 "success": False,
                 "message": "No se pudo cancelar el job (ya completado o no existe)"
-            }), 400
-        
+            })
         if isinstance(result, tuple):
             result.headers.add('Access-Control-Allow-Origin', '*')
         else:
             result.headers.add('Access-Control-Allow-Origin', '*')
-        
-        return result
+
+            return result, 400
         
     except Exception as e:
         result = jsonify({
             "success": False,
             "error": str(e)
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+
+        return result, 500
 
 
 @app.route('/api/automation/logs/<job_id>', methods=['GET', 'OPTIONS'])
@@ -7930,8 +7949,7 @@ def get_automation_logs(job_id):
         result = jsonify({
             "success": False,
             "error": str(e)
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
         return result
 
@@ -7947,7 +7965,8 @@ def pinterest_convert():
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
         response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response
+
+        return response, 500
     
     try:
         data = request.get_json()
@@ -8040,7 +8059,7 @@ def pinterest_convert():
         return jsonify({
             'success': False,
             'error': f'Error al obtener la página de Pinterest: {str(e)}'
-        }), 500
+        })
     except Exception as e:
         logger.error(f"Error in pinterest_convert: {e}")
         return jsonify({
@@ -8085,7 +8104,7 @@ def diagnostic():
     })
     
     result.headers.add('Access-Control-Allow-Origin', '*')
-    return result
+    return result, 200
 
 
 # ============================================================================
@@ -8361,8 +8380,7 @@ def clone_website_endpoint():
             return jsonify({
                 'success': False,
                 'error': 'URL is required'
-            }), 400
-            
+            })
         if not site_name:
             return jsonify({
                 'success': False,
@@ -8419,7 +8437,8 @@ def clone_website_endpoint():
             'status_url': f'/api/clone-status/{job_id}'
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
-        return response
+
+        return response, 400
         
     except Exception as e:
         logger.error(f"Error in clone_website_endpoint: {str(e)}")
@@ -8466,8 +8485,7 @@ def get_clone_status(job_id):
             return jsonify({
                 'success': False,
                 'error': 'Job not found'
-            }), 404
-        
+            })
         # Return job data directly (not wrapped in 'job' key for iOS compatibility)
         response_data = {
             'success': True,
@@ -8499,7 +8517,8 @@ def get_clone_status(job_id):
             
         response = jsonify(response_data)
         response.headers.add('Access-Control-Allow-Origin', '*')
-        return response
+
+        return response, 404
         
     except Exception as e:
         logger.error(f"Error in get_clone_status: {str(e)}")
@@ -8568,10 +8587,10 @@ def delete_cloned_site(site_name):
             response = jsonify({
                 'success': False,
                 'error': 'Failed to delete site'
-            }), 500
-            
+            })
         response.headers.add('Access-Control-Allow-Origin', '*')
-        return response
+
+        return response, 500
         
     except Exception as e:
         logger.error(f"Error in delete_cloned_site: {str(e)}")
