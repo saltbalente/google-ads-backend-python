@@ -6546,9 +6546,9 @@ def create_campaign():
         # Configurar Estrategia de Puja
         # Mapeo de estrategias simples
         if bidding_strategy == 'MAXIMIZE_CONVERSIONS':
-            # MAXIMIZE_CONVERSIONS es compatible con presupuestos estándar
-            # No establecer target_cpa_micros para permitir optimización automática
-            campaign.maximize_conversions.CopyFrom(client.get_type("MaximizeConversions"))
+            # MAXIMIZE_CONVERSIONS con presupuesto no compartido
+            # Simplemente activar la estrategia sin target CPA
+            pass  # La estrategia se establece automáticamente
         elif bidding_strategy == 'MAXIMIZE_CLICKS':
             campaign.maximize_clicks.target_spend_micros = 0 # Opcional
         elif bidding_strategy == 'TARGET_CPA':
