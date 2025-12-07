@@ -3020,6 +3020,11 @@ def create_ad():
         print(f"📝 Headlines después de eliminar duplicados: {len(headlines)} (originales: {len(data.get('headlines', []))})")
         print(f"📝 Descriptions después de eliminar duplicados: {len(descriptions)} (originales: {len(data.get('descriptions', []))})")
         
+        # Limpiar adGroupId si viene como resource name
+        if ad_group_id and "/" in str(ad_group_id):
+            ad_group_id = str(ad_group_id).split("/")[-1]
+            print(f"🧹 Limpiado adGroupId: {ad_group_id}")
+        
         # Validaciones
         if not all([customer_id, ad_group_id, headlines, descriptions, final_url]):
             return jsonify({
@@ -3126,6 +3131,136 @@ def create_ad():
         })
         result.headers.add('Access-Control-Allow-Origin', '*')
 
+        return result, 500
+
+@app.route('/api/apply-targeting', methods=['POST', 'OPTIONS'])
+def apply_campaign_targeting():
+    """Aplica targeting (ubicaciones, idiomas, dispositivos) a una campaña"""
+    
+    # CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response
+        
+    try:
+        data = request.json
+        customer_id = data.get('customerId')
+        campaign_id = data.get('campaignId')
+        locations = data.get('locations', [])
+        languages = data.get('languages', [])
+        device_targets = data.get('deviceTargets', [])
+        
+        if not all([customer_id, campaign_id]):
+            return jsonify({
+                "success": False,
+                "error": "Faltan campos requeridos (customerId, campaignId)"
+            }), 400
+            
+        # Crear cliente
+        refresh_token = request.headers.get('X-Google-Ads-Refresh-Token')
+        login_customer_id = request.headers.get('X-Google-Ads-Login-Customer-Id')
+        client = get_google_ads_client(refresh_token, login_customer_id)
+        
+        campaign_criterion_service = client.get_service("CampaignCriterionService")
+        campaign_service = client.get_service("CampaignService")
+        campaign_resource_name = campaign_service.campaign_path(customer_id, campaign_id)
+        
+        operations = []
+        
+        # 1. Ubicaciones
+        for location_id in locations:
+            operation = client.get_type("CampaignCriterionOperation")
+            criterion = operation.create
+            criterion.campaign = campaign_resource_name
+            # location_id viene como "12345", necesitamos "geoTargetConstants/12345"
+            # Pero a veces ya viene con el prefijo si no se limpió
+            if "geoTargetConstants/" in location_id:
+                criterion.location.geo_target_constant = location_id
+            else:
+                criterion.location.geo_target_constant = f"geoTargetConstants/{location_id}"
+            operations.append(operation)
+            
+        # 2. Idiomas
+        for language_id in languages:
+            operation = client.get_type("CampaignCriterionOperation")
+            criterion = operation.create
+            criterion.campaign = campaign_resource_name
+            if "languageConstants/" in language_id:
+                criterion.language.language_constant = language_id
+            else:
+                criterion.language.language_constant = f"languageConstants/{language_id}"
+            operations.append(operation)
+            
+        # 3. Dispositivos
+        # Mapeo de tipos de dispositivos
+        device_type_map = {
+            "MOBILE": client.enums.DeviceEnum.MOBILE,
+            "TABLET": client.enums.DeviceEnum.TABLET,
+            "DESKTOP": client.enums.DeviceEnum.DESKTOP,
+            "CONNECTED_TV": client.enums.DeviceEnum.CONNECTED_TV,
+            "OTHER": client.enums.DeviceEnum.OTHER,
+            "UNSPECIFIED": client.enums.DeviceEnum.UNSPECIFIED,
+            "UNKNOWN": client.enums.DeviceEnum.UNKNOWN
+        }
+        
+        for device in device_targets:
+            device_type_str = device.get('type')
+            bid_modifier = device.get('bidModifier', 1.0)
+            
+            operation = client.get_type("CampaignCriterionOperation")
+            criterion = operation.create
+            criterion.campaign = campaign_resource_name
+            
+            # Convertir string a enum
+            device_enum = device_type_map.get(device_type_str, client.enums.DeviceEnum.UNSPECIFIED)
+            criterion.device.type_ = device_enum
+            
+            if bid_modifier != 1.0:
+                criterion.bid_modifier = bid_modifier
+                
+            operations.append(operation)
+            
+        if not operations:
+            return jsonify({
+                "success": True,
+                "message": "No targeting operations to apply"
+            })
+            
+        # Ejecutar operaciones
+        response = campaign_criterion_service.mutate_campaign_criteria(
+            customer_id=customer_id,
+            operations=operations
+        )
+        
+        result = jsonify({
+            "success": True,
+            "results": [result.resource_name for result in response.results]
+        })
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result
+        
+    except GoogleAdsException as ex:
+        print(f"Request ID: {ex.request_id}")
+        for error in ex.failure.errors:
+            print(f"\tError: {error.error_code.name}: {error.message}")
+        
+        result = jsonify({
+            "success": False,
+            "error": str(ex.failure.errors[0].message)
+        })
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result, 500
+        
+    except Exception as e:
+        print(f"Error applying targeting: {str(e)}")
+        result = jsonify({
+            "success": False,
+            "error": str(e)
+        })
+        result.headers.add('Access-Control-Allow-Origin', '*')
         return result, 500
 
 @app.route('/api/demographics/get', methods=['POST', 'OPTIONS'])
@@ -3610,6 +3745,11 @@ def add_keywords():
         customer_id = data.get('customerId')
         ad_group_id = data.get('adGroupId')
         keywords = data.get('keywords', [])  # Array de objetos: [{text: "keyword", matchType: "BROAD"}]
+        
+        # Limpiar adGroupId si viene como resource name
+        if ad_group_id and "/" in str(ad_group_id):
+            ad_group_id = str(ad_group_id).split("/")[-1]
+            print(f"🧹 Limpiado adGroupId: {ad_group_id}")
         
         # Validaciones
         if not all([customer_id, ad_group_id]):
