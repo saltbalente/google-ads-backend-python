@@ -8915,3 +8915,123 @@ def verify_cloned_site_by_name(site_name):
         })
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
+
+
+# MARK: - Automation Logic
+
+@app.route('/api/automation/run_rules', methods=['POST'])
+def run_automation_rules():
+    """
+    Ejecuta reglas de automatización para una campaña:
+    1. Pausa keywords con Quality Score bajo (<= 4)
+    2. Actualiza CPC para keywords por debajo de la primera página
+    """
+    try:
+        data = request.get_json()
+        access_token = data.get('access_token')
+        customer_id = data.get('customer_id')
+        campaign_id = data.get('campaign_id')
+        
+        # Opciones de configuración
+        pause_low_qs = data.get('pause_low_qs', False)
+        low_qs_threshold = data.get('low_qs_threshold', 4)
+        
+        update_cpc = data.get('update_cpc', False)
+        cpc_increase_factor = data.get('cpc_increase_factor', 1.1) # Aumentar 10% sobre el estimado
+        max_cpc_limit = data.get('max_cpc_limit', 5000000) # Límite de seguridad (5000 COP aprox)
+        
+        if not all([access_token, customer_id, campaign_id]):
+            return jsonify({'error': 'Missing required parameters'}), 400
+            
+        # Configurar cliente
+        credentials = {
+            'developer_token': os.getenv('DEVELOPER_TOKEN'),
+            'client_id': os.getenv('CLIENT_ID'),
+            'client_secret': os.getenv('CLIENT_SECRET'),
+            'refresh_token': access_token,
+            'login_customer_id': os.getenv('LOGIN_CUSTOMER_ID')
+        }
+        
+        client = GoogleAdsClient.load_from_dict(credentials)
+        ga_service = client.get_service("GoogleAdsService")
+        
+        # 1. Fetch Keywords con métricas relevantes
+        query = f"""
+            SELECT
+              ad_group_criterion.criterion_id,
+              ad_group_criterion.ad_group,
+              ad_group_criterion.keyword.text,
+              ad_group_criterion.quality_info.quality_score,
+              ad_group_criterion.position_estimates.first_page_cpc_micros,
+              ad_group_criterion.cpc_bid_micros,
+              ad_group_criterion.status
+            FROM keyword_view
+            WHERE campaign.id = {campaign_id}
+              AND ad_group_criterion.status = 'ENABLED'
+        """
+        
+        search_request = client.get_type("SearchGoogleAdsStreamRequest")
+        search_request.customer_id = customer_id.replace('-', '')
+        search_request.query = query
+        
+        operations = []
+        actions_taken = []
+        
+        stream = ga_service.search_stream(search_request)
+        
+        for batch in stream:
+            for row in batch.results:
+                criterion = row.ad_group_criterion
+                keyword_text = criterion.keyword.text
+                qs = criterion.quality_info.quality_score
+                current_cpc = criterion.cpc_bid_micros
+                first_page_cpc = criterion.position_estimates.first_page_cpc_micros
+                
+                # Regla 1: Pausar Low Quality Score
+                if pause_low_qs and qs > 0 and qs <= low_qs_threshold:
+                    op = client.get_type("AdGroupCriterionOperation")
+                    op.update.resource_name = criterion.resource_name
+                    op.update.status = client.enums.AdGroupCriterionStatusEnum.PAUSED
+                    op.update_mask.paths.append("status")
+                    operations.append(op)
+                    actions_taken.append(f"Paused '{keyword_text}' (QS: {qs})")
+                    
+                # Regla 2: Actualizar CPC si está por debajo de primera página
+                elif update_cpc and first_page_cpc > 0 and current_cpc < first_page_cpc:
+                    new_cpc = int(first_page_cpc * cpc_increase_factor)
+                    
+                    # Verificar límite de seguridad
+                    if new_cpc <= max_cpc_limit:
+                        op = client.get_type("AdGroupCriterionOperation")
+                        op.update.resource_name = criterion.resource_name
+                        op.update.cpc_bid_micros = new_cpc
+                        op.update_mask.paths.append("cpc_bid_micros")
+                        operations.append(op)
+                        actions_taken.append(f"Updated CPC for '{keyword_text}' to {new_cpc/1000000} (Est: {first_page_cpc/1000000})")
+        
+        # Ejecutar operaciones en lotes
+        if operations:
+            agc_service = client.get_service("AdGroupCriterionService")
+            response = agc_service.mutate_ad_group_criteria(
+                customer_id=customer_id.replace('-', ''),
+                operations=operations
+            )
+            return jsonify({
+                'success': True,
+                'actions_count': len(actions_taken),
+                'actions': actions_taken
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'actions_count': 0,
+                'message': 'No actions needed based on current rules'
+            })
+
+    except Exception as e:
+        logger.error(f"Automation Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
