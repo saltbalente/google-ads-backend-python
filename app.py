@@ -48,6 +48,38 @@ else:
 
 app = Flask(__name__)
 
+# Helper global para redondear CPC a unidad facturable válida
+# Para COP (y la mayoría de monedas), la unidad mínima es 1,000,000 micros
+def round_cpc_to_billable_unit(micros, currency_code='COP'):
+    """
+    Redondea el valor de CPC en micros al múltiplo válido de la unidad facturable.
+    
+    Para monedas sin decimales (COP, JPY, KRW, etc.): 1,000,000 micros = 1 unidad
+    Para monedas con 2 decimales (USD, EUR, etc.): 10,000 micros = 0.01 unidades
+    
+    Args:
+        micros: Valor en micros a redondear
+        currency_code: Código de moneda ISO 4217
+        
+    Returns:
+        Valor redondeado al múltiplo válido más cercano
+    """
+    # Monedas sin decimales (1 unidad completa como mínimo)
+    no_decimal_currencies = ['COP', 'JPY', 'KRW', 'VND', 'IDR', 'CLP', 'PYG', 'UGX', 'RWF']
+    
+    if currency_code.upper() in no_decimal_currencies:
+        unit = 1000000  # 1 unidad = 1,000,000 micros
+    else:
+        unit = 10000  # 0.01 unidad = 10,000 micros (para USD, EUR, etc.)
+    
+    rounded = int(round(micros / unit) * unit)
+    
+    # Asegurar mínimo de 1 unidad facturable
+    if rounded < unit:
+        rounded = unit
+    
+    return rounded
+
 DEFAULT_PUBLIC_LANDING_DOMAIN = os.getenv("DEFAULT_PUBLIC_LANDING_DOMAIN", "consultadebrujosgratis.store")
 
 
@@ -3669,7 +3701,7 @@ def create_ad_group():
         ad_group.campaign = client.get_service("CampaignService").campaign_path(customer_id, campaign_id)
         ad_group.status = client.enums.AdGroupStatusEnum.ENABLED
         ad_group.type_ = client.enums.AdGroupTypeEnum.SEARCH_STANDARD
-        ad_group.cpc_bid_micros = int(cpc_bid_micros)
+        ad_group.cpc_bid_micros = round_cpc_to_billable_unit(int(cpc_bid_micros))
         
         # Ejecutar operación
         response = ad_group_service.mutate_ad_groups(
@@ -3802,7 +3834,7 @@ def add_keywords():
             
             # CPC bid específico (opcional)
             if cpc_bid_micros:
-                criterion.cpc_bid_micros = int(cpc_bid_micros)
+                criterion.cpc_bid_micros = round_cpc_to_billable_unit(int(cpc_bid_micros))
             
             operations.append(ad_group_criterion_operation)
             
@@ -6098,11 +6130,22 @@ def update_keyword_bid():
         
         print(f"💰 Actualizando puja de keyword: {resource_name} → {new_bid_micros} micros")
         
+        # Redondear al múltiplo de la unidad facturable (1,000,000 micros para COP)
+        # Esto evita el error VALUE_NOT_MULTIPLE_OF_BILLABLE_UNIT
+        unit = 1000000
+        rounded_bid_micros = int(round(new_bid_micros / unit) * unit)
+        
+        # Asegurar un mínimo de 1 unidad
+        if rounded_bid_micros < unit:
+            rounded_bid_micros = unit
+        
+        print(f"   → Valor redondeado: {rounded_bid_micros} micros (${rounded_bid_micros / 1000000:.2f})")
+        
         # Crear operación de actualización
         ad_group_criterion_operation = client.get_type("AdGroupCriterionOperation")
         ad_group_criterion = ad_group_criterion_operation.update
         ad_group_criterion.resource_name = resource_name
-        ad_group_criterion.cpc_bid_micros = int(new_bid_micros)
+        ad_group_criterion.cpc_bid_micros = rounded_bid_micros
         
         # Field mask - solo especificar el campo que cambia
         ad_group_criterion_operation.update_mask.CopyFrom(
@@ -6803,8 +6846,8 @@ def create_ad_group_copy():
             # Asegurar mínimo
             if cpc_bid_micros < min_cpc:
                 cpc_bid_micros = min_cpc
-            # Redondear a múltiplo de 10,000
-            cpc_bid_micros = (cpc_bid_micros // 10_000) * 10_000
+            # Redondear a múltiplo de unidad facturable (1,000,000 para COP)
+            cpc_bid_micros = round_cpc_to_billable_unit(cpc_bid_micros)
             if cpc_bid_micros < min_cpc:
                 cpc_bid_micros = min_cpc
             ad_group.cpc_bid_micros = cpc_bid_micros
@@ -6904,7 +6947,7 @@ def create_keyword():
             criterion.keyword.match_type = client.enums.KeywordMatchTypeEnum.BROAD
         
         if cpc_bid_micros and int(cpc_bid_micros) > 0:
-            criterion.cpc_bid_micros = int(cpc_bid_micros)
+            criterion.cpc_bid_micros = round_cpc_to_billable_unit(int(cpc_bid_micros))
         
         response = ad_group_criterion_service.mutate_ad_group_criteria(
             customer_id=customer_id,
@@ -8998,7 +9041,7 @@ def run_automation_rules():
                     
                 # Regla 2: Actualizar CPC si está por debajo de primera página
                 elif update_cpc and first_page_cpc > 0 and current_cpc < first_page_cpc:
-                    new_cpc = int(first_page_cpc * cpc_increase_factor)
+                    new_cpc = round_cpc_to_billable_unit(int(first_page_cpc * cpc_increase_factor))
                     
                     # Verificar límite de seguridad
                     if new_cpc <= max_cpc_limit:
