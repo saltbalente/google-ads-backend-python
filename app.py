@@ -6641,9 +6641,7 @@ def create_ad_group_copy():
                 'error': 'Faltan parámetros requeridos'
             })
             result.headers.add('Access-Control-Allow-Origin', '*')
-
-        
-        return result, 400
+            return result, 400
         
         print(f"📂 Creando ad group: {name}")
         
@@ -6744,9 +6742,7 @@ def create_keyword():
                 'error': 'Faltan parámetros requeridos'
             })
             result.headers.add('Access-Control-Allow-Origin', '*')
-
-        
-        return result, 400
+            return result, 400
         
         print(f"🔑 Creando keyword: {keyword_text} ({match_type})")
         
