@@ -7231,7 +7231,7 @@ def get_keyword_ideas():
         result.headers.add('Access-Control-Allow-Origin', '*')
 
         
-        return result, 400
+        return result, 200
 
     except Exception as e:
         print(f"Error generating keyword ideas: {e}")
