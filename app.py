@@ -9728,8 +9728,7 @@ def batch_pause_ads():
         try:
             response = ad_group_ad_service.mutate_ad_group_ads(
                 customer_id=customer_id,
-                operations=operations,
-                partial_failure=False  # All-or-nothing: rollback on any error
+                operations=operations
             )
             
             print(f"✅ Successfully paused {len(response.results)} ads")
