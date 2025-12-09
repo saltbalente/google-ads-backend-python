@@ -4514,10 +4514,9 @@ def get_campaign_analytics():
             'keywords': keywords,
             'ads': ads,
             'hourly_performance': hourly_performance
-        }), 200
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 200
         
     except GoogleAdsException as ex:
         print(f"❌ Google Ads API Error: {ex}")
@@ -4531,20 +4530,20 @@ def get_campaign_analytics():
             'success': False,
             'error': error_message,
             'errors': errors
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         result = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
-        
+        })
         result.headers.add('Access-Control-Allow-Origin', '*')
-        return result
+        return result, 500
 
 
 
