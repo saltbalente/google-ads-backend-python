@@ -6730,16 +6730,16 @@ def create_campaign():
         # Campo start_date puede ser requerido en algunas versiones
         campaign.start_date = (date.today()).strftime('%Y%m%d')
         
-        # JIDOKA: Campo EU Political Advertising - usar enum del cliente directamente
+        # JIDOKA: Campo EU Political Advertising - usar EuPoliticalAdvertisingStatusEnum
         # IMPORTANTE: exclude_eu_political_ads=True significa NO contiene anuncios políticos UE
         print(f"   DEBUG: exclude_eu_political_ads = {exclude_eu_political_ads} (type: {type(exclude_eu_political_ads)})")
         if exclude_eu_political_ads:
-            # NO contiene anuncios políticos de la UE
-            campaign.contains_eu_political_advertising = client.enums.CampaignContainsEuPoliticalAdvertisingEnum.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING
+            # NO contiene anuncios políticos de la UE (valor 3)
+            campaign.contains_eu_political_advertising = client.enums.EuPoliticalAdvertisingStatusEnum.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING
             print(f"   ✅ Configurando: DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING")
         else:
-            # SÍ contiene anuncios políticos de la UE
-            campaign.contains_eu_political_advertising = client.enums.CampaignContainsEuPoliticalAdvertisingEnum.CONTAINS_EU_POLITICAL_ADVERTISING
+            # SÍ contiene anuncios políticos de la UE (valor 2)
+            campaign.contains_eu_political_advertising = client.enums.EuPoliticalAdvertisingStatusEnum.CONTAINS_EU_POLITICAL_ADVERTISING
             print(f"   ⚠️ Configurando: CONTAINS_EU_POLITICAL_ADVERTISING")
             
         # Configurar Estrategia de Puja
