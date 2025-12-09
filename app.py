@@ -6686,6 +6686,11 @@ def create_campaign():
         bidding_strategy = data.get('biddingStrategy', 'MANUAL_CPC')
         network_settings = data.get('networkSettings', {})
         
+        # JIDOKA: Nuevos parámetros de targeting
+        geo_targets = data.get('geoTargets', [])  # Lista de IDs de geo targets
+        languages = data.get('languages', [])  # Lista de IDs de idiomas
+        exclude_eu_political_ads = data.get('excludeEuPoliticalAds', True)  # Por defecto NO incluir
+        
         if not all([customer_id, name, budget_resource_name]):
             result = jsonify({
                 'success': False,
@@ -6698,6 +6703,9 @@ def create_campaign():
         print(f"🚀 Creando campaña: {name}")
         print(f"   Estrategia: {bidding_strategy}")
         print(f"   Redes: {network_settings}")
+        print(f"   Geo Targets: {geo_targets}")
+        print(f"   Languages: {languages}")
+        print(f"   Exclude EU Political Ads: {exclude_eu_political_ads}")
         
         client = get_client_from_request()
         campaign_service = client.get_service("CampaignService")
@@ -6719,16 +6727,26 @@ def create_campaign():
         
         # Campo start_date puede ser requerido en algunas versiones
         campaign.start_date = (date.today()).strftime('%Y%m%d')
-        # Campo requerido para cumplir con regulaciones EU
-        # Campo EU Political Advertising usando el enum correcto
+        
+        # JIDOKA: Campo EU Political Advertising - usar parámetro del cliente
         try:
             from google.ads.googleads.v22.enums.types.campaign_contains_eu_political_advertising import CampaignContainsEuPoliticalAdvertisingEnum
-            campaign.contains_eu_political_advertising = CampaignContainsEuPoliticalAdvertisingEnum.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING
+            if exclude_eu_political_ads:
+                campaign.contains_eu_political_advertising = CampaignContainsEuPoliticalAdvertisingEnum.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING
+            else:
+                campaign.contains_eu_political_advertising = CampaignContainsEuPoliticalAdvertisingEnum.CONTAINS_EU_POLITICAL_ADVERTISING
         except ImportError:
-            # Fallback: usar el valor numérico directamente (2 = DOES_NOT_CONTAIN)
-            campaign.contains_eu_political_advertising = 2
+            # Fallback: usar el valor numérico directamente (1 = CONTAINS, 2 = DOES_NOT_CONTAIN)
+            if exclude_eu_political_ads:
+                campaign.contains_eu_political_advertising = 2
+            else:
+                campaign.contains_eu_political_advertising = 1
             
         # Configurar Estrategia de Puja
+        # Leer parámetros opcionales de estrategia
+        target_cpa_micros = data.get('targetCpaMicros', 0)
+        target_roas = data.get('targetRoas', 1.0)
+        
         # Mapeo de estrategias simples
         if bidding_strategy == 'MAXIMIZE_CONVERSIONS':
             # MAXIMIZE_CONVERSIONS con presupuesto no compartido
@@ -6737,9 +6755,11 @@ def create_campaign():
         elif bidding_strategy == 'MAXIMIZE_CLICKS':
             campaign.maximize_clicks.target_spend_micros = 0 # Opcional
         elif bidding_strategy == 'TARGET_CPA':
-            campaign.target_cpa.target_cpa_micros = 10000000 # Valor dummy, idealmente se pasa
+            # Usar valor del cliente o default 10M micros ($10k COP)
+            campaign.target_cpa.target_cpa_micros = int(target_cpa_micros) if target_cpa_micros else 10000000
         elif bidding_strategy == 'TARGET_ROAS':
-            campaign.target_roas.target_roas = 1.0 # Valor dummy
+            # Usar valor del cliente o default 1.0 (100%)
+            campaign.target_roas.target_roas = float(target_roas) if target_roas else 1.0
         else:
             # Default MANUAL_CPC
             campaign.manual_cpc.enhanced_cpc_enabled = False
@@ -6764,6 +6784,39 @@ def create_campaign():
         campaign_id = resource_name.split('/')[-1]
         
         print(f"✅ Campaña creada: {resource_name}")
+        
+        # JIDOKA: Aplicar targeting de ubicación y idioma después de crear la campaña
+        if geo_targets or languages:
+            try:
+                campaign_criterion_service = client.get_service("CampaignCriterionService")
+                criterion_operations = []
+                
+                # Agregar geo targeting
+                for geo_id in geo_targets:
+                    geo_operation = client.get_type("CampaignCriterionOperation")
+                    geo_criterion = geo_operation.create
+                    geo_criterion.campaign = resource_name
+                    geo_criterion.location.geo_target_constant = f"geoTargetConstants/{geo_id}"
+                    criterion_operations.append(geo_operation)
+                    print(f"   📍 Agregando geo target: {geo_id}")
+                
+                # Agregar language targeting
+                for lang_id in languages:
+                    lang_operation = client.get_type("CampaignCriterionOperation")
+                    lang_criterion = lang_operation.create
+                    lang_criterion.campaign = resource_name
+                    lang_criterion.language.language_constant = f"languageConstants/{lang_id}"
+                    criterion_operations.append(lang_operation)
+                    print(f"   🌐 Agregando idioma: {lang_id}")
+                
+                if criterion_operations:
+                    criterion_response = campaign_criterion_service.mutate_campaign_criteria(
+                        customer_id=customer_id,
+                        operations=criterion_operations
+                    )
+                    print(f"✅ Targeting aplicado: {len(criterion_response.results)} criterios")
+            except Exception as targeting_error:
+                print(f"⚠️ Error aplicando targeting (campaña creada igualmente): {targeting_error}")
         
         result = jsonify({
             'success': True,
@@ -9074,6 +9127,346 @@ def run_automation_rules():
     except Exception as e:
         logger.error(f"Automation Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+
+# ============================================================================
+# GIGA-INGENIEUR Feature #7: Performance Analyzer Endpoints
+# ============================================================================
+
+@app.route('/api/ads-performance', methods=['POST'])
+def get_ads_performance():
+    """
+    Fetch all ads with performance metrics for analysis.
+    Red-X detection system for low-performing ads.
+    """
+    try:
+        data = request.json
+        customer_id = data.get('customer_id', '').replace('-', '')
+        access_token = data.get('access_token')
+        date_range = data.get('date_range', 30)
+        
+        if not customer_id:
+            return jsonify({'success': False, 'error': 'customer_id is required'}), 400
+        
+        # Build client
+        credentials = {
+            "developer_token": os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN", "Kqg431In6DxoZnSMJk0hQg"),
+            "client_id": os.getenv("GOOGLE_ADS_CLIENT_ID", "82393641971-edkinpiigpprkbdi0dtnalem8ndo5c1j.apps.googleusercontent.com"),
+            "client_secret": os.getenv("GOOGLE_ADS_CLIENT_SECRET", "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"),
+            "refresh_token": os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "1//05qNlWCfgnPRZCgYIARAAGAUSNwF-L9IrPwBJ2CdrABme75Bk-RUU-8WeYGiFsTkqatFijKG-ckHpqyfPRlQI68LTGWbN54JyUAY"),
+            "use_proto_plus": True,
+            "login_customer_id": os.getenv("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "8531174172")
+        }
+        client = GoogleAdsClient.load_from_dict(credentials)
+        ga_service = client.get_service("GoogleAdsService")
+        
+        # Date range
+        end_date = date.today()
+        start_date = end_date - timedelta(days=date_range)
+        
+        query = f"""
+            SELECT
+                ad_group_ad.ad.id,
+                ad_group.id,
+                ad_group.name,
+                ad_group_ad.ad.responsive_search_ad.headlines,
+                ad_group_ad.ad.responsive_search_ad.descriptions,
+                ad_group_ad.status,
+                metrics.impressions,
+                metrics.clicks,
+                metrics.cost_micros,
+                metrics.conversions
+            FROM ad_group_ad
+            WHERE segments.date BETWEEN '{start_date}' AND '{end_date}'
+                AND ad_group_ad.status != 'REMOVED'
+                AND metrics.impressions > 0
+            ORDER BY metrics.cost_micros DESC
+            LIMIT 500
+        """
+        
+        response = ga_service.search(customer_id=customer_id, query=query)
+        
+        ads = []
+        for row in response:
+            ad = row.ad_group_ad.ad
+            
+            # Extract headlines
+            headlines = []
+            if hasattr(ad, 'responsive_search_ad') and ad.responsive_search_ad.headlines:
+                for h in ad.responsive_search_ad.headlines:
+                    if h.text:
+                        headlines.append(h.text)
+            
+            # Extract descriptions
+            descriptions = []
+            if hasattr(ad, 'responsive_search_ad') and ad.responsive_search_ad.descriptions:
+                for d in ad.responsive_search_ad.descriptions:
+                    if d.text:
+                        descriptions.append(d.text)
+            
+            ads.append({
+                'id': str(ad.id),
+                'adGroupId': str(row.ad_group.id),
+                'adGroupName': row.ad_group.name,
+                'headlines': headlines if headlines else ['Sin título'],
+                'descriptions': descriptions if descriptions else ['Sin descripción'],
+                'impressions': row.metrics.impressions,
+                'clicks': row.metrics.clicks,
+                'costMicros': row.metrics.cost_micros,
+                'conversions': row.metrics.conversions,
+                'status': row.ad_group_ad.status.name
+            })
+        
+        return jsonify({
+            'success': True,
+            'ads': ads,
+            'count': len(ads)
+        })
+        
+    except GoogleAdsException as ex:
+        error_msg = str(ex.failure.errors[0].message) if ex.failure.errors else str(ex)
+        logger.error(f"Ads Performance Error: {error_msg}")
+        return jsonify({'success': False, 'error': error_msg}), 500
+    except Exception as e:
+        logger.error(f"Ads Performance Error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/keywords-performance', methods=['POST'])
+def get_keywords_performance():
+    """
+    Fetch all keywords with performance metrics for analysis.
+    Includes Quality Score for optimization detection.
+    """
+    try:
+        data = request.json
+        customer_id = data.get('customer_id', '').replace('-', '')
+        access_token = data.get('access_token')
+        date_range = data.get('date_range', 30)
+        
+        if not customer_id:
+            return jsonify({'success': False, 'error': 'customer_id is required'}), 400
+        
+        # Build client
+        credentials = {
+            "developer_token": os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN", "Kqg431In6DxoZnSMJk0hQg"),
+            "client_id": os.getenv("GOOGLE_ADS_CLIENT_ID", "82393641971-edkinpiigpprkbdi0dtnalem8ndo5c1j.apps.googleusercontent.com"),
+            "client_secret": os.getenv("GOOGLE_ADS_CLIENT_SECRET", "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"),
+            "refresh_token": os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "1//05qNlWCfgnPRZCgYIARAAGAUSNwF-L9IrPwBJ2CdrABme75Bk-RUU-8WeYGiFsTkqatFijKG-ckHpqyfPRlQI68LTGWbN54JyUAY"),
+            "use_proto_plus": True,
+            "login_customer_id": os.getenv("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "8531174172")
+        }
+        client = GoogleAdsClient.load_from_dict(credentials)
+        ga_service = client.get_service("GoogleAdsService")
+        
+        # Date range
+        end_date = date.today()
+        start_date = end_date - timedelta(days=date_range)
+        
+        query = f"""
+            SELECT
+                ad_group_criterion.criterion_id,
+                ad_group.id,
+                ad_group.name,
+                ad_group_criterion.keyword.text,
+                ad_group_criterion.keyword.match_type,
+                ad_group_criterion.status,
+                ad_group_criterion.quality_info.quality_score,
+                metrics.impressions,
+                metrics.clicks,
+                metrics.cost_micros,
+                metrics.conversions
+            FROM keyword_view
+            WHERE segments.date BETWEEN '{start_date}' AND '{end_date}'
+                AND ad_group_criterion.status != 'REMOVED'
+                AND metrics.impressions > 0
+            ORDER BY metrics.cost_micros DESC
+            LIMIT 500
+        """
+        
+        response = ga_service.search(customer_id=customer_id, query=query)
+        
+        keywords = []
+        for row in response:
+            criterion = row.ad_group_criterion
+            
+            # Quality Score (might not be available for all keywords)
+            quality_score = None
+            if hasattr(criterion, 'quality_info') and criterion.quality_info.quality_score:
+                quality_score = criterion.quality_info.quality_score
+            
+            keywords.append({
+                'id': str(criterion.criterion_id),
+                'adGroupId': str(row.ad_group.id),
+                'adGroupName': row.ad_group.name,
+                'text': criterion.keyword.text,
+                'matchType': criterion.keyword.match_type.name,
+                'impressions': row.metrics.impressions,
+                'clicks': row.metrics.clicks,
+                'costMicros': row.metrics.cost_micros,
+                'conversions': row.metrics.conversions,
+                'qualityScore': quality_score,
+                'status': criterion.status.name
+            })
+        
+        return jsonify({
+            'success': True,
+            'keywords': keywords,
+            'count': len(keywords)
+        })
+        
+    except GoogleAdsException as ex:
+        error_msg = str(ex.failure.errors[0].message) if ex.failure.errors else str(ex)
+        logger.error(f"Keywords Performance Error: {error_msg}")
+        return jsonify({'success': False, 'error': error_msg}), 500
+    except Exception as e:
+        logger.error(f"Keywords Performance Error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/pause-ad', methods=['POST'])
+def pause_ad():
+    """
+    Pause a specific ad by ID.
+    Used for batch operations in Performance Analyzer.
+    """
+    try:
+        data = request.json
+        customer_id = data.get('customer_id', '').replace('-', '')
+        ad_id = data.get('ad_id')
+        ad_group_id = data.get('ad_group_id')  # Optional, can fetch if not provided
+        
+        if not customer_id or not ad_id:
+            return jsonify({'success': False, 'error': 'customer_id and ad_id are required'}), 400
+        
+        # Build client
+        credentials = {
+            "developer_token": os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN", "Kqg431In6DxoZnSMJk0hQg"),
+            "client_id": os.getenv("GOOGLE_ADS_CLIENT_ID", "82393641971-edkinpiigpprkbdi0dtnalem8ndo5c1j.apps.googleusercontent.com"),
+            "client_secret": os.getenv("GOOGLE_ADS_CLIENT_SECRET", "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"),
+            "refresh_token": os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "1//05qNlWCfgnPRZCgYIARAAGAUSNwF-L9IrPwBJ2CdrABme75Bk-RUU-8WeYGiFsTkqatFijKG-ckHpqyfPRlQI68LTGWbN54JyUAY"),
+            "use_proto_plus": True,
+            "login_customer_id": os.getenv("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "8531174172")
+        }
+        client = GoogleAdsClient.load_from_dict(credentials)
+        
+        # If ad_group_id not provided, fetch it
+        if not ad_group_id:
+            ga_service = client.get_service("GoogleAdsService")
+            query = f"""
+                SELECT ad_group.id
+                FROM ad_group_ad
+                WHERE ad_group_ad.ad.id = {ad_id}
+                LIMIT 1
+            """
+            response = ga_service.search(customer_id=customer_id, query=query)
+            for row in response:
+                ad_group_id = str(row.ad_group.id)
+                break
+        
+        if not ad_group_id:
+            return jsonify({'success': False, 'error': 'Could not find ad_group_id for this ad'}), 404
+        
+        # Create the operation
+        ad_group_ad_service = client.get_service("AdGroupAdService")
+        resource_name = f"customers/{customer_id}/adGroupAds/{ad_group_id}~{ad_id}"
+        
+        operation = client.get_type("AdGroupAdOperation")
+        operation.update.resource_name = resource_name
+        operation.update.status = client.enums.AdGroupAdStatusEnum.PAUSED
+        operation.update_mask.paths.append("status")
+        
+        response = ad_group_ad_service.mutate_ad_group_ads(
+            customer_id=customer_id,
+            operations=[operation]
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Ad {ad_id} paused successfully',
+            'resource_name': resource_name
+        })
+        
+    except GoogleAdsException as ex:
+        error_msg = str(ex.failure.errors[0].message) if ex.failure.errors else str(ex)
+        logger.error(f"Pause Ad Error: {error_msg}")
+        return jsonify({'success': False, 'error': error_msg}), 500
+    except Exception as e:
+        logger.error(f"Pause Ad Error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/pause-keyword', methods=['POST'])
+def pause_keyword():
+    """
+    Pause a specific keyword by ID.
+    Used for batch operations in Performance Analyzer.
+    """
+    try:
+        data = request.json
+        customer_id = data.get('customer_id', '').replace('-', '')
+        keyword_id = data.get('keyword_id')
+        ad_group_id = data.get('ad_group_id')  # Optional
+        
+        if not customer_id or not keyword_id:
+            return jsonify({'success': False, 'error': 'customer_id and keyword_id are required'}), 400
+        
+        # Build client
+        credentials = {
+            "developer_token": os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN", "Kqg431In6DxoZnSMJk0hQg"),
+            "client_id": os.getenv("GOOGLE_ADS_CLIENT_ID", "82393641971-edkinpiigpprkbdi0dtnalem8ndo5c1j.apps.googleusercontent.com"),
+            "client_secret": os.getenv("GOOGLE_ADS_CLIENT_SECRET", "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"),
+            "refresh_token": os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "1//05qNlWCfgnPRZCgYIARAAGAUSNwF-L9IrPwBJ2CdrABme75Bk-RUU-8WeYGiFsTkqatFijKG-ckHpqyfPRlQI68LTGWbN54JyUAY"),
+            "use_proto_plus": True,
+            "login_customer_id": os.getenv("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "8531174172")
+        }
+        client = GoogleAdsClient.load_from_dict(credentials)
+        
+        # If ad_group_id not provided, fetch it
+        if not ad_group_id:
+            ga_service = client.get_service("GoogleAdsService")
+            query = f"""
+                SELECT ad_group.id
+                FROM ad_group_criterion
+                WHERE ad_group_criterion.criterion_id = {keyword_id}
+                LIMIT 1
+            """
+            response = ga_service.search(customer_id=customer_id, query=query)
+            for row in response:
+                ad_group_id = str(row.ad_group.id)
+                break
+        
+        if not ad_group_id:
+            return jsonify({'success': False, 'error': 'Could not find ad_group_id for this keyword'}), 404
+        
+        # Create the operation
+        agc_service = client.get_service("AdGroupCriterionService")
+        resource_name = f"customers/{customer_id}/adGroupCriteria/{ad_group_id}~{keyword_id}"
+        
+        operation = client.get_type("AdGroupCriterionOperation")
+        operation.update.resource_name = resource_name
+        operation.update.status = client.enums.AdGroupCriterionStatusEnum.PAUSED
+        operation.update_mask.paths.append("status")
+        
+        response = agc_service.mutate_ad_group_criteria(
+            customer_id=customer_id,
+            operations=[operation]
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Keyword {keyword_id} paused successfully',
+            'resource_name': resource_name
+        })
+        
+    except GoogleAdsException as ex:
+        error_msg = str(ex.failure.errors[0].message) if ex.failure.errors else str(ex)
+        logger.error(f"Pause Keyword Error: {error_msg}")
+        return jsonify({'success': False, 'error': error_msg}), 500
+    except Exception as e:
+        logger.error(f"Pause Keyword Error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
