@@ -6690,6 +6690,7 @@ def create_campaign():
         geo_targets = data.get('geoTargets', [])  # Lista de IDs de geo targets
         languages = data.get('languages', [])  # Lista de IDs de idiomas
         exclude_eu_political_ads = data.get('excludeEuPoliticalAds', True)  # Por defecto NO incluir
+        device_targets = data.get('deviceTargets', [])  # Lista de dispositivos: MOBILE, DESKTOP, TABLET
         
         if not all([customer_id, name, budget_resource_name]):
             result = jsonify({
@@ -6706,6 +6707,7 @@ def create_campaign():
         print(f"   Geo Targets: {geo_targets}")
         print(f"   Languages: {languages}")
         print(f"   Exclude EU Political Ads: {exclude_eu_political_ads}")
+        print(f"   Device Targets: {device_targets}")
         
         client = get_client_from_request()
         campaign_service = client.get_service("CampaignService")
@@ -6728,19 +6730,17 @@ def create_campaign():
         # Campo start_date puede ser requerido en algunas versiones
         campaign.start_date = (date.today()).strftime('%Y%m%d')
         
-        # JIDOKA: Campo EU Political Advertising - usar parámetro del cliente
-        try:
-            from google.ads.googleads.v22.enums.types.campaign_contains_eu_political_advertising import CampaignContainsEuPoliticalAdvertisingEnum
-            if exclude_eu_political_ads:
-                campaign.contains_eu_political_advertising = CampaignContainsEuPoliticalAdvertisingEnum.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING
-            else:
-                campaign.contains_eu_political_advertising = CampaignContainsEuPoliticalAdvertisingEnum.CONTAINS_EU_POLITICAL_ADVERTISING
-        except ImportError:
-            # Fallback: usar el valor numérico directamente (1 = CONTAINS, 2 = DOES_NOT_CONTAIN)
-            if exclude_eu_political_ads:
-                campaign.contains_eu_political_advertising = 2
-            else:
-                campaign.contains_eu_political_advertising = 1
+        # JIDOKA: Campo EU Political Advertising - usar enum del cliente directamente
+        # IMPORTANTE: exclude_eu_political_ads=True significa NO contiene anuncios políticos UE
+        print(f"   DEBUG: exclude_eu_political_ads = {exclude_eu_political_ads} (type: {type(exclude_eu_political_ads)})")
+        if exclude_eu_political_ads:
+            # NO contiene anuncios políticos de la UE
+            campaign.contains_eu_political_advertising = client.enums.CampaignContainsEuPoliticalAdvertisingEnum.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING
+            print(f"   ✅ Configurando: DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING")
+        else:
+            # SÍ contiene anuncios políticos de la UE
+            campaign.contains_eu_political_advertising = client.enums.CampaignContainsEuPoliticalAdvertisingEnum.CONTAINS_EU_POLITICAL_ADVERTISING
+            print(f"   ⚠️ Configurando: CONTAINS_EU_POLITICAL_ADVERTISING")
             
         # Configurar Estrategia de Puja
         # Leer parámetros opcionales de estrategia
@@ -6817,6 +6817,44 @@ def create_campaign():
                     print(f"✅ Targeting aplicado: {len(criterion_response.results)} criterios")
             except Exception as targeting_error:
                 print(f"⚠️ Error aplicando targeting (campaña creada igualmente): {targeting_error}")
+        
+        # JIDOKA: Aplicar device targeting si se especificó
+        # device_targets es lista de dispositivos a INCLUIR, los demás se excluyen con bid_modifier=-1
+        if device_targets:
+            try:
+                campaign_criterion_service = client.get_service("CampaignCriterionService")
+                device_operations = []
+                
+                # Mapeo de dispositivos
+                all_devices = ['MOBILE', 'DESKTOP', 'TABLET']
+                device_enum_map = {
+                    'MOBILE': client.enums.DeviceEnum.MOBILE,
+                    'DESKTOP': client.enums.DeviceEnum.DESKTOP,
+                    'TABLET': client.enums.DeviceEnum.TABLET
+                }
+                
+                # Para cada dispositivo NO incluido, excluirlo con bid_modifier = -1 (osea 0%)
+                for device in all_devices:
+                    if device not in device_targets:
+                        device_op = client.get_type("CampaignCriterionOperation")
+                        device_criterion = device_op.create
+                        device_criterion.campaign = resource_name
+                        device_criterion.device.type_ = device_enum_map[device]
+                        # bid_modifier = -1.0 significa -100% = excluido
+                        # Pero Google Ads no permite -1.0, el mínimo es -0.9 (-90%)
+                        # Para realmente excluir, usamos bid_modifier muy bajo
+                        device_criterion.bid_modifier = 0.0  # 0% del bid = prácticamente excluido
+                        device_operations.append(device_op)
+                        print(f"   📱 Excluyendo dispositivo: {device}")
+                
+                if device_operations:
+                    device_response = campaign_criterion_service.mutate_campaign_criteria(
+                        customer_id=customer_id,
+                        operations=device_operations
+                    )
+                    print(f"✅ Device targeting aplicado: {len(device_response.results)} criterios")
+            except Exception as device_error:
+                print(f"⚠️ Error aplicando device targeting: {device_error}")
         
         result = jsonify({
             'success': True,
