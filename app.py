@@ -6753,7 +6753,8 @@ def create_campaign():
             # target_cpa_micros = 0 significa sin target (optimización automática)
             campaign.maximize_conversions.target_cpa_micros = 0
         elif bidding_strategy == 'MAXIMIZE_CLICKS':
-            campaign.maximize_clicks.target_spend_micros = 0 # Opcional
+            # MAXIMIZE_CLICKS usa target_spend en la API v22
+            campaign.target_spend.target_spend_micros = 0  # 0 = usar todo el presupuesto
         elif bidding_strategy == 'TARGET_CPA':
             # Usar valor del cliente o default 10M micros ($10k COP)
             campaign.target_cpa.target_cpa_micros = int(target_cpa_micros) if target_cpa_micros else 10000000
