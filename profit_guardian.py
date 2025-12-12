@@ -1152,6 +1152,67 @@ def add_campaign_monitoring():
     })
 
 
+@profit_guardian_bp.route('/api/profit-guardian/add-all-campaigns', methods=['POST'])
+def add_all_campaigns():
+    """Agrega TODAS las campañas activas de una cuenta al monitoreo"""
+    data = request.get_json()
+    customer_id = data.get('customer_id')
+    
+    if not customer_id:
+        return jsonify({'success': False, 'error': 'customer_id required'}), 400
+    
+    try:
+        # Obtener cliente de Google Ads
+        client = GoogleAdsClient.load_from_storage('google-ads.yaml')
+        ga_service = client.get_service("GoogleAdsService")
+        
+        # Query para obtener todas las campañas activas
+        query = """
+            SELECT 
+                campaign.id,
+                campaign.name,
+                campaign.status
+            FROM campaign
+            WHERE campaign.status = 'ENABLED'
+        """
+        
+        response = ga_service.search(customer_id=customer_id, query=query)
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        added_count = 0
+        
+        # Agregar cada campaña encontrada
+        for row in response:
+            campaign = row.campaign
+            cursor.execute('''
+                INSERT OR REPLACE INTO monitored_campaigns
+                (customer_id, campaign_id, campaign_name, status, last_check)
+                VALUES (?, ?, ?, 'ACTIVE', ?)
+            ''', (customer_id, str(campaign.id), campaign.name, datetime.utcnow()))
+            added_count += 1
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'campaigns_added': added_count,
+            'message': f'Se agregaron {added_count} campañas al monitoreo'
+        })
+        
+    except GoogleAdsException as ex:
+        return jsonify({
+            'success': False,
+            'error': f'Google Ads API error: {ex.failure.errors[0].message}'
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @profit_guardian_bp.route('/api/profit-guardian/status', methods=['GET'])
 def get_status():
     """Obtiene estado actual del sistema"""
