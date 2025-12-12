@@ -31,6 +31,50 @@ import statistics
 profit_guardian_bp = Blueprint('profit_guardian', __name__)
 
 # ============================================
+# ESTADO GLOBAL DEL SISTEMA
+# ============================================
+
+class GuardianState:
+    """Estado global del Profit Guardian"""
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.enabled = False  # DESACTIVADO por defecto - tu decides cuando activar
+            cls._instance.last_check = None
+            cls._instance.total_decisions_today = 0
+            cls._instance.keywords_paused_today = 0
+            cls._instance.keywords_resumed_today = 0
+        return cls._instance
+    
+    def enable(self):
+        self.enabled = True
+        print("🟢 Profit Guardian ACTIVADO")
+        
+    def disable(self):
+        self.enabled = False
+        print("🔴 Profit Guardian DESACTIVADO")
+        
+    def toggle(self):
+        self.enabled = not self.enabled
+        status = "ACTIVADO" if self.enabled else "DESACTIVADO"
+        print(f"🔄 Profit Guardian {status}")
+        return self.enabled
+    
+    def is_enabled(self):
+        return self.enabled
+    
+    def update_stats(self, decisions=0, paused=0, resumed=0):
+        self.total_decisions_today += decisions
+        self.keywords_paused_today += paused
+        self.keywords_resumed_today += resumed
+        self.last_check = datetime.now()
+
+# Instancia global
+guardian_state = GuardianState()
+
+# ============================================
 # CONFIGURACIÓN DEL NEGOCIO
 # ============================================
 
@@ -904,6 +948,12 @@ def check_campaigns_to_resume():
 
 def run_profit_guardian_check():
     """Ejecuta el ciclo principal del Profit Guardian"""
+    
+    # ⚡ VERIFICAR SI ESTÁ ACTIVADO
+    if not guardian_state.is_enabled():
+        print(f"⏸️ Profit Guardian está DESACTIVADO - Saltando check")
+        return
+    
     print(f"\n{'='*60}")
     print(f"🛡️ PROFIT GUARDIAN - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*60}")
@@ -1210,10 +1260,72 @@ def get_paused_keywords():
 def run_now():
     """Ejecuta un check manualmente"""
     try:
+        # Temporalmente habilitar para ejecución manual
+        was_enabled = guardian_state.is_enabled()
+        if not was_enabled:
+            guardian_state.enable()
+        
         run_profit_guardian_check()
+        
+        # Restaurar estado original
+        if not was_enabled:
+            guardian_state.disable()
+            
         return jsonify({'success': True, 'message': 'Check completed'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================
+# 🔘 TOGGLE ENDPOINTS - ACTIVAR/DESACTIVAR
+# ============================================
+
+@profit_guardian_bp.route('/api/profit-guardian/enable', methods=['POST'])
+def enable_guardian():
+    """Activa el Profit Guardian"""
+    guardian_state.enable()
+    return jsonify({
+        'success': True,
+        'enabled': True,
+        'message': '🟢 Profit Guardian ACTIVADO - Monitoreando cada 15 minutos'
+    })
+
+
+@profit_guardian_bp.route('/api/profit-guardian/disable', methods=['POST'])
+def disable_guardian():
+    """Desactiva el Profit Guardian"""
+    guardian_state.disable()
+    return jsonify({
+        'success': True,
+        'enabled': False,
+        'message': '🔴 Profit Guardian DESACTIVADO - Sin monitoreo automático'
+    })
+
+
+@profit_guardian_bp.route('/api/profit-guardian/toggle', methods=['POST'])
+def toggle_guardian():
+    """Alterna el estado del Profit Guardian"""
+    new_state = guardian_state.toggle()
+    return jsonify({
+        'success': True,
+        'enabled': new_state,
+        'message': f'{"🟢 ACTIVADO" if new_state else "🔴 DESACTIVADO"}'
+    })
+
+
+@profit_guardian_bp.route('/api/profit-guardian/state', methods=['GET'])
+def get_guardian_state():
+    """Obtiene el estado actual del Profit Guardian"""
+    return jsonify({
+        'success': True,
+        'enabled': guardian_state.is_enabled(),
+        'last_check': guardian_state.last_check.isoformat() if guardian_state.last_check else None,
+        'stats_today': {
+            'total_decisions': guardian_state.total_decisions_today,
+            'keywords_paused': guardian_state.keywords_paused_today,
+            'keywords_resumed': guardian_state.keywords_resumed_today
+        }
+    })
 
 
 # ============================================
@@ -1223,10 +1335,14 @@ def run_now():
 guardian_scheduler = BackgroundScheduler()
 
 def start_profit_guardian():
-    """Inicia el Profit Guardian"""
+    """
+    Inicia el scheduler del Profit Guardian.
+    ⚠️ IMPORTANTE: El sistema inicia DESACTIVADO por defecto.
+    Debes llamar a /api/profit-guardian/enable para activarlo.
+    """
     init_profit_guardian_db()
     
-    # Ejecutar cada 15 minutos
+    # Ejecutar cada 15 minutos (pero solo si está habilitado)
     guardian_scheduler.add_job(
         func=run_profit_guardian_check,
         trigger=IntervalTrigger(minutes=15),
@@ -1236,13 +1352,22 @@ def start_profit_guardian():
     )
     
     guardian_scheduler.start()
-    print("✅ Profit Guardian started (checking every 15 minutes)")
     
-    # Ejecutar inmediatamente
-    run_profit_guardian_check()
+    print("=" * 60)
+    print("🛡️ PROFIT GUARDIAN - SCHEDULER INICIADO")
+    print("=" * 60)
+    print("   ⚠️  Estado: DESACTIVADO (esperando tu orden)")
+    print("   ")
+    print("   Para ACTIVAR el sistema autónomo:")
+    print("   POST /api/profit-guardian/enable")
+    print("   ")
+    print("   Para ejecutar análisis MANUAL sin activar:")
+    print("   POST /api/profit-guardian/run-now")
+    print("=" * 60)
 
 
 def stop_profit_guardian():
     """Detiene el Profit Guardian"""
     guardian_scheduler.shutdown()
+    guardian_state.disable()
     print("⏹️ Profit Guardian stopped")
