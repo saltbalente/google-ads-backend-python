@@ -1162,8 +1162,8 @@ def add_all_campaigns():
         return jsonify({'success': False, 'error': 'customer_id required'}), 400
     
     try:
-        # Obtener cliente de Google Ads
-        client = GoogleAdsClient.load_from_storage('google-ads.yaml')
+        # Obtener cliente de Google Ads usando variables de entorno
+        client = get_google_ads_client()
         ga_service = client.get_service("GoogleAdsService")
         
         # Query para obtener todas las campañas activas
