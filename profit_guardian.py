@@ -604,6 +604,10 @@ class DecisionEngine:
         print(f"      Pace: {spend_ratio:.2f}x (1.0 = on track)")
         print(f"      Remaining: ${budget_remaining:,.0f} COP for {hours_remaining}h")
         
+        # ❌ DESHABILITADO: No pausar campañas completas
+        # Las keywords malas afectan stats de keywords buenas
+        # Mejor estrategia: pausar SOLO keywords problemáticas
+        """
         if spend_ratio > 1.5:
             # Gastando 50% más rápido de lo ideal
             decisions.append(Decision(
@@ -620,6 +624,7 @@ class DecisionEngine:
                     'pause_minutes': self.config.pause_duration_minutes
                 }
             ))
+        """
         
         if budget_remaining < self.config.hourly_budget_cop and hours_remaining > 2:
             # Casi sin presupuesto pero quedan muchas horas
