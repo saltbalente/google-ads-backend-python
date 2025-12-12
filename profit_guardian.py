@@ -396,10 +396,12 @@ def get_google_ads_client(refresh_token: str = None):
 # ============================================
 
 def get_campaign_performance_today(client, customer_id: str, campaign_id: str) -> Dict:
-    """Obtiene performance de campaña del día actual"""
+    """Obtiene performance de campaña de los últimos 5 días (para considerar conversion lag)"""
     try:
         ga_service = client.get_service("GoogleAdsService")
-        today = datetime.now().strftime('%Y-%m-%d')
+        today = datetime.now()
+        five_days_ago = (today - timedelta(days=5)).strftime('%Y-%m-%d')
+        today_str = today.strftime('%Y-%m-%d')
         
         query = f"""
             SELECT
@@ -412,22 +414,34 @@ def get_campaign_performance_today(client, customer_id: str, campaign_id: str) -
                 metrics.cost_micros
             FROM campaign
             WHERE campaign.id = '{campaign_id}'
-                AND segments.date = '{today}'
+                AND segments.date BETWEEN '{five_days_ago}' AND '{today_str}'
         """
         
         response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
         
+        # Agregar métricas de todos los días (Google Ads API devuelve múltiples filas)
+        totals = {
+            'campaign_id': campaign_id,
+            'campaign_name': '',
+            'status': '',
+            'impressions': 0,
+            'clicks': 0,
+            'conversions': 0.0,
+            'cost_micros': 0,
+            'cost_cop': 0.0
+        }
+        
         for row in response:
-            return {
-                'campaign_id': str(row.campaign.id),
-                'campaign_name': row.campaign.name,
-                'status': row.campaign.status.name,
-                'impressions': row.metrics.impressions,
-                'clicks': row.metrics.clicks,
-                'conversions': float(row.metrics.conversions),
-                'cost_micros': row.metrics.cost_micros,
-                'cost_cop': row.metrics.cost_micros / 1_000_000
-            }
+            totals['campaign_name'] = row.campaign.name
+            totals['status'] = row.campaign.status.name
+            totals['impressions'] += row.metrics.impressions
+            totals['clicks'] += row.metrics.clicks
+            totals['conversions'] += float(row.metrics.conversions)
+            totals['cost_micros'] += row.metrics.cost_micros
+        
+        if totals['impressions'] > 0:
+            totals['cost_cop'] = totals['cost_micros'] / 1_000_000
+            return totals
         
         return {}
     except Exception as e:
@@ -436,10 +450,12 @@ def get_campaign_performance_today(client, customer_id: str, campaign_id: str) -
 
 
 def get_keywords_performance_today(client, customer_id: str, campaign_id: str, config: BusinessConfig) -> List[KeywordPerformance]:
-    """Obtiene performance de keywords del día actual"""
+    """Obtiene performance de keywords de los últimos 5 días (para considerar conversion lag)"""
     try:
         ga_service = client.get_service("GoogleAdsService")
-        today = datetime.now().strftime('%Y-%m-%d')
+        today = datetime.now()
+        five_days_ago = (today - timedelta(days=5)).strftime('%Y-%m-%d')
+        today_str = today.strftime('%Y-%m-%d')
         
         query = f"""
             SELECT
@@ -455,28 +471,54 @@ def get_keywords_performance_today(client, customer_id: str, campaign_id: str, c
                 metrics.cost_micros
             FROM keyword_view
             WHERE campaign.id = '{campaign_id}'
-                AND segments.date = '{today}'
+                AND segments.date BETWEEN '{five_days_ago}' AND '{today_str}'
                 AND ad_group_criterion.status = 'ENABLED'
             ORDER BY metrics.cost_micros DESC
         """
         
         response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
         
-        keywords = []
+        # Agregar métricas por keyword de todos los días
+        keyword_data = {}
         for row in response:
+            keyword_id = str(row.ad_group_criterion.criterion_id)
+            
+            if keyword_id not in keyword_data:
+                keyword_data[keyword_id] = {
+                    'keyword_text': row.ad_group_criterion.keyword.text,
+                    'ad_group_id': str(row.ad_group.id),
+                    'campaign_id': str(row.campaign.id),
+                    'customer_id': customer_id,
+                    'impressions': 0,
+                    'clicks': 0,
+                    'conversions': 0.0,
+                    'cost_micros': 0
+                }
+            
+            keyword_data[keyword_id]['impressions'] += row.metrics.impressions
+            keyword_data[keyword_id]['clicks'] += row.metrics.clicks
+            keyword_data[keyword_id]['conversions'] += float(row.metrics.conversions)
+            keyword_data[keyword_id]['cost_micros'] += row.metrics.cost_micros
+        
+        # Crear objetos KeywordPerformance con totales
+        keywords = []
+        for keyword_id, data in keyword_data.items():
             kw = KeywordPerformance(
-                keyword_id=str(row.ad_group_criterion.criterion_id),
-                keyword_text=row.ad_group_criterion.keyword.text,
-                ad_group_id=str(row.ad_group.id),
-                campaign_id=str(row.campaign.id),
-                customer_id=customer_id,
-                impressions=row.metrics.impressions,
-                clicks=row.metrics.clicks,
-                conversions=float(row.metrics.conversions),
-                cost_micros=row.metrics.cost_micros
+                keyword_id=keyword_id,
+                keyword_text=data['keyword_text'],
+                ad_group_id=data['ad_group_id'],
+                campaign_id=data['campaign_id'],
+                customer_id=data['customer_id'],
+                impressions=data['impressions'],
+                clicks=data['clicks'],
+                conversions=data['conversions'],
+                cost_micros=data['cost_micros']
             )
             kw.calculate_metrics(config)
             keywords.append(kw)
+        
+        # Ordenar por costo descendente
+        keywords.sort(key=lambda x: x.cost_micros, reverse=True)
         
         return keywords
     except Exception as e:
@@ -960,6 +1002,7 @@ def run_profit_guardian_check():
     
     print(f"\n{'='*60}")
     print(f"🛡️ PROFIT GUARDIAN - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"   📅 Analizando últimos 5 días (para considerar conversion lag)")
     print(f"{'='*60}")
     
     conn = get_db()
