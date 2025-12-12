@@ -52,17 +52,8 @@ app = Flask(__name__)
 # ==========================================
 # HEALTH CHECK - Para diagnóstico y uptime
 # ==========================================
-@app.route('/')
-def index():
-    return jsonify({
-        'status': 'healthy',
-        'service': 'Google Ads Backend',
-        'version': '2.0.0',
-        'profit_guardian': 'active'
-    })
-
-@app.route('/health')
-def health():
+@app.route('/health', methods=['GET'])
+def health_check():
     return jsonify({'status': 'ok'})
 
 # Helper global para redondear CPC a unidad facturable válida
