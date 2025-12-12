@@ -372,21 +372,21 @@ def get_db():
 def get_google_ads_client(refresh_token: str = None):
     """Crea cliente de Google Ads"""
     config = {
-        'developer_token': os.getenv('DEVELOPER_TOKEN'),
-        'client_id': os.getenv('CLIENT_ID'),
-        'client_secret': os.getenv('CLIENT_SECRET'),
+        'developer_token': os.getenv('GOOGLE_ADS_DEVELOPER_TOKEN') or os.getenv('DEVELOPER_TOKEN'),
+        'client_id': os.getenv('GOOGLE_ADS_CLIENT_ID') or os.getenv('CLIENT_ID'),
+        'client_secret': os.getenv('GOOGLE_ADS_CLIENT_SECRET') or os.getenv('CLIENT_SECRET'),
         'use_proto_plus': True
     }
     
     # Solo agregar login_customer_id si existe y es válido
-    login_customer_id = os.getenv('LOGIN_CUSTOMER_ID')
+    login_customer_id = os.getenv('GOOGLE_ADS_LOGIN_CUSTOMER_ID') or os.getenv('LOGIN_CUSTOMER_ID')
     if login_customer_id and len(login_customer_id.replace('-', '')) == 10:
         config['login_customer_id'] = login_customer_id
     
     if refresh_token:
         config['refresh_token'] = refresh_token
     else:
-        config['refresh_token'] = os.getenv('REFRESH_TOKEN')
+        config['refresh_token'] = os.getenv('GOOGLE_ADS_REFRESH_TOKEN') or os.getenv('REFRESH_TOKEN')
     
     return GoogleAdsClient.load_from_dict(config)
 
