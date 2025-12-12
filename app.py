@@ -4,6 +4,7 @@ from datetime import date, timedelta, datetime
 from google.ads.googleads.errors import GoogleAdsException
 from google.protobuf.field_mask_pb2 import FieldMask
 from circuit_breaker import circuit_breaker_bp, start_circuit_breaker_scheduler
+from profit_guardian import profit_guardian_bp, start_profit_guardian
 from dotenv import load_dotenv
 from typing import Tuple, Optional
 import os
@@ -4169,6 +4170,13 @@ def get_demographic_stats():
 # ==========================================
 app.register_blueprint(circuit_breaker_bp)
 start_circuit_breaker_scheduler()
+
+# ==========================================
+# PROFIT GUARDIAN - Autonomous Profitability System
+# ==========================================
+app.register_blueprint(profit_guardian_bp)
+start_profit_guardian()
+print("🛡️ Profit Guardian registered and monitoring started")
 
 
 # ==========================================
