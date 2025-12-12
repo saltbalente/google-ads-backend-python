@@ -49,6 +49,22 @@ else:
 
 app = Flask(__name__)
 
+# ==========================================
+# HEALTH CHECK - Para diagnóstico y uptime
+# ==========================================
+@app.route('/')
+def index():
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Google Ads Backend',
+        'version': '2.0.0',
+        'profit_guardian': 'active'
+    })
+
+@app.route('/health')
+def health():
+    return jsonify({'status': 'ok'})
+
 # Helper global para redondear CPC a unidad facturable válida
 # Para COP (y la mayoría de monedas), la unidad mínima es 1,000,000 micros
 def round_cpc_to_billable_unit(micros, currency_code='COP'):
