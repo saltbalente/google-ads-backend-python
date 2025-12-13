@@ -1860,7 +1860,9 @@ def setup_shared_budget():
     """🚀 TODO EN UNO: Crea presupuesto compartido Y lo asigna a todas las campañas"""
     data = request.get_json()
     customer_id = data.get('customer_id')
-    budget_name = data.get('budget_name', f'Guardian Master - {datetime.now().strftime("%Y%m%d")}')
+    # Generar nombre único con timestamp para evitar duplicados
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    budget_name = data.get('budget_name', f'Guardian Master {timestamp}')
     daily_amount_cop = data.get('daily_amount_cop')
     
     if not customer_id or not daily_amount_cop:
