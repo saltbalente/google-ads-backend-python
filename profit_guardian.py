@@ -1820,21 +1820,8 @@ def assign_shared_budget():
                     'reason': 'Portfolio Strategy (compartida en biblioteca)'
                 })
             else:
-                campaign_names.append(campaign_name)
-                
-                # Crear operación de actualización
-                campaign_operation = client.get_type("CampaignOperation")
-                campaign_resource_name = campaign_service.campaign_path(
-                    customer_id.replace('-', ''),
-                    campaign_id
-                )
-                
-                campaign_operation.update.resource_name = campaign_resource_name
-                campaign_operation.update.campaign_budget = budget_resource_name
-                campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
-                
+                # Guardar solo los datos, crear operación después
                 operations.append({
-                    'operation': campaign_operation,
                     'name': campaign_name,
                     'id': campaign_id
                 })
@@ -1854,9 +1841,21 @@ def assign_shared_budget():
         print(f"\n🚀 Asignando presupuesto compartido a {len(operations)} campañas...")
         for op_data in operations:
             try:
+                # Crear la operación
+                campaign_operation = client.get_type("CampaignOperation")
+                campaign_resource_name = campaign_service.campaign_path(
+                    customer_id.replace('-', ''),
+                    op_data['id']
+                )
+                
+                campaign_operation.update.resource_name = campaign_resource_name
+                campaign_operation.update.campaign_budget = budget_resource_name
+                campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
+                
+                # Ejecutar
                 campaign_service.mutate_campaigns(
                     customer_id=customer_id.replace('-', ''),
-                    operations=[op_data['operation']]
+                    operations=[campaign_operation]
                 )
                 successful_campaigns.append(op_data['name'])
                 print(f"  ✅ {op_data['name']}")
@@ -2000,9 +1999,8 @@ def setup_shared_budget():
                     'reason': 'Portfolio Strategy (compartida en biblioteca)'
                 })
             else:
-                # Compatible: agregar a la lista
+                # Compatible: guardar solo los datos
                 operations.append({
-                    'operation': campaign_operation,
                     'name': campaign_name,
                     'id': campaign_id
                 })
