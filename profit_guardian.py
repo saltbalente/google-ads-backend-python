@@ -2406,11 +2406,10 @@ def start_profit_guardian():
     """
     init_profit_guardian_db()
     
-    # 🔧 MODO DEBUG: Ejecutar cada 1 minuto (temporal para testing)
-    # TODO: Cambiar a 15 minutos en producción
+    # Ejecutar cada 15 minutos (óptimo para Google Ads API)
     guardian_scheduler.add_job(
         func=run_profit_guardian_check,
-        trigger=IntervalTrigger(minutes=1),
+        trigger=IntervalTrigger(minutes=15),
         id='profit_guardian_monitor',
         name='Profit Guardian - Monitor campaigns',
         replace_existing=True
@@ -2420,7 +2419,6 @@ def start_profit_guardian():
     
     print("=" * 60)
     print("🛡️ PROFIT GUARDIAN - SCHEDULER INICIADO")
-    print("🔧 MODO DEBUG: Intervalo de 1 minuto (cambiar a 15 en prod)")
     print("=" * 60)
     print("   ⚠️  Estado: DESACTIVADO (esperando tu orden)")
     print("   ")
