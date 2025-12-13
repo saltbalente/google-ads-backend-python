@@ -1767,21 +1767,20 @@ def assign_shared_budget():
                 campaign.name,
                 campaign.status,
                 campaign.bidding_strategy_type,
-                campaign.bidding_strategy
+                campaign.bidding_strategy,
+                campaign.experiment_type
             FROM campaign
             WHERE campaign.status = 'ENABLED'
         """
         
         response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
         
-        # Solo estas estrategias son 100% compatibles con shared budgets
+        # Solo estrategias más básicas que SÍ funcionan (conservador)
         compatible_strategies = {
             'MANUAL_CPC',
             'MANUAL_CPM', 
             'MANUAL_CPV',
-            'MAXIMIZE_CLICKS',
-            'MAXIMIZE_CONVERSIONS',
-            'MAXIMIZE_CONVERSION_VALUE'
+            'MAXIMIZE_CLICKS'
         }
         
         operations = []
@@ -1797,7 +1796,17 @@ def assign_shared_budget():
             # Detectar portfolio strategy
             is_portfolio = bool(row.campaign.bidding_strategy)
             
-            if is_portfolio:
+            # Detectar experimentos
+            experiment_type = row.campaign.experiment_type.name
+            has_experiment = experiment_type != 'BASE'
+            
+            if has_experiment:
+                skipped_campaigns.append({
+                    'name': campaign_name,
+                    'strategy': bidding_strategy_type,
+                    'reason': 'Tiene experimentos de campaña activos'
+                })
+            elif is_portfolio:
                 skipped_campaigns.append({
                     'name': campaign_name,
                     'strategy': bidding_strategy_type,
@@ -1911,21 +1920,20 @@ def setup_shared_budget():
                 campaign.name,
                 campaign.status,
                 campaign.bidding_strategy_type,
-                campaign.bidding_strategy
+                campaign.bidding_strategy,
+                campaign.experiment_type
             FROM campaign
             WHERE campaign.status = 'ENABLED'
         """
         
         search_response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
         
-        # Solo estas estrategias son 100% compatibles con shared budgets según Google Ads API
+        # Solo estrategias más básicas que SÍ funcionan (conservador)
         compatible_strategies = {
             'MANUAL_CPC',
             'MANUAL_CPM', 
             'MANUAL_CPV',
-            'MAXIMIZE_CLICKS',
-            'MAXIMIZE_CONVERSIONS',
-            'MAXIMIZE_CONVERSION_VALUE'
+            'MAXIMIZE_CLICKS'
         }
         
         operations = []
@@ -1942,10 +1950,20 @@ def setup_shared_budget():
             # Detectar si es portfolio strategy (tiene resource_name en bidding_strategy)
             is_portfolio = bool(row.campaign.bidding_strategy)
             
-            print(f"  - {campaign_name}: {bidding_strategy_type}, Portfolio={is_portfolio}")
+            # Detectar si tiene experimentos (BASE = sin experimento, DRAFT/EXPERIMENT = con experimento)
+            experiment_type = row.campaign.experiment_type.name
+            has_experiment = experiment_type != 'BASE'
             
-            # Excluir portfolio strategies y estrategias incompatibles
-            if is_portfolio:
+            print(f"  - {campaign_name}: {bidding_strategy_type}, Portfolio={is_portfolio}, Experiment={experiment_type}")
+            
+            # Excluir portfolio strategies, experimentos y estrategias incompatibles
+            if has_experiment:
+                skipped_campaigns.append({
+                    'name': campaign_name,
+                    'strategy': bidding_strategy_type,
+                    'reason': 'Tiene experimentos de campaña activos'
+                })
+            elif is_portfolio:
                 skipped_campaigns.append({
                     'name': campaign_name,
                     'strategy': bidding_strategy_type,
