@@ -1760,7 +1760,7 @@ def assign_shared_budget():
         ga_service = client.get_service("GoogleAdsService")
         campaign_service = client.get_service("CampaignService")
         
-        # Obtener campañas ACTIVAS con estrategia de puja
+        # Obtener campañas ACTIVAS con estrategia de puja y tipo de canal
         query = """
             SELECT 
                 campaign.id,
@@ -1768,20 +1768,15 @@ def assign_shared_budget():
                 campaign.status,
                 campaign.bidding_strategy_type,
                 campaign.bidding_strategy,
-                campaign.experiment_type
+                campaign.experiment_type,
+                campaign.advertising_channel_type
             FROM campaign
             WHERE campaign.status = 'ENABLED'
         """
         
         response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
         
-        # Solo estrategias más básicas que SÍ funcionan (conservador)
-        compatible_strategies = {
-            'MANUAL_CPC',
-            'MANUAL_CPM', 
-            'MANUAL_CPV',
-            'MAXIMIZE_CLICKS'
-        }
+        print(f"\n🔍 Analizando campañas para asignación de presupuesto compartido:")
         
         operations = []
         campaign_names = []
@@ -1792,6 +1787,7 @@ def assign_shared_budget():
             campaign_id = str(row.campaign.id)
             campaign_name = row.campaign.name
             bidding_strategy_type = row.campaign.bidding_strategy_type.name
+            channel_type = row.campaign.advertising_channel_type.name
             
             # Detectar portfolio strategy
             is_portfolio = bool(row.campaign.bidding_strategy)
@@ -1800,7 +1796,18 @@ def assign_shared_budget():
             experiment_type = row.campaign.experiment_type.name
             has_experiment = experiment_type != 'BASE'
             
-            if has_experiment:
+            # Detectar Performance Max (no soporta shared budgets)
+            is_performance_max = channel_type == 'PERFORMANCE_MAX'
+            
+            print(f"  - {campaign_name}: {bidding_strategy_type}, Canal={channel_type}, Portfolio={is_portfolio}, Experiment={experiment_type}")
+            
+            if is_performance_max:
+                skipped_campaigns.append({
+                    'name': campaign_name,
+                    'strategy': bidding_strategy_type,
+                    'reason': 'Performance Max no soporta presupuestos compartidos'
+                })
+            elif has_experiment:
                 skipped_campaigns.append({
                     'name': campaign_name,
                     'strategy': bidding_strategy_type,
@@ -1811,12 +1818,6 @@ def assign_shared_budget():
                     'name': campaign_name,
                     'strategy': bidding_strategy_type,
                     'reason': 'Portfolio Strategy (compartida en biblioteca)'
-                })
-            elif bidding_strategy_type not in compatible_strategies:
-                skipped_campaigns.append({
-                    'name': campaign_name,
-                    'strategy': bidding_strategy_type,
-                    'reason': 'Estrategia incompatible con presupuesto compartido'
                 })
             else:
                 campaign_names.append(campaign_name)
@@ -1835,10 +1836,11 @@ def assign_shared_budget():
                 operations.append(campaign_operation)
         
         if not operations:
-            portfolio_count = sum(1 for c in skipped_campaigns if c.get('reason') == 'Portfolio Strategy')
+            pmax_count = sum(1 for c in skipped_campaigns if 'Performance Max' in c.get('reason', ''))
+            portfolio_count = sum(1 for c in skipped_campaigns if 'Portfolio' in c.get('reason', ''))
             return jsonify({
                 'success': False,
-                'error': f'No se encontraron campañas compatibles. {len(skipped_campaigns)} campañas omitidas ({portfolio_count} usan Portfolio Strategy)',
+                'error': f'No se encontraron campañas compatibles. {len(skipped_campaigns)} campañas omitidas ({pmax_count} Performance Max, {portfolio_count} Portfolio)',
                 'skipped_campaigns': skipped_campaigns
             }), 404
         
@@ -1921,20 +1923,13 @@ def setup_shared_budget():
                 campaign.status,
                 campaign.bidding_strategy_type,
                 campaign.bidding_strategy,
-                campaign.experiment_type
+                campaign.experiment_type,
+                campaign.advertising_channel_type
             FROM campaign
             WHERE campaign.status = 'ENABLED'
         """
         
         search_response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
-        
-        # Solo estrategias más básicas que SÍ funcionan (conservador)
-        compatible_strategies = {
-            'MANUAL_CPC',
-            'MANUAL_CPM', 
-            'MANUAL_CPV',
-            'MAXIMIZE_CLICKS'
-        }
         
         operations = []
         campaign_names = []
@@ -1946,6 +1941,7 @@ def setup_shared_budget():
             campaign_id = str(row.campaign.id)
             campaign_name = row.campaign.name
             bidding_strategy_type = row.campaign.bidding_strategy_type.name
+            channel_type = row.campaign.advertising_channel_type.name
             
             # Detectar si es portfolio strategy (tiene resource_name en bidding_strategy)
             is_portfolio = bool(row.campaign.bidding_strategy)
@@ -1954,10 +1950,19 @@ def setup_shared_budget():
             experiment_type = row.campaign.experiment_type.name
             has_experiment = experiment_type != 'BASE'
             
-            print(f"  - {campaign_name}: {bidding_strategy_type}, Portfolio={is_portfolio}, Experiment={experiment_type}")
+            # Detectar Performance Max (no soporta shared budgets)
+            is_performance_max = channel_type == 'PERFORMANCE_MAX'
             
-            # Excluir portfolio strategies, experimentos y estrategias incompatibles
-            if has_experiment:
+            print(f"  - {campaign_name}: {bidding_strategy_type}, Canal={channel_type}, Portfolio={is_portfolio}, Experiment={experiment_type}")
+            
+            # Excluir Performance Max, portfolio strategies y experimentos
+            if is_performance_max:
+                skipped_campaigns.append({
+                    'name': campaign_name,
+                    'strategy': bidding_strategy_type,
+                    'reason': 'Performance Max no soporta presupuestos compartidos'
+                })
+            elif has_experiment:
                 skipped_campaigns.append({
                     'name': campaign_name,
                     'strategy': bidding_strategy_type,
@@ -1968,12 +1973,6 @@ def setup_shared_budget():
                     'name': campaign_name,
                     'strategy': bidding_strategy_type,
                     'reason': 'Portfolio Strategy (compartida en biblioteca)'
-                })
-            elif bidding_strategy_type not in compatible_strategies:
-                skipped_campaigns.append({
-                    'name': campaign_name,
-                    'strategy': bidding_strategy_type,
-                    'reason': 'Estrategia incompatible con presupuesto compartido'
                 })
             else:
                 # Compatible: agregar a la lista
