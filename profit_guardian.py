@@ -1683,6 +1683,84 @@ def get_guardian_state():
     })
 
 
+@profit_guardian_bp.route('/api/profit-guardian/activity', methods=['GET'])
+def get_activity_log():
+    """Obtiene el historial de actividad reciente del Profit Guardian"""
+    customer_id = request.args.get('customer_id')
+    limit = int(request.args.get('limit', 50))
+    hours = int(request.args.get('hours', 24))  # Últimas 24 horas por defecto
+    
+    if not customer_id:
+        return jsonify({
+            'success': False,
+            'error': 'customer_id requerido'
+        }), 400
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Obtener decisiones recientes
+        since = datetime.now() - timedelta(hours=hours)
+        cursor.execute('''
+            SELECT 
+                decision_type,
+                entity_type,
+                entity_id,
+                reason,
+                metrics_before,
+                metrics_after,
+                created_at
+            FROM decision_history
+            WHERE customer_id = ?
+            AND created_at >= ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        ''', (customer_id, since.isoformat(), limit))
+        
+        decisions = []
+        for row in cursor.fetchall():
+            decisions.append({
+                'type': row[0],
+                'entity_type': row[1],
+                'entity_id': row[2],
+                'reason': row[3],
+                'metrics_before': json.loads(row[4]) if row[4] else None,
+                'metrics_after': json.loads(row[5]) if row[5] else None,
+                'timestamp': row[6]
+            })
+        
+        # Obtener stats del día
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        cursor.execute('''
+            SELECT decision_type, COUNT(*)
+            FROM decision_history
+            WHERE customer_id = ?
+            AND created_at >= ?
+            GROUP BY decision_type
+        ''', (customer_id, today_start.isoformat()))
+        
+        stats_today = {}
+        for row in cursor.fetchall():
+            stats_today[row[0]] = row[1]
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'activity': decisions,
+            'stats_today': stats_today,
+            'total_decisions_today': sum(stats_today.values()),
+            'hours': hours
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 # ============================================
 # 💰 PRESUPUESTO COMPARTIDO
 # ============================================
