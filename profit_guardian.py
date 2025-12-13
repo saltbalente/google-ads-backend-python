@@ -1708,26 +1708,26 @@ def get_activity_log():
                 entity_type,
                 entity_id,
                 reason,
-                metrics_before,
-                metrics_after,
-                created_at
+                data_json,
+                timestamp
             FROM decision_history
             WHERE customer_id = ?
-            AND created_at >= ?
-            ORDER BY created_at DESC
+            AND timestamp >= ?
+            ORDER BY timestamp DESC
             LIMIT ?
         ''', (customer_id, since.isoformat(), limit))
         
         decisions = []
         for row in cursor.fetchall():
+            data = json.loads(row[4]) if row[4] else {}
             decisions.append({
                 'type': row[0],
                 'entity_type': row[1],
                 'entity_id': row[2],
-                'reason': row[3],
-                'metrics_before': json.loads(row[4]) if row[4] else None,
-                'metrics_after': json.loads(row[5]) if row[5] else None,
-                'timestamp': row[6]
+                'reason': row[3] or 'Sin razón especificada',
+                'metrics_before': data.get('metrics_before'),
+                'metrics_after': data.get('metrics_after'),
+                'timestamp': row[5]
             })
         
         # Obtener stats del día
@@ -1736,7 +1736,7 @@ def get_activity_log():
             SELECT decision_type, COUNT(*)
             FROM decision_history
             WHERE customer_id = ?
-            AND created_at >= ?
+            AND timestamp >= ?
             GROUP BY decision_type
         ''', (customer_id, today_start.isoformat()))
         
