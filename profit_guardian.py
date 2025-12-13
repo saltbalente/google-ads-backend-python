@@ -1761,6 +1761,80 @@ def get_activity_log():
         }), 500
 
 
+@profit_guardian_bp.route('/api/profit-guardian/budget-pacing', methods=['GET'])
+def get_budget_pacing_status():
+    """Obtiene el estado actual del budget pacing horario"""
+    customer_id = request.args.get('customer_id')
+    campaign_id = request.args.get('campaign_id')
+    
+    if not customer_id:
+        return jsonify({
+            'success': False,
+            'error': 'customer_id requerido'
+        }), 400
+    
+    try:
+        client = get_google_ads_client()
+        
+        # Cargar configuración
+        config = load_guardian_config(customer_id)
+        if not config:
+            return jsonify({
+                'success': False,
+                'error': 'No hay configuración para esta cuenta'
+            }), 404
+        
+        # Obtener gasto por hora de hoy
+        hourly_spend = get_hourly_spend_today(client, customer_id, campaign_id)
+        
+        # Hora actual
+        current_hour = datetime.now().hour
+        current_hour_spend_micros = hourly_spend.get(current_hour, {}).get('cost_micros', 0)
+        current_hour_spend_cop = current_hour_spend_micros / 1_000_000
+        
+        # Presupuesto por hora
+        hourly_budget = config.hourly_budget_cop
+        
+        # Calcular totales del día
+        total_spend_today = sum(h.get('cost_micros', 0) for h in hourly_spend.values()) / 1_000_000
+        hours_active = max(1, current_hour - config.active_hours_start + 1)
+        ideal_spend_so_far = hourly_budget * hours_active
+        
+        # Detectar si está pausado por cuota horaria
+        is_paused_by_pacing = current_hour_spend_cop >= (hourly_budget * 0.95)
+        
+        return jsonify({
+            'success': True,
+            'current_hour': current_hour,
+            'hourly_budget_cop': hourly_budget,
+            'current_hour_spend_cop': current_hour_spend_cop,
+            'current_hour_percentage': (current_hour_spend_cop / hourly_budget * 100) if hourly_budget > 0 else 0,
+            'is_paused_by_pacing': is_paused_by_pacing,
+            'resume_at_hour': current_hour + 1 if is_paused_by_pacing else None,
+            'daily_budget_cop': config.daily_budget_cop,
+            'total_spend_today_cop': total_spend_today,
+            'daily_budget_percentage': (total_spend_today / config.daily_budget_cop * 100) if config.daily_budget_cop > 0 else 0,
+            'ideal_spend_so_far': ideal_spend_so_far,
+            'spend_vs_ideal': total_spend_today - ideal_spend_so_far,
+            'active_hours_start': config.active_hours_start,
+            'active_hours_end': config.active_hours_end,
+            'hourly_breakdown': {
+                str(hour): {
+                    'spend_cop': data.get('cost_micros', 0) / 1_000_000,
+                    'conversions': data.get('conversions', 0),
+                    'clicks': data.get('clicks', 0)
+                }
+                for hour, data in hourly_spend.items()
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 # ============================================
 # 💰 PRESUPUESTO COMPARTIDO
 # ============================================
