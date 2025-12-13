@@ -706,7 +706,9 @@ class DecisionEngine:
                     reason=f"CPA excelente (${kw.cpa_cop:,.0f} < ${self.config.target_cpa_cop * 0.7:,.0f})",
                     data={
                         'keyword_text': kw.keyword_text,
+                        'ad_group_id': kw.ad_group_id,
                         'cpa_cop': kw.cpa_cop,
+                        'conversions': kw.conversions,
                         'suggested_bid_increase': 0.15  # +15%
                     }
                 ))
@@ -768,11 +770,15 @@ class DecisionExecutor:
                 return self._pause_campaign(decision)
             elif decision.decision_type == DecisionType.RESUME_CAMPAIGN:
                 return self._resume_campaign(decision)
+            elif decision.decision_type == DecisionType.ADJUST_BID_UP:
+                return self._adjust_bid_up(decision)
+            elif decision.decision_type == DecisionType.ADJUST_BID_DOWN:
+                return self._adjust_bid_down(decision)
             else:
-                print(f"   ℹ️ Decision type {decision.decision_type.value} logged but not executed")
+                print(f"   ℹ️ Tipo de decisión {decision.decision_type.value} registrado pero no ejecutado")
                 return True
         except Exception as e:
-            print(f"   ❌ Error executing decision: {e}")
+            print(f"   ❌ Error ejecutando decisión: {e}")
             return False
     
     def _pause_keyword(self, decision: Decision) -> bool:
@@ -826,11 +832,11 @@ class DecisionExecutor:
             conn.commit()
             conn.close()
             
-            print(f"   ⏸️ Paused keyword: {decision.data.get('keyword_text', criterion_id)}")
+            print(f"   ⏸️ Keyword pausada: {decision.data.get('keyword_text', criterion_id)}")
             return True
             
         except Exception as e:
-            print(f"   ❌ Error pausing keyword: {e}")
+            print(f"   ❌ Error pausando keyword: {e}")
             return False
     
     def _resume_keyword(self, decision: Decision) -> bool:
@@ -866,11 +872,11 @@ class DecisionExecutor:
             conn.commit()
             conn.close()
             
-            print(f"   ▶️ Resumed keyword: {decision.data.get('keyword_text', criterion_id)}")
+            print(f"   ▶️ Keyword reactivada: {decision.data.get('keyword_text', criterion_id)}")
             return True
             
         except Exception as e:
-            print(f"   ❌ Error resuming keyword: {e}")
+            print(f"   ❌ Error reactivando keyword: {e}")
             return False
     
     def _pause_campaign(self, decision: Decision) -> bool:
@@ -907,11 +913,11 @@ class DecisionExecutor:
             conn.commit()
             conn.close()
             
-            print(f"   ⏸️ Paused campaign: {campaign_id}")
+            print(f"   ⏸️ Campaña pausada: {campaign_id}")
             return True
             
         except Exception as e:
-            print(f"   ❌ Error pausing campaign: {e}")
+            print(f"   ❌ Error pausando campaña: {e}")
             return False
     
     def _resume_campaign(self, decision: Decision) -> bool:
@@ -953,6 +959,150 @@ class DecisionExecutor:
             
         except Exception as e:
             print(f"   ❌ Error resuming campaign: {e}")
+            return False
+    
+    def _adjust_bid_up(self, decision: Decision) -> bool:
+        """Aumenta la puja de una keyword que está convirtiendo bien"""
+        try:
+            customer_id = decision.customer_id.replace('-', '')
+            criterion_id = decision.entity_id
+            ad_group_id = decision.data.get('ad_group_id')
+            
+            if not ad_group_id:
+                print(f"   ⚠️ No se puede ajustar bid: falta ad_group_id")
+                return False
+            
+            agc_service = self.client.get_service("AdGroupCriterionService")
+            
+            # Obtener bid actual
+            resource_name = agc_service.ad_group_criterion_path(
+                customer_id, ad_group_id, criterion_id
+            )
+            
+            # Obtener criterio actual
+            ga_service = self.client.get_service("GoogleAdsService")
+            query = f"""
+                SELECT 
+                    ad_group_criterion.cpc_bid_micros,
+                    ad_group_criterion.keyword.text
+                FROM ad_group_criterion
+                WHERE ad_group_criterion.criterion_id = {criterion_id}
+                  AND ad_group.id = {ad_group_id}
+            """
+            
+            response = ga_service.search(customer_id=customer_id, query=query)
+            
+            current_bid_micros = 0
+            keyword_text = decision.data.get('keyword_text', criterion_id)
+            
+            for row in response:
+                current_bid_micros = row.ad_group_criterion.cpc_bid_micros
+                keyword_text = row.ad_group_criterion.keyword.text
+                break
+            
+            if current_bid_micros == 0:
+                print(f"   ⚠️ No se puede ajustar bid: bid actual es 0")
+                return False
+            
+            # Aumentar bid según sugerencia
+            bid_increase = decision.data.get('suggested_bid_increase', 0.15)  # Default 15%
+            new_bid_micros = int(current_bid_micros * (1 + bid_increase))
+            
+            # Límite de seguridad: máximo 50% de aumento
+            max_bid_micros = int(current_bid_micros * 1.5)
+            new_bid_micros = min(new_bid_micros, max_bid_micros)
+            
+            # Actualizar bid
+            operation = self.client.get_type("AdGroupCriterionOperation")
+            operation.update.resource_name = resource_name
+            operation.update.cpc_bid_micros = new_bid_micros
+            operation.update_mask.CopyFrom(FieldMask(paths=["cpc_bid_micros"]))
+            
+            agc_service.mutate_ad_group_criteria(
+                customer_id=customer_id,
+                operations=[operation]
+            )
+            
+            old_bid_cop = current_bid_micros / 1_000_000
+            new_bid_cop = new_bid_micros / 1_000_000
+            
+            print(f"   📈 Bid aumentado para '{keyword_text}': ${old_bid_cop:,.0f} → ${new_bid_cop:,.0f} COP (+{bid_increase*100:.0f}%)")
+            return True
+            
+        except Exception as e:
+            print(f"   ❌ Error ajustando bid: {e}")
+            return False
+    
+    def _adjust_bid_down(self, decision: Decision) -> bool:
+        """Reduce la puja de una keyword con CPA alto"""
+        try:
+            customer_id = decision.customer_id.replace('-', '')
+            criterion_id = decision.entity_id
+            ad_group_id = decision.data.get('ad_group_id')
+            
+            if not ad_group_id:
+                print(f"   ⚠️ No se puede ajustar bid: falta ad_group_id")
+                return False
+            
+            agc_service = self.client.get_service("AdGroupCriterionService")
+            
+            # Obtener bid actual
+            resource_name = agc_service.ad_group_criterion_path(
+                customer_id, ad_group_id, criterion_id
+            )
+            
+            # Obtener criterio actual
+            ga_service = self.client.get_service("GoogleAdsService")
+            query = f"""
+                SELECT 
+                    ad_group_criterion.cpc_bid_micros,
+                    ad_group_criterion.keyword.text
+                FROM ad_group_criterion
+                WHERE ad_group_criterion.criterion_id = {criterion_id}
+                  AND ad_group.id = {ad_group_id}
+            """
+            
+            response = ga_service.search(customer_id=customer_id, query=query)
+            
+            current_bid_micros = 0
+            keyword_text = decision.data.get('keyword_text', criterion_id)
+            
+            for row in response:
+                current_bid_micros = row.ad_group_criterion.cpc_bid_micros
+                keyword_text = row.ad_group_criterion.keyword.text
+                break
+            
+            if current_bid_micros == 0:
+                print(f"   ⚠️ No se puede ajustar bid: bid actual es 0")
+                return False
+            
+            # Reducir bid según sugerencia
+            bid_decrease = decision.data.get('suggested_bid_decrease', 0.20)  # Default 20%
+            new_bid_micros = int(current_bid_micros * (1 - bid_decrease))
+            
+            # Límite de seguridad: mínimo $100 COP
+            min_bid_micros = 100_000_000  # $100 COP en micros
+            new_bid_micros = max(new_bid_micros, min_bid_micros)
+            
+            # Actualizar bid
+            operation = self.client.get_type("AdGroupCriterionOperation")
+            operation.update.resource_name = resource_name
+            operation.update.cpc_bid_micros = new_bid_micros
+            operation.update_mask.CopyFrom(FieldMask(paths=["cpc_bid_micros"]))
+            
+            agc_service.mutate_ad_group_criteria(
+                customer_id=customer_id,
+                operations=[operation]
+            )
+            
+            old_bid_cop = current_bid_micros / 1_000_000
+            new_bid_cop = new_bid_micros / 1_000_000
+            
+            print(f"   📉 Bid reducido para '{keyword_text}': ${old_bid_cop:,.0f} → ${new_bid_cop:,.0f} COP (-{bid_decrease*100:.0f}%)")
+            return True
+            
+        except Exception as e:
+            print(f"   ❌ Error ajustando bid: {e}")
             return False
 
 
