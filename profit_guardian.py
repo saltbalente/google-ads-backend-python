@@ -1774,6 +1774,16 @@ def assign_shared_budget():
         
         response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
         
+        # Solo estas estrategias son 100% compatibles con shared budgets
+        compatible_strategies = {
+            'MANUAL_CPC',
+            'MANUAL_CPM', 
+            'MANUAL_CPV',
+            'MAXIMIZE_CLICKS',
+            'MAXIMIZE_CONVERSIONS',
+            'MAXIMIZE_CONVERSION_VALUE'
+        }
+        
         operations = []
         campaign_names = []
         skipped_campaigns = []
@@ -1791,13 +1801,13 @@ def assign_shared_budget():
                 skipped_campaigns.append({
                     'name': campaign_name,
                     'strategy': bidding_strategy_type,
-                    'reason': 'Portfolio Strategy'
+                    'reason': 'Portfolio Strategy (compartida en biblioteca)'
                 })
-            elif bidding_strategy_type == 'TARGET_IMPRESSION_SHARE':
+            elif bidding_strategy_type not in compatible_strategies:
                 skipped_campaigns.append({
                     'name': campaign_name,
                     'strategy': bidding_strategy_type,
-                    'reason': 'Incompatible'
+                    'reason': 'Estrategia incompatible con presupuesto compartido'
                 })
             else:
                 campaign_names.append(campaign_name)
@@ -1908,9 +1918,21 @@ def setup_shared_budget():
         
         search_response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
         
+        # Solo estas estrategias son 100% compatibles con shared budgets según Google Ads API
+        compatible_strategies = {
+            'MANUAL_CPC',
+            'MANUAL_CPM', 
+            'MANUAL_CPV',
+            'MAXIMIZE_CLICKS',
+            'MAXIMIZE_CONVERSIONS',
+            'MAXIMIZE_CONVERSION_VALUE'
+        }
+        
         operations = []
         campaign_names = []
         skipped_campaigns = []
+        
+        print(f"🔍 Analizando campañas para customer {customer_id}...")
         
         for row in search_response:
             campaign_id = str(row.campaign.id)
@@ -1920,21 +1942,23 @@ def setup_shared_budget():
             # Detectar si es portfolio strategy (tiene resource_name en bidding_strategy)
             is_portfolio = bool(row.campaign.bidding_strategy)
             
-            # Solo incompatible si es portfolio strategy o target_impression_share
+            print(f"  - {campaign_name}: {bidding_strategy_type}, Portfolio={is_portfolio}")
+            
+            # Excluir portfolio strategies y estrategias incompatibles
             if is_portfolio:
                 skipped_campaigns.append({
                     'name': campaign_name,
                     'strategy': bidding_strategy_type,
-                    'reason': 'Portfolio Strategy'
+                    'reason': 'Portfolio Strategy (compartida en biblioteca)'
                 })
-            elif bidding_strategy_type == 'TARGET_IMPRESSION_SHARE':
+            elif bidding_strategy_type not in compatible_strategies:
                 skipped_campaigns.append({
                     'name': campaign_name,
                     'strategy': bidding_strategy_type,
-                    'reason': 'Incompatible'
+                    'reason': 'Estrategia incompatible con presupuesto compartido'
                 })
             else:
-                # Todas las demás son compatibles (MANUAL_CPC, MAXIMIZE_CLICKS, MAXIMIZE_CONVERSIONS, TARGET_CPA standard, etc.)
+                # Compatible: agregar a la lista
                 campaign_names.append(campaign_name)
                 
                 campaign_operation = client.get_type("CampaignOperation")
@@ -1948,6 +1972,8 @@ def setup_shared_budget():
                 campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
                 
                 operations.append(campaign_operation)
+        
+        print(f"✅ {len(operations)} compatibles, ⚠️ {len(skipped_campaigns)} omitidas")
         
         if operations:
             campaign_service.mutate_campaigns(
