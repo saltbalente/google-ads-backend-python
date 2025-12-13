@@ -39,35 +39,65 @@ profit_guardian_bp = Blueprint('profit_guardian', __name__)
 # ============================================
 
 class GuardianState:
-    """Estado global del Profit Guardian"""
+    """Estado global del Profit Guardian - Persistido en DB"""
     _instance = None
     
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance.enabled = False  # DESACTIVADO por defecto - tu decides cuando activar
             cls._instance.last_check = None
             cls._instance.total_decisions_today = 0
             cls._instance.keywords_paused_today = 0
             cls._instance.keywords_resumed_today = 0
         return cls._instance
     
+    def _get_state_from_db(self):
+        """Lee el estado persistido en la base de datos"""
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute('SELECT value FROM guardian_state WHERE key = "enabled"')
+            row = cursor.fetchone()
+            conn.close()
+            return row[0] == '1' if row else False
+        except Exception as e:
+            logger.error(f"Error leyendo estado de DB: {e}")
+            return False
+    
+    def _save_state_to_db(self, enabled: bool):
+        """Guarda el estado en la base de datos"""
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT OR REPLACE INTO guardian_state (key, value, updated_at)
+                VALUES ("enabled", ?, datetime('now'))
+            ''', ('1' if enabled else '0',))
+            conn.commit()
+            conn.close()
+            logger.info(f"💾 Estado guardado en DB: {'ACTIVADO' if enabled else 'DESACTIVADO'}")
+        except Exception as e:
+            logger.error(f"Error guardando estado en DB: {e}")
+    
     def enable(self):
-        self.enabled = True
+        self._save_state_to_db(True)
         print("🟢 Profit Guardian ACTIVADO")
         
     def disable(self):
-        self.enabled = False
+        self._save_state_to_db(False)
         print("🔴 Profit Guardian DESACTIVADO")
         
     def toggle(self):
-        self.enabled = not self.enabled
-        status = "ACTIVADO" if self.enabled else "DESACTIVADO"
+        current = self.is_enabled()
+        new_state = not current
+        self._save_state_to_db(new_state)
+        status = "ACTIVADO" if new_state else "DESACTIVADO"
         print(f"🔄 Profit Guardian {status}")
-        return self.enabled
+        return new_state
     
     def is_enabled(self):
-        return self.enabled
+        """Lee el estado actual desde la base de datos"""
+        return self._get_state_from_db()
     
     def update_stats(self, decisions=0, paused=0, resumed=0):
         self.total_decisions_today += decisions
@@ -371,6 +401,21 @@ def init_profit_guardian_db():
             acknowledged INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
+    ''')
+    
+    # Estado global del Guardian (persiste entre reinicios)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS guardian_state (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Inicializar estado en DESACTIVADO si no existe
+    cursor.execute('''
+        INSERT OR IGNORE INTO guardian_state (key, value, updated_at)
+        VALUES ("enabled", "0", datetime('now'))
     ''')
     
     conn.commit()
