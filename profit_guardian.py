@@ -100,6 +100,9 @@ class BusinessConfig:
     # Horarios premium (mejor rendimiento observado)
     premium_hours: List[int] = None       # Se calcula dinámicamente
     
+    # 🎯 Budget Pacing Horario - Manual Override
+    custom_hourly_budget_cop: int = None  # Si se define, usa este valor en lugar del automático
+    
     # Control
     check_interval_minutes: int = 15      # Revisar cada 15 minutos
     pause_duration_minutes: int = 45      # Pausar por 45 min si excede ritmo
@@ -113,7 +116,11 @@ class BusinessConfig:
     
     @property
     def hourly_budget_cop(self) -> int:
-        """Presupuesto por hora (distribución uniforme)"""
+        """Presupuesto por hora (distribución uniforme o manual)"""
+        # Si hay override manual, usarlo
+        if self.custom_hourly_budget_cop is not None:
+            return self.custom_hourly_budget_cop
+        # Sino, calcular automáticamente
         active_hours = self.active_hours_end - self.active_hours_start
         return self.daily_budget_cop // active_hours
     
@@ -1856,6 +1863,75 @@ def get_budget_pacing_status():
                 }
                 for hour, data in hourly_spend.items()
             }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@profit_guardian_bp.route('/api/profit-guardian/update-hourly-budget', methods=['POST'])
+def update_hourly_budget():
+    """🎯 Actualiza la cuota horaria máxima (override manual)"""
+    data = request.get_json()
+    customer_id = data.get('customer_id')
+    custom_hourly_budget = data.get('custom_hourly_budget_cop')
+    
+    if not customer_id:
+        return jsonify({
+            'success': False,
+            'error': 'customer_id requerido'
+        }), 400
+    
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Cargar configuración actual
+        cursor.execute('SELECT config_json FROM account_config WHERE customer_id = ?', (customer_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return jsonify({
+                'success': False,
+                'error': 'No existe configuración para esta cuenta'
+            }), 404
+        
+        config_dict = json.loads(row[0])
+        
+        # Actualizar custom_hourly_budget_cop
+        if custom_hourly_budget is None or custom_hourly_budget == 0:
+            # Eliminar override - volver a automático
+            config_dict.pop('custom_hourly_budget_cop', None)
+            message = 'Cuota horaria restaurada a cálculo automático'
+        else:
+            config_dict['custom_hourly_budget_cop'] = int(custom_hourly_budget)
+            message = f'Cuota horaria actualizada a ${custom_hourly_budget:,.0f} COP/hora'
+        
+        # Guardar
+        cursor.execute('''
+            UPDATE account_config 
+            SET config_json = ?, updated_at = ?
+            WHERE customer_id = ?
+        ''', (json.dumps(config_dict), datetime.utcnow(), customer_id))
+        conn.commit()
+        conn.close()
+        
+        # Calcular valores para respuesta
+        config = BusinessConfig(**config_dict)
+        active_hours = config.active_hours_end - config.active_hours_start
+        automatic_hourly = config.daily_budget_cop // active_hours
+        
+        return jsonify({
+            'success': True,
+            'message': message,
+            'custom_hourly_budget_cop': config.custom_hourly_budget_cop,
+            'automatic_hourly_budget_cop': automatic_hourly,
+            'daily_budget_cop': config.daily_budget_cop,
+            'active_hours': active_hours,
+            'is_manual_override': config.custom_hourly_budget_cop is not None
         })
         
     except Exception as e:
