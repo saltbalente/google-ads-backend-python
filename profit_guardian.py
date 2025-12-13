@@ -1760,44 +1760,63 @@ def assign_shared_budget():
         ga_service = client.get_service("GoogleAdsService")
         campaign_service = client.get_service("CampaignService")
         
-        # Obtener todas las campañas ACTIVAS
+        # Obtener campañas ACTIVAS con estrategia de puja
         query = """
             SELECT 
                 campaign.id,
                 campaign.name,
-                campaign.status
+                campaign.status,
+                campaign.bidding_strategy_type
             FROM campaign
             WHERE campaign.status = 'ENABLED'
         """
         
         response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
         
+        # Estrategias compatibles con presupuesto compartido
+        compatible_strategies = [
+            'MANUAL_CPC',
+            'MANUAL_CPM',
+            'MANUAL_CPV',
+            'MAXIMIZE_CLICKS'
+        ]
+        
         operations = []
         campaign_names = []
+        skipped_campaigns = []
         
-        # Crear operación para cada campaña
+        # Crear operación solo para campañas compatibles
         for row in response:
             campaign_id = str(row.campaign.id)
             campaign_name = row.campaign.name
-            campaign_names.append(campaign_name)
+            bidding_strategy = row.campaign.bidding_strategy_type.name
             
-            # Crear operación de actualización
-            campaign_operation = client.get_type("CampaignOperation")
-            campaign_resource_name = campaign_service.campaign_path(
-                customer_id.replace('-', ''),
-                campaign_id
-            )
-            
-            campaign_operation.update.resource_name = campaign_resource_name
-            campaign_operation.update.campaign_budget = budget_resource_name
-            campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
-            
-            operations.append(campaign_operation)
+            if bidding_strategy in compatible_strategies:
+                campaign_names.append(campaign_name)
+                
+                # Crear operación de actualización
+                campaign_operation = client.get_type("CampaignOperation")
+                campaign_resource_name = campaign_service.campaign_path(
+                    customer_id.replace('-', ''),
+                    campaign_id
+                )
+                
+                campaign_operation.update.resource_name = campaign_resource_name
+                campaign_operation.update.campaign_budget = budget_resource_name
+                campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
+                
+                operations.append(campaign_operation)
+            else:
+                skipped_campaigns.append({
+                    'name': campaign_name,
+                    'strategy': bidding_strategy
+                })
         
         if not operations:
             return jsonify({
                 'success': False,
-                'error': 'No se encontraron campañas activas'
+                'error': f'No se encontraron campañas compatibles. {len(skipped_campaigns)} campañas omitidas por estrategias incompatibles (TARGET_CPA, TARGET_ROAS, etc.)',
+                'skipped_campaigns': skipped_campaigns
             }), 404
         
         # Ejecutar todas las operaciones
@@ -1806,11 +1825,17 @@ def assign_shared_budget():
             operations=operations
         )
         
+        message = f'✅ {len(operations)} campañas asignadas al presupuesto compartido'
+        if skipped_campaigns:
+            message += f' | ⚠️ {len(skipped_campaigns)} campañas omitidas (estrategias incompatibles)'
+        
         return jsonify({
             'success': True,
             'campaigns_updated': len(operations),
+            'campaigns_skipped': len(skipped_campaigns),
             'campaign_names': campaign_names,
-            'message': f'✅ {len(operations)} campañas asignadas al presupuesto compartido'
+            'skipped_campaigns': skipped_campaigns,
+            'message': message
         })
         
     except GoogleAdsException as ex:
@@ -1859,7 +1884,7 @@ def setup_shared_budget():
         
         budget_resource_name = response.results[0].resource_name
         
-        # PASO 2: Asignar a todas las campañas activas
+        # PASO 2: Asignar a campañas compatibles (solo MANUAL_CPC, MAXIMIZE_CLICKS)
         ga_service = client.get_service("GoogleAdsService")
         campaign_service = client.get_service("CampaignService")
         
@@ -1867,32 +1892,51 @@ def setup_shared_budget():
             SELECT 
                 campaign.id,
                 campaign.name,
-                campaign.status
+                campaign.status,
+                campaign.bidding_strategy_type
             FROM campaign
             WHERE campaign.status = 'ENABLED'
         """
         
         search_response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
         
+        # Estrategias compatibles con presupuesto compartido
+        compatible_strategies = [
+            'MANUAL_CPC',
+            'MANUAL_CPM',
+            'MANUAL_CPV',
+            'MAXIMIZE_CLICKS'
+        ]
+        
         operations = []
         campaign_names = []
+        skipped_campaigns = []
         
         for row in search_response:
             campaign_id = str(row.campaign.id)
             campaign_name = row.campaign.name
-            campaign_names.append(campaign_name)
+            bidding_strategy = row.campaign.bidding_strategy_type.name
             
-            campaign_operation = client.get_type("CampaignOperation")
-            campaign_resource_name = campaign_service.campaign_path(
-                customer_id.replace('-', ''),
-                campaign_id
-            )
-            
-            campaign_operation.update.resource_name = campaign_resource_name
-            campaign_operation.update.campaign_budget = budget_resource_name
-            campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
-            
-            operations.append(campaign_operation)
+            # Solo asignar a campañas compatibles
+            if bidding_strategy in compatible_strategies:
+                campaign_names.append(campaign_name)
+                
+                campaign_operation = client.get_type("CampaignOperation")
+                campaign_resource_name = campaign_service.campaign_path(
+                    customer_id.replace('-', ''),
+                    campaign_id
+                )
+                
+                campaign_operation.update.resource_name = campaign_resource_name
+                campaign_operation.update.campaign_budget = budget_resource_name
+                campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
+                
+                operations.append(campaign_operation)
+            else:
+                skipped_campaigns.append({
+                    'name': campaign_name,
+                    'strategy': bidding_strategy
+                })
         
         if operations:
             campaign_service.mutate_campaigns(
@@ -1900,14 +1944,20 @@ def setup_shared_budget():
                 operations=operations
             )
         
+        message = f'✅ Presupuesto compartido creado (${daily_amount_cop:,.0f}/día) y asignado a {len(operations)} campañas'
+        if skipped_campaigns:
+            message += f' | ⚠️ {len(skipped_campaigns)} campañas omitidas (estrategias incompatibles)'
+        
         return jsonify({
             'success': True,
             'budget_resource_name': budget_resource_name,
             'budget_name': budget_name,
             'daily_amount_cop': daily_amount_cop,
             'campaigns_updated': len(operations),
+            'campaigns_skipped': len(skipped_campaigns),
             'campaign_names': campaign_names,
-            'message': f'✅ Presupuesto compartido creado (${daily_amount_cop:,.0f}/día) y asignado a {len(operations)} campañas'
+            'skipped_campaigns': skipped_campaigns,
+            'message': message
         })
         
     except GoogleAdsException as ex:
