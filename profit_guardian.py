@@ -1833,7 +1833,11 @@ def assign_shared_budget():
                 campaign_operation.update.campaign_budget = budget_resource_name
                 campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
                 
-                operations.append(campaign_operation)
+                operations.append({
+                    'operation': campaign_operation,
+                    'name': campaign_name,
+                    'id': campaign_id
+                })
         
         if not operations:
             pmax_count = sum(1 for c in skipped_campaigns if 'Performance Max' in c.get('reason', ''))
@@ -1844,22 +1848,43 @@ def assign_shared_budget():
                 'skipped_campaigns': skipped_campaigns
             }), 404
         
-        # Ejecutar todas las operaciones
-        campaign_service.mutate_campaigns(
-            customer_id=customer_id.replace('-', ''),
-            operations=operations
-        )
+        # Ejecutar operaciones UNA POR UNA para que si una falla, las demás continúen
+        successful_campaigns = []
         
-        message = f'✅ {len(operations)} campañas asignadas al presupuesto compartido'
+        print(f"\n🚀 Asignando presupuesto compartido a {len(operations)} campañas...")
+        for op_data in operations:
+            try:
+                campaign_service.mutate_campaigns(
+                    customer_id=customer_id.replace('-', ''),
+                    operations=[op_data['operation']]
+                )
+                successful_campaigns.append(op_data['name'])
+                print(f"  ✅ {op_data['name']}")
+            except GoogleAdsException as gex:
+                error_msg = gex.failure.errors[0].message if gex.failure.errors else str(gex)
+                print(f"  ❌ {op_data['name']}: {error_msg}")
+                skipped_campaigns.append({
+                    'name': op_data['name'],
+                    'strategy': 'Unknown',
+                    'reason': f'Error al asignar: {error_msg}'
+                })
+            except Exception as ex:
+                print(f"  ❌ {op_data['name']}: {str(ex)}")
+                skipped_campaigns.append({
+                    'name': op_data['name'],
+                    'strategy': 'Unknown',
+                    'reason': f'Error: {str(ex)}'
+                })
+        
+        message = f'✅ {len(successful_campaigns)} campañas asignadas al presupuesto compartido'
         if skipped_campaigns:
-            portfolio_count = sum(1 for c in skipped_campaigns if c.get('reason') == 'Portfolio Strategy')
-            message += f' | ⚠️ {len(skipped_campaigns)} campañas omitidas ({portfolio_count} usan Portfolio Strategy)'
+            message += f' | ⚠️ {len(skipped_campaigns)} campañas omitidas'
         
         return jsonify({
             'success': True,
-            'campaigns_updated': len(operations),
+            'campaigns_updated': len(successful_campaigns),
             'campaigns_skipped': len(skipped_campaigns),
-            'campaign_names': campaign_names,
+            'campaign_names': successful_campaigns,
             'skipped_campaigns': skipped_campaigns,
             'message': message
         })
@@ -1976,41 +2001,65 @@ def setup_shared_budget():
                 })
             else:
                 # Compatible: agregar a la lista
-                campaign_names.append(campaign_name)
-                
+                operations.append({
+                    'operation': campaign_operation,
+                    'name': campaign_name,
+                    'id': campaign_id
+                })
+        
+        print(f"✅ {len(operations)} compatibles, ⚠️ {len(skipped_campaigns)} omitidas")
+        
+        # Ejecutar operaciones UNA POR UNA para que si una falla, las demás continúen
+        successful_campaigns = []
+        
+        if operations:
+            print(f"\n🚀 Asignando presupuesto compartido a {len(operations)} campañas...")
+            for op_data in operations:
                 campaign_operation = client.get_type("CampaignOperation")
                 campaign_resource_name = campaign_service.campaign_path(
                     customer_id.replace('-', ''),
-                    campaign_id
+                    op_data['id']
                 )
                 
                 campaign_operation.update.resource_name = campaign_resource_name
                 campaign_operation.update.campaign_budget = budget_resource_name
                 campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
                 
-                operations.append(campaign_operation)
+                try:
+                    campaign_service.mutate_campaigns(
+                        customer_id=customer_id.replace('-', ''),
+                        operations=[campaign_operation]
+                    )
+                    successful_campaigns.append(op_data['name'])
+                    print(f"  ✅ {op_data['name']}")
+                except GoogleAdsException as gex:
+                    error_msg = gex.failure.errors[0].message if gex.failure.errors else str(gex)
+                    print(f"  ❌ {op_data['name']}: {error_msg}")
+                    skipped_campaigns.append({
+                        'name': op_data['name'],
+                        'strategy': 'Unknown',
+                        'reason': f'Error al asignar: {error_msg}'
+                    })
+                except Exception as ex:
+                    print(f"  ❌ {op_data['name']}: {str(ex)}")
+                    skipped_campaigns.append({
+                        'name': op_data['name'],
+                        'strategy': 'Unknown',
+                        'reason': f'Error: {str(ex)}'
+                    })
         
-        print(f"✅ {len(operations)} compatibles, ⚠️ {len(skipped_campaigns)} omitidas")
-        
-        if operations:
-            campaign_service.mutate_campaigns(
-                customer_id=customer_id.replace('-', ''),
-                operations=operations
-            )
-        
-        message = f'✅ Presupuesto compartido creado (${daily_amount_cop:,.0f}/día) y asignado a {len(operations)} campañas'
+        message = f'✅ Presupuesto compartido creado (${daily_amount_cop:,.0f}/día) y asignado a {len(successful_campaigns)} campañas'
         if skipped_campaigns:
-            portfolio_count = sum(1 for c in skipped_campaigns if c.get('reason') == 'Portfolio Strategy')
-            message += f' | ⚠️ {len(skipped_campaigns)} campañas omitidas ({portfolio_count} usan Portfolio Strategy)'
+            message += f' | ⚠️ {len(skipped_campaigns)} campañas omitidas'
         
         return jsonify({
             'success': True,
             'budget_resource_name': budget_resource_name,
             'budget_name': budget_name,
             'daily_amount_cop': daily_amount_cop,
-            'campaigns_updated': len(operations),
+            'campaigns_updated': len(successful_campaigns),
             'campaigns_skipped': len(skipped_campaigns),
-            'campaign_names': campaign_names,
+            'campaign_names': successful_campaigns,
             'skipped_campaigns': skipped_campaigns,
             'message': message
         })
