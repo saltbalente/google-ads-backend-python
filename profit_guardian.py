@@ -270,6 +270,13 @@ def init_profit_guardian_db():
         )
     ''')
     
+    # Agregar columna paused_at si no existe (para Budget Pacing reanudación)
+    try:
+        cursor.execute('ALTER TABLE monitored_campaigns ADD COLUMN paused_at TEXT')
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # Ya existe
+    
     # Keywords pausadas por el guardian
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS paused_keywords (
@@ -948,18 +955,20 @@ class DecisionExecutor:
             # Actualizar DB
             conn = get_db()
             cursor = conn.cursor()
+            paused_at = datetime.now().isoformat()  # Timestamp de pausa
             cursor.execute('''
                 UPDATE monitored_campaigns
                 SET status = 'PAUSED_BY_GUARDIAN', 
                     paused_by_guardian = 1,
                     pause_reason = ?,
+                    paused_at = ?,
                     last_check = ?
                 WHERE customer_id = ? AND campaign_id = ?
-            ''', (decision.reason, datetime.utcnow(), decision.customer_id, campaign_id))
+            ''', (decision.reason, paused_at, datetime.utcnow(), decision.customer_id, campaign_id))
             conn.commit()
             conn.close()
             
-            print(f"   ⏸️ Campaña pausada: {campaign_id}")
+            print(f"   ⏸️ Campaña pausada: {campaign_id} (hora {datetime.now().hour}h)")
             return True
             
         except Exception as e:
@@ -994,6 +1003,7 @@ class DecisionExecutor:
                 SET status = 'ACTIVE', 
                     paused_by_guardian = 0,
                     pause_reason = NULL,
+                    paused_at = NULL,
                     last_check = ?
                 WHERE customer_id = ? AND campaign_id = ?
             ''', (datetime.utcnow(), decision.customer_id, campaign_id))
@@ -1199,9 +1209,9 @@ def resume_campaigns_for_new_hour():
     conn = get_db()
     cursor = conn.cursor()
     
-    # Buscar campañas pausadas por budget pacing que deben reactivarse
+    # Buscar campañas pausadas por budget pacing cuyo resume_at_hour ya pasó
     cursor.execute('''
-        SELECT customer_id, campaign_id, campaign_name, pause_reason
+        SELECT customer_id, campaign_id, campaign_name, pause_reason, paused_at
         FROM monitored_campaigns
         WHERE status = 'PAUSED_BY_GUARDIAN' 
           AND paused_by_guardian = 1
@@ -1210,25 +1220,45 @@ def resume_campaigns_for_new_hour():
     
     campaigns_to_resume = cursor.fetchall()
     
-    if campaigns_to_resume:
-        print(f"   🔄 Reactivando {len(campaigns_to_resume)} campañas para nueva hora ({current_hour}:00h)...")
-        
-        client = get_google_ads_client()
-        executor = DecisionExecutor(client)
-        
-        for customer_id, campaign_id, campaign_name, pause_reason in campaigns_to_resume:
-            decision = Decision(
-                decision_type=DecisionType.RESUME_CAMPAIGN,
-                entity_type="campaign",
-                entity_id="",
-                customer_id=customer_id,
-                campaign_id=campaign_id,
-                reason=f"Nueva hora iniciada: {current_hour}:00h - Cuota horaria renovada",
-                data={'campaign_name': campaign_name}
-            )
-            success = executor.execute(decision)
-            if success:
-                print(f"      ✅ {campaign_name or campaign_id} reactivada")
+    if not campaigns_to_resume:
+        conn.close()
+        return
+    
+    print(f"   🔄 Verificando campañas pausadas por budget pacing...")
+    
+    client = get_google_ads_client()
+    executor = DecisionExecutor(client)
+    resumed_count = 0
+    
+    for customer_id, campaign_id, campaign_name, pause_reason, paused_at in campaigns_to_resume:
+        # Extraer hora de pausa (formato ISO: 2025-12-12T10:30:45)
+        try:
+            paused_datetime = datetime.fromisoformat(paused_at)
+            paused_hour = paused_datetime.hour
+            
+            # Solo reactivar si estamos en una NUEVA hora diferente
+            if current_hour != paused_hour:
+                decision = Decision(
+                    decision_type=DecisionType.RESUME_CAMPAIGN,
+                    entity_type="campaign",
+                    entity_id="",
+                    customer_id=customer_id,
+                    campaign_id=campaign_id,
+                    reason=f"Nueva hora iniciada: {current_hour}:00h - Cuota horaria renovada (pausada a las {paused_hour}:00h)",
+                    data={'campaign_name': campaign_name, 'paused_hour': paused_hour}
+                )
+                success = executor.execute(decision)
+                if success:
+                    resumed_count += 1
+                    print(f"      ✅ {campaign_name or campaign_id} reactivada (pausada hora {paused_hour}h → activa hora {current_hour}h)")
+            else:
+                # Misma hora - no reactivar aún
+                print(f"      ⏸️ {campaign_name or campaign_id} sigue pausada (misma hora {current_hour}h)")
+        except Exception as e:
+            print(f"      ⚠️ Error procesando {campaign_id}: {e}")
+    
+    if resumed_count > 0:
+        print(f"   🎉 {resumed_count} campañas reactivadas para nueva hora ({current_hour}:00h)")
     
     conn.close()
 
