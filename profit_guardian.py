@@ -1766,20 +1766,13 @@ def assign_shared_budget():
                 campaign.id,
                 campaign.name,
                 campaign.status,
-                campaign.bidding_strategy_type
+                campaign.bidding_strategy_type,
+                campaign.bidding_strategy
             FROM campaign
             WHERE campaign.status = 'ENABLED'
         """
         
         response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
-        
-        # Estrategias compatibles con presupuesto compartido
-        compatible_strategies = [
-            'MANUAL_CPC',
-            'MANUAL_CPM',
-            'MANUAL_CPV',
-            'MAXIMIZE_CLICKS'
-        ]
         
         operations = []
         campaign_names = []
@@ -1789,9 +1782,24 @@ def assign_shared_budget():
         for row in response:
             campaign_id = str(row.campaign.id)
             campaign_name = row.campaign.name
-            bidding_strategy = row.campaign.bidding_strategy_type.name
+            bidding_strategy_type = row.campaign.bidding_strategy_type.name
             
-            if bidding_strategy in compatible_strategies:
+            # Detectar portfolio strategy
+            is_portfolio = bool(row.campaign.bidding_strategy)
+            
+            if is_portfolio:
+                skipped_campaigns.append({
+                    'name': campaign_name,
+                    'strategy': bidding_strategy_type,
+                    'reason': 'Portfolio Strategy'
+                })
+            elif bidding_strategy_type == 'TARGET_IMPRESSION_SHARE':
+                skipped_campaigns.append({
+                    'name': campaign_name,
+                    'strategy': bidding_strategy_type,
+                    'reason': 'Incompatible'
+                })
+            else:
                 campaign_names.append(campaign_name)
                 
                 # Crear operación de actualización
@@ -1806,16 +1814,12 @@ def assign_shared_budget():
                 campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
                 
                 operations.append(campaign_operation)
-            else:
-                skipped_campaigns.append({
-                    'name': campaign_name,
-                    'strategy': bidding_strategy
-                })
         
         if not operations:
+            portfolio_count = sum(1 for c in skipped_campaigns if c.get('reason') == 'Portfolio Strategy')
             return jsonify({
                 'success': False,
-                'error': f'No se encontraron campañas compatibles. {len(skipped_campaigns)} campañas omitidas por estrategias incompatibles (TARGET_CPA, TARGET_ROAS, etc.)',
+                'error': f'No se encontraron campañas compatibles. {len(skipped_campaigns)} campañas omitidas ({portfolio_count} usan Portfolio Strategy)',
                 'skipped_campaigns': skipped_campaigns
             }), 404
         
@@ -1827,7 +1831,8 @@ def assign_shared_budget():
         
         message = f'✅ {len(operations)} campañas asignadas al presupuesto compartido'
         if skipped_campaigns:
-            message += f' | ⚠️ {len(skipped_campaigns)} campañas omitidas (estrategias incompatibles)'
+            portfolio_count = sum(1 for c in skipped_campaigns if c.get('reason') == 'Portfolio Strategy')
+            message += f' | ⚠️ {len(skipped_campaigns)} campañas omitidas ({portfolio_count} usan Portfolio Strategy)'
         
         return jsonify({
             'success': True,
@@ -1884,7 +1889,7 @@ def setup_shared_budget():
         
         budget_resource_name = response.results[0].resource_name
         
-        # PASO 2: Asignar a campañas compatibles (solo MANUAL_CPC, MAXIMIZE_CLICKS)
+        # PASO 2: Asignar a campañas compatibles (excluir portfolio strategies)
         ga_service = client.get_service("GoogleAdsService")
         campaign_service = client.get_service("CampaignService")
         
@@ -1893,20 +1898,13 @@ def setup_shared_budget():
                 campaign.id,
                 campaign.name,
                 campaign.status,
-                campaign.bidding_strategy_type
+                campaign.bidding_strategy_type,
+                campaign.bidding_strategy
             FROM campaign
             WHERE campaign.status = 'ENABLED'
         """
         
         search_response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
-        
-        # Estrategias compatibles con presupuesto compartido
-        compatible_strategies = [
-            'MANUAL_CPC',
-            'MANUAL_CPM',
-            'MANUAL_CPV',
-            'MAXIMIZE_CLICKS'
-        ]
         
         operations = []
         campaign_names = []
@@ -1915,10 +1913,26 @@ def setup_shared_budget():
         for row in search_response:
             campaign_id = str(row.campaign.id)
             campaign_name = row.campaign.name
-            bidding_strategy = row.campaign.bidding_strategy_type.name
+            bidding_strategy_type = row.campaign.bidding_strategy_type.name
             
-            # Solo asignar a campañas compatibles
-            if bidding_strategy in compatible_strategies:
+            # Detectar si es portfolio strategy (tiene resource_name en bidding_strategy)
+            is_portfolio = bool(row.campaign.bidding_strategy)
+            
+            # Solo incompatible si es portfolio strategy o target_impression_share
+            if is_portfolio:
+                skipped_campaigns.append({
+                    'name': campaign_name,
+                    'strategy': bidding_strategy_type,
+                    'reason': 'Portfolio Strategy'
+                })
+            elif bidding_strategy_type == 'TARGET_IMPRESSION_SHARE':
+                skipped_campaigns.append({
+                    'name': campaign_name,
+                    'strategy': bidding_strategy_type,
+                    'reason': 'Incompatible'
+                })
+            else:
+                # Todas las demás son compatibles (MANUAL_CPC, MAXIMIZE_CLICKS, MAXIMIZE_CONVERSIONS, TARGET_CPA standard, etc.)
                 campaign_names.append(campaign_name)
                 
                 campaign_operation = client.get_type("CampaignOperation")
@@ -1932,11 +1946,6 @@ def setup_shared_budget():
                 campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
                 
                 operations.append(campaign_operation)
-            else:
-                skipped_campaigns.append({
-                    'name': campaign_name,
-                    'strategy': bidding_strategy
-                })
         
         if operations:
             campaign_service.mutate_campaigns(
@@ -1946,7 +1955,8 @@ def setup_shared_budget():
         
         message = f'✅ Presupuesto compartido creado (${daily_amount_cop:,.0f}/día) y asignado a {len(operations)} campañas'
         if skipped_campaigns:
-            message += f' | ⚠️ {len(skipped_campaigns)} campañas omitidas (estrategias incompatibles)'
+            portfolio_count = sum(1 for c in skipped_campaigns if c.get('reason') == 'Portfolio Strategy')
+            message += f' | ⚠️ {len(skipped_campaigns)} campañas omitidas ({portfolio_count} usan Portfolio Strategy)'
         
         return jsonify({
             'success': True,
