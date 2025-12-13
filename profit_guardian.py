@@ -1684,6 +1684,245 @@ def get_guardian_state():
 
 
 # ============================================
+# 💰 PRESUPUESTO COMPARTIDO
+# ============================================
+
+@profit_guardian_bp.route('/api/profit-guardian/create-shared-budget', methods=['POST'])
+def create_shared_budget():
+    """Crea un presupuesto compartido maestro para una cuenta"""
+    data = request.get_json()
+    customer_id = data.get('customer_id')
+    budget_name = data.get('budget_name', 'Presupuesto Guardian Master')
+    daily_amount_cop = data.get('daily_amount_cop')
+    
+    if not customer_id or not daily_amount_cop:
+        return jsonify({
+            'success': False,
+            'error': 'customer_id y daily_amount_cop requeridos'
+        }), 400
+    
+    try:
+        client = get_google_ads_client()
+        campaign_budget_service = client.get_service("CampaignBudgetService")
+        
+        # Crear operación
+        campaign_budget_operation = client.get_type("CampaignBudgetOperation")
+        campaign_budget = campaign_budget_operation.create
+        
+        campaign_budget.name = budget_name
+        campaign_budget.amount_micros = int(daily_amount_cop * 1_000_000)
+        campaign_budget.delivery_method = client.enums.BudgetDeliveryMethodEnum.STANDARD
+        campaign_budget.explicitly_shared = True  # ✅ Presupuesto compartido
+        
+        # Ejecutar
+        response = campaign_budget_service.mutate_campaign_budgets(
+            customer_id=customer_id.replace('-', ''),
+            operations=[campaign_budget_operation]
+        )
+        
+        budget_resource_name = response.results[0].resource_name
+        
+        return jsonify({
+            'success': True,
+            'budget_resource_name': budget_resource_name,
+            'budget_name': budget_name,
+            'daily_amount_cop': daily_amount_cop,
+            'message': f'✅ Presupuesto compartido creado: ${daily_amount_cop:,.0f} COP/día'
+        })
+        
+    except GoogleAdsException as ex:
+        return jsonify({
+            'success': False,
+            'error': f'Google Ads API error: {ex.failure.errors[0].message}'
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@profit_guardian_bp.route('/api/profit-guardian/assign-shared-budget', methods=['POST'])
+def assign_shared_budget():
+    """Asigna un presupuesto compartido a TODAS las campañas activas"""
+    data = request.get_json()
+    customer_id = data.get('customer_id')
+    budget_resource_name = data.get('budget_resource_name')
+    
+    if not customer_id or not budget_resource_name:
+        return jsonify({
+            'success': False,
+            'error': 'customer_id y budget_resource_name requeridos'
+        }), 400
+    
+    try:
+        client = get_google_ads_client()
+        ga_service = client.get_service("GoogleAdsService")
+        campaign_service = client.get_service("CampaignService")
+        
+        # Obtener todas las campañas ACTIVAS
+        query = """
+            SELECT 
+                campaign.id,
+                campaign.name,
+                campaign.status
+            FROM campaign
+            WHERE campaign.status = 'ENABLED'
+        """
+        
+        response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
+        
+        operations = []
+        campaign_names = []
+        
+        # Crear operación para cada campaña
+        for row in response:
+            campaign_id = str(row.campaign.id)
+            campaign_name = row.campaign.name
+            campaign_names.append(campaign_name)
+            
+            # Crear operación de actualización
+            campaign_operation = client.get_type("CampaignOperation")
+            campaign_resource_name = campaign_service.campaign_path(
+                customer_id.replace('-', ''),
+                campaign_id
+            )
+            
+            campaign_operation.update.resource_name = campaign_resource_name
+            campaign_operation.update.campaign_budget = budget_resource_name
+            campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
+            
+            operations.append(campaign_operation)
+        
+        if not operations:
+            return jsonify({
+                'success': False,
+                'error': 'No se encontraron campañas activas'
+            }), 404
+        
+        # Ejecutar todas las operaciones
+        campaign_service.mutate_campaigns(
+            customer_id=customer_id.replace('-', ''),
+            operations=operations
+        )
+        
+        return jsonify({
+            'success': True,
+            'campaigns_updated': len(operations),
+            'campaign_names': campaign_names,
+            'message': f'✅ {len(operations)} campañas asignadas al presupuesto compartido'
+        })
+        
+    except GoogleAdsException as ex:
+        return jsonify({
+            'success': False,
+            'error': f'Google Ads API error: {ex.failure.errors[0].message}'
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@profit_guardian_bp.route('/api/profit-guardian/setup-shared-budget', methods=['POST'])
+def setup_shared_budget():
+    """🚀 TODO EN UNO: Crea presupuesto compartido Y lo asigna a todas las campañas"""
+    data = request.get_json()
+    customer_id = data.get('customer_id')
+    budget_name = data.get('budget_name', f'Guardian Master - {datetime.now().strftime("%Y%m%d")}')
+    daily_amount_cop = data.get('daily_amount_cop')
+    
+    if not customer_id or not daily_amount_cop:
+        return jsonify({
+            'success': False,
+            'error': 'customer_id y daily_amount_cop requeridos'
+        }), 400
+    
+    try:
+        # PASO 1: Crear presupuesto compartido
+        client = get_google_ads_client()
+        campaign_budget_service = client.get_service("CampaignBudgetService")
+        
+        campaign_budget_operation = client.get_type("CampaignBudgetOperation")
+        campaign_budget = campaign_budget_operation.create
+        
+        campaign_budget.name = budget_name
+        campaign_budget.amount_micros = int(daily_amount_cop * 1_000_000)
+        campaign_budget.delivery_method = client.enums.BudgetDeliveryMethodEnum.STANDARD
+        campaign_budget.explicitly_shared = True
+        
+        response = campaign_budget_service.mutate_campaign_budgets(
+            customer_id=customer_id.replace('-', ''),
+            operations=[campaign_budget_operation]
+        )
+        
+        budget_resource_name = response.results[0].resource_name
+        
+        # PASO 2: Asignar a todas las campañas activas
+        ga_service = client.get_service("GoogleAdsService")
+        campaign_service = client.get_service("CampaignService")
+        
+        query = """
+            SELECT 
+                campaign.id,
+                campaign.name,
+                campaign.status
+            FROM campaign
+            WHERE campaign.status = 'ENABLED'
+        """
+        
+        search_response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
+        
+        operations = []
+        campaign_names = []
+        
+        for row in search_response:
+            campaign_id = str(row.campaign.id)
+            campaign_name = row.campaign.name
+            campaign_names.append(campaign_name)
+            
+            campaign_operation = client.get_type("CampaignOperation")
+            campaign_resource_name = campaign_service.campaign_path(
+                customer_id.replace('-', ''),
+                campaign_id
+            )
+            
+            campaign_operation.update.resource_name = campaign_resource_name
+            campaign_operation.update.campaign_budget = budget_resource_name
+            campaign_operation.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
+            
+            operations.append(campaign_operation)
+        
+        if operations:
+            campaign_service.mutate_campaigns(
+                customer_id=customer_id.replace('-', ''),
+                operations=operations
+            )
+        
+        return jsonify({
+            'success': True,
+            'budget_resource_name': budget_resource_name,
+            'budget_name': budget_name,
+            'daily_amount_cop': daily_amount_cop,
+            'campaigns_updated': len(operations),
+            'campaign_names': campaign_names,
+            'message': f'✅ Presupuesto compartido creado (${daily_amount_cop:,.0f}/día) y asignado a {len(operations)} campañas'
+        })
+        
+    except GoogleAdsException as ex:
+        return jsonify({
+            'success': False,
+            'error': f'Google Ads API error: {ex.failure.errors[0].message}'
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+# ============================================
 # SCHEDULER
 # ============================================
 
