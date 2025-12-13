@@ -23,10 +23,14 @@ from apscheduler.triggers.interval import IntervalTrigger
 import os
 import json
 import sqlite3
+import logging
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
 import statistics
+
+# Configurar logger
+logger = logging.getLogger(__name__)
 
 profit_guardian_bp = Blueprint('profit_guardian', __name__)
 
@@ -1273,11 +1277,18 @@ def resume_campaigns_for_new_hour():
 def run_profit_guardian_check():
     """Ejecuta el ciclo principal del Profit Guardian"""
     
+    logger.info("🔵 run_profit_guardian_check() INICIADO")
+    
     # ⚡ VERIFICAR SI ESTÁ ACTIVADO
-    if not guardian_state.is_enabled():
+    is_enabled = guardian_state.is_enabled()
+    logger.info(f"🔍 Estado del Guardian: {'ACTIVADO' if is_enabled else 'DESACTIVADO'}")
+    
+    if not is_enabled:
+        logger.warning("⏸️ Profit Guardian está DESACTIVADO - Saltando check")
         print(f"⏸️ Profit Guardian está DESACTIVADO - Saltando check")
         return
     
+    logger.info("✅ Guardian ACTIVADO - Continuando análisis...")
     print(f"\n{'='*60}")
     print(f"🛡️ PROFIT GUARDIAN - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"   📅 Analizando últimos 5 días (para considerar conversion lag)")
@@ -1298,10 +1309,14 @@ def run_profit_guardian_check():
     campaigns = cursor.fetchall()
     conn.close()
     
+    logger.info(f"📊 Campañas encontradas en DB: {len(campaigns)}")
+    
     if not campaigns:
+        logger.warning("⚠️ No campaigns configured for monitoring")
         print("   ℹ️ No campaigns configured for monitoring")
         return
     
+    logger.info(f"✅ Monitoring {len(campaigns)} campaigns...")
     print(f"   📊 Monitoring {len(campaigns)} campaigns...")
     
     client = get_google_ads_client()
