@@ -1697,7 +1697,7 @@ def get_activity_log():
         }), 400
     
     try:
-        conn = get_db_connection()
+        conn = get_db()
         cursor = conn.cursor()
         
         # Obtener decisiones recientes
