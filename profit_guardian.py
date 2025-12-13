@@ -644,6 +644,52 @@ class DecisionEngine:
         
         return decisions
     
+    def analyze_hourly_budget_pacing(self, hourly_spend: Dict[int, Dict]) -> List[Decision]:
+        """🚀 BUDGET PACING HORARIO - Pausa campaña si excede cuota horaria"""
+        decisions = []
+        current_hour = datetime.now().hour
+        
+        # Verificar que estamos en horario activo
+        if current_hour < self.config.active_hours_start or current_hour >= self.config.active_hours_end:
+            return decisions
+        
+        # Obtener gasto en la HORA ACTUAL
+        current_hour_spend_micros = hourly_spend.get(current_hour, {}).get('cost_micros', 0)
+        current_hour_spend_cop = current_hour_spend_micros / 1_000_000
+        
+        # Cuota permitida por hora
+        hourly_budget = self.config.hourly_budget_cop
+        
+        print(f"   ⏰ Budget Pacing (Hora {current_hour}h):")
+        print(f"      Gastado esta hora: ${current_hour_spend_cop:,.0f} COP")
+        print(f"      Cuota horaria: ${hourly_budget:,.0f} COP")
+        print(f"      Progreso: {(current_hour_spend_cop/hourly_budget*100):.1f}%")
+        
+        # Si ya gastó >= 95% de la cuota horaria, PAUSAR hasta próxima hora
+        if current_hour_spend_cop >= (hourly_budget * 0.95):
+            decisions.append(Decision(
+                decision_type=DecisionType.PAUSE_CAMPAIGN,
+                entity_type="campaign",
+                entity_id="",
+                customer_id="",
+                campaign_id="",
+                reason=f"⏰ Cuota horaria alcanzada: ${current_hour_spend_cop:,.0f}/${hourly_budget:,.0f} COP. Pausando hasta {current_hour+1}:00h",
+                data={
+                    'pause_type': 'hourly_budget_pacing',
+                    'current_hour_spend': current_hour_spend_cop,
+                    'hourly_budget': hourly_budget,
+                    'resume_at_hour': current_hour + 1,
+                    'auto_resume': True
+                }
+            ))
+            print(f"      🛑 DECISIÓN: Pausar campaña (cuota horaria alcanzada)")
+        elif current_hour_spend_cop >= (hourly_budget * 0.80):
+            print(f"      ⚠️ ALERTA: 80% de cuota horaria consumida")
+        else:
+            print(f"      ✅ Gasto horario dentro del límite")
+        
+        return decisions
+    
     def analyze_keywords(self, keywords: List[KeywordPerformance]) -> List[Decision]:
         """Analiza keywords y decide cuáles pausar/mantener"""
         decisions = []
@@ -1147,6 +1193,46 @@ def check_campaigns_to_resume():
     conn.close()
 
 
+def resume_campaigns_for_new_hour():
+    """🔄 Reactiva campañas pausadas por budget pacing al inicio de cada hora"""
+    current_hour = datetime.now().hour
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Buscar campañas pausadas por budget pacing que deben reactivarse
+    cursor.execute('''
+        SELECT customer_id, campaign_id, campaign_name, pause_reason
+        FROM monitored_campaigns
+        WHERE status = 'PAUSED_BY_GUARDIAN' 
+          AND paused_by_guardian = 1
+          AND pause_reason LIKE '%Cuota horaria%'
+    ''')
+    
+    campaigns_to_resume = cursor.fetchall()
+    
+    if campaigns_to_resume:
+        print(f"   🔄 Reactivando {len(campaigns_to_resume)} campañas para nueva hora ({current_hour}:00h)...")
+        
+        client = get_google_ads_client()
+        executor = DecisionExecutor(client)
+        
+        for customer_id, campaign_id, campaign_name, pause_reason in campaigns_to_resume:
+            decision = Decision(
+                decision_type=DecisionType.RESUME_CAMPAIGN,
+                entity_type="campaign",
+                entity_id="",
+                customer_id=customer_id,
+                campaign_id=campaign_id,
+                reason=f"Nueva hora iniciada: {current_hour}:00h - Cuota horaria renovada",
+                data={'campaign_name': campaign_name}
+            )
+            success = executor.execute(decision)
+            if success:
+                print(f"      ✅ {campaign_name or campaign_id} reactivada")
+    
+    conn.close()
+
+
 def run_profit_guardian_check():
     """Ejecuta el ciclo principal del Profit Guardian"""
     
@@ -1214,8 +1300,11 @@ def run_profit_guardian_check():
         # Motor de decisiones
         engine = DecisionEngine(config)
         
-        # Análisis 1: Ritmo de presupuesto
-        budget_decisions = engine.analyze_budget_pace(hourly_spend, total_spend)
+        # Análisis 0: 🚀 BUDGET PACING HORARIO (prioridad máxima)
+        hourly_pacing_decisions = engine.analyze_hourly_budget_pacing(hourly_spend)
+        
+        # Análisis 1: Ritmo de presupuesto (deshabilitado - usamos hourly pacing)
+        # budget_decisions = engine.analyze_budget_pace(hourly_spend, total_spend)
         
         # Análisis 2: Keywords individuales
         keyword_decisions = engine.analyze_keywords(keywords)
@@ -1223,14 +1312,14 @@ def run_profit_guardian_check():
         # Análisis 3: Gasto sin conversión
         waste_decisions = engine.analyze_zero_conversion_spend(keywords)
         
-        # Combinar decisiones
-        all_decisions = budget_decisions + keyword_decisions + waste_decisions
+        # Combinar decisiones (hourly pacing tiene prioridad)
+        all_decisions = hourly_pacing_decisions + keyword_decisions + waste_decisions
         
         if not all_decisions:
-            print(f"      ✅ All metrics within acceptable range")
+            print(f"      ✅ Todas las métricas dentro del rango aceptable")
             continue
         
-        print(f"      🎯 {len(all_decisions)} decisions to execute:")
+        print(f"      🎯 {len(all_decisions)} decisiones a ejecutar:")
         
         # Ejecutar decisiones
         for decision in all_decisions:
@@ -1246,13 +1335,16 @@ def run_profit_guardian_check():
         
         # Resumen
         executed = sum(1 for d in all_decisions if d.executed)
-        print(f"      📋 Executed: {executed}/{len(all_decisions)}")
+        print(f"      📋 Ejecutado: {executed}/{len(all_decisions)}")
+    
+    # 🔄 Reactivar campañas para nueva hora (Budget Pacing)
+    resume_campaigns_for_new_hour()
     
     # Verificar keywords para reanudar
     check_campaigns_to_resume()
     
     print(f"\n{'='*60}")
-    print(f"✅ Profit Guardian check completed")
+    print(f"✅ Profit Guardian check completado")
     print(f"{'='*60}\n")
 
 
