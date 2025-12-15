@@ -143,6 +143,9 @@ class BusinessConfig:
     min_clicks_for_decision: int = 10     # Mínimo de clicks para tomar decisiones
     min_impressions_for_decision: int = 100
     
+    # Opcional: no simular saldo (por defecto False)
+    enforce_wallet: bool = False
+    
     def __post_init__(self):
         if self.premium_hours is None:
             # Horarios que mencionaste: 11-12, 15+, noche
@@ -416,6 +419,27 @@ def init_profit_guardian_db():
     cursor.execute('''
         INSERT OR IGNORE INTO guardian_state (key, value, updated_at)
         VALUES ("enabled", "0", datetime('now'))
+    ''')
+    
+    # Pagos manuales registrados
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS account_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id TEXT NOT NULL,
+            amount_cop INTEGER NOT NULL,
+            status TEXT DEFAULT 'CONFIRMED',
+            message TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Saldo virtual por cuenta (Top-up diario)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS account_wallets (
+            customer_id TEXT PRIMARY KEY,
+            daily_credit_amount INTEGER DEFAULT 0,
+            last_topup_date TEXT
+        )
     ''')
     
     conn.commit()
@@ -1431,6 +1455,50 @@ def run_profit_guardian_check():
         acc_current_cop = acc_current_micros / 1_000_000
         hourly_budget = config.hourly_budget_cop
         
+        # Calcular gasto total del día (cuenta)
+        total_spend_today_cop = sum(h.get('cost_micros', 0) for h in account_hourly.values()) / 1_000_000
+        
+        # Enforzar saldo virtual (top-up diario)
+        available_today = None
+        try:
+            connw = get_db()
+            curw = connw.cursor()
+            curw.execute('SELECT daily_credit_amount, last_topup_date FROM account_wallets WHERE customer_id = ?', (account_id,))
+            roww = curw.fetchone()
+            connw.close()
+            if roww:
+                daily_credit_amount, last_topup_date = roww
+                # Solo aplica si el top-up es de HOY
+                if last_topup_date == datetime.now().strftime('%Y-%m-%d'):
+                    available_today = max(0, (daily_credit_amount or 0) - total_spend_today_cop)
+        except Exception as e:
+            print(f"⚠️ Error leyendo wallet de cuenta {account_id}: {e}")
+        
+        if available_today is not None and getattr(config, 'enforce_wallet', False):
+            print(f"   💳 Wallet hoy: disponible ${available_today:,.0f} COP (gastado ${total_spend_today_cop:,.0f})")
+            if available_today <= 0:
+                print(f"   🛑 Saldo virtual AGOTADO - pausando campañas hasta nuevo top-up")
+                # Pausar todas las campañas activas de la cuenta
+                for campaign_id, campaign_name, _ in acc_campaigns:
+                    decision = Decision(
+                        decision_type=DecisionType.PAUSE_CAMPAIGN,
+                        entity_type="campaign",
+                        entity_id="",
+                        customer_id=account_id,
+                        campaign_id=campaign_id,
+                        reason=f"Saldo virtual agotado para hoy. Gastado: ${total_spend_today_cop:,.0f} COP",
+                        data={
+                            'pause_type': 'account_wallet_daily_cap',
+                            'total_spend_today': total_spend_today_cop,
+                            'daily_credit_amount': roww[0] if roww else None,
+                            'auto_resume': False
+                        }
+                    )
+                    log_decision(decision)
+                    executor.execute(decision)
+                # Pasar a siguiente cuenta (no más análisis)
+                continue
+        
         print(f"   ⏰ Cuenta gasto hora {current_hour}: ${acc_current_cop:,.0f} / cuota ${hourly_budget:,.0f}")
         
         # Recopilar gasto por campaña en la hora actual
@@ -2234,6 +2302,231 @@ def create_shared_budget():
             'success': False,
             'error': str(e)
         }), 500
+
+@profit_guardian_bp.route('/api/profit-guardian/pay-all', methods=['POST'])
+def pay_all_accounts():
+    """
+    Ejecuta pagos reales mediante AUTOMATIZACIÓN DE INTERFAZ (UI).
+    Navega al portal de facturación de cada cuenta (billing_url) y simula clics.
+    """
+    try:
+        # Requiere Playwright
+        try:
+            from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'Playwright no disponible: {e}. Instala con pip install playwright y ejecuta playwright install chromium'}), 500
+        
+        # Opcional: storage state para sesión ya iniciada
+        storage_state_path = os.environ.get('PLAYWRIGHT_STORAGE_STATE')  # p.ej. /path/to/google_ads_storage.json
+        desktop_user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+        
+        # Leer payload opcional: override de monto o cuentas específicas
+        data = request.get_json(silent=True) or {}
+        override_amount = data.get('amount_cop')  # opcional, entero
+        only_accounts = data.get('accounts')  # opcional lista de customer_id
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        if only_accounts and isinstance(only_accounts, list) and len(only_accounts) > 0:
+            qmarks = ",".join(["?"] * len(only_accounts))
+            cursor.execute(f'SELECT customer_id, config_json FROM account_config WHERE enabled = 1 AND customer_id IN ({qmarks})', tuple(only_accounts))
+        else:
+            cursor.execute('SELECT customer_id, config_json FROM account_config WHERE enabled = 1')
+        accounts = cursor.fetchall()
+        
+        results = []
+        
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=False)
+            context_kwargs = {
+                "user_agent": desktop_user_agent,
+                "viewport": {"width": 1366, "height": 900},
+                "is_mobile": False,
+                "device_scale_factor": 1.0,
+            }
+            if storage_state_path and os.path.exists(storage_state_path):
+                context_kwargs["storage_state"] = storage_state_path
+            context = browser.new_context(**context_kwargs)
+            
+            for customer_id, cfg_json in accounts:
+                cfg = json.loads(cfg_json) if cfg_json else {}
+                amount = int(override_amount or cfg.get('daily_budget_cop', 300000))
+                
+                # Construir URL de facturación de escritorio
+                base_billing = "https://ads.google.com/aw/billing/summary"
+                # Intentar parámetros comunes por cuenta
+                candidate_urls = [
+                    f"{base_billing}?ocid={customer_id.replace('-', '')}",
+                    f"{base_billing}?customerId={customer_id.replace('-', '')}",
+                    base_billing
+                ]
+                
+                page = context.new_page()
+                try:
+                    # Navegar a escritorio Billing
+                    navigated = False
+                    for u in candidate_urls:
+                        try:
+                            page.goto(u, timeout=60000, wait_until="domcontentloaded")
+                            navigated = True
+                            break
+                        except PlaywrightTimeoutError:
+                            continue
+                    if not navigated:
+                        raise Exception('No se pudo cargar la página de Facturación')
+                    
+                    # Asegurar estar en resumen de facturación (escritorio), evitar modal de app móvil
+                    # Paso: abrir "Añadir fondos"
+                    add_funds_selectors = [
+                        'text="Añadir fondos"',
+                        'text="Add funds"',
+                        'button:has-text("Añadir fondos")',
+                        'button:has-text("Add funds")'
+                    ]
+                    clicked_add = False
+                    for sel in add_funds_selectors:
+                        try:
+                            page.click(sel, timeout=10000)
+                            clicked_add = True
+                            break
+                        except:
+                            pass
+                    if not clicked_add:
+                        # Intentar abrir menú lateral "Facturación" primero
+                        try:
+                            page.click('text="Facturación"', timeout=10000)
+                        except:
+                            pass
+                        for sel in add_funds_selectors:
+                            try:
+                                page.click(sel, timeout=10000)
+                                clicked_add = True
+                                break
+                            except:
+                                pass
+                    if not clicked_add:
+                        raise Exception('No se encontró "Añadir fondos" en la página')
+                    
+                    # Completar monto
+                    amount_fields = [
+                        'input[name="amount"]',
+                        'input[data-test="payment-amount"]',
+                        'input[aria-label*="Importe"]',
+                        'input[aria-label*="Amount"]',
+                        'input[type="number"]',
+                        'input[role="spinbutton"]'
+                    ]
+                    filled_amount = False
+                    for af in amount_fields:
+                        try:
+                            page.fill(af, str(amount), timeout=10000)
+                            filled_amount = True
+                            break
+                        except:
+                            pass
+                    if not filled_amount:
+                        # Probar focus + type en el primer input numérico
+                        try:
+                            page.focus('input[type="number"]')
+                            page.keyboard.type(str(amount))
+                            filled_amount = True
+                        except:
+                            pass
+                    if not filled_amount:
+                        raise Exception('No se pudo completar el monto')
+                    
+                    # Paso "Continuar"
+                    continue_selectors = [
+                        'button:has-text("Continuar")',
+                        'text="Continuar"',
+                        'button:has-text("Continue")',
+                        'text="Continue"'
+                    ]
+                    clicked_continue = False
+                    for cs in continue_selectors:
+                        try:
+                            page.click(cs, timeout=10000)
+                            clicked_continue = True
+                            break
+                        except:
+                            pass
+                    if not clicked_continue:
+                        # A veces el botón está deshabilitado hasta validar monto; breve espera
+                        page.wait_for_timeout(1500)
+                        for cs in continue_selectors:
+                            try:
+                                page.click(cs, timeout=10000)
+                                clicked_continue = True
+                                break
+                            except:
+                                pass
+                    if not clicked_continue:
+                        raise Exception('No se encontró botón "Continuar"')
+                    
+                    # Confirmar "Añadir fondos"
+                    confirm_selectors = [
+                        'button:has-text("Pagar")',
+                        'button:has-text("Pay")',
+                        'text="Confirmar pago"',
+                        'button:has-text("Añadir fondos")',
+                        'text="Añadir fondos"'
+                    ]
+                    confirmed_payment = False
+                    for cs in confirm_selectors:
+                        try:
+                            page.click(cs, timeout=10000)
+                            confirmed_payment = True
+                            break
+                        except:
+                            pass
+                    if not confirmed_payment:
+                        raise Exception('No se encontró botón final de confirmación de pago')
+                    
+                    # Esperar feedback y capturar comprobante
+                    page.wait_for_timeout(3000)
+                    page.screenshot(path=f'payment_{customer_id}_{datetime.now().strftime("%Y%m%d%H%M%S")}.png')
+                    
+                    cursor.execute('''
+                        INSERT INTO account_payments (customer_id, amount_cop, status, message, created_at)
+                        VALUES (?, ?, ?, ?, datetime('now'))
+                    ''', (customer_id, amount, 'CONFIRMED', 'Pago ejecutado via UI automation'))
+                    
+                    results.append({
+                        'customer_id': customer_id,
+                        'amount_cop': amount,
+                        'status': 'CONFIRMED',
+                        'message': 'Pago ejecutado via UI automation'
+                    })
+                except PlaywrightTimeoutError:
+                    results.append({
+                        'customer_id': customer_id,
+                        'amount_cop': amount,
+                        'status': 'ERROR',
+                        'message': 'Timeout navegando o interactuando con UI'
+                    })
+                except Exception as e:
+                    results.append({
+                        'customer_id': customer_id,
+                        'amount_cop': amount,
+                        'status': 'ERROR',
+                        'message': str(e)
+                    })
+                finally:
+                    page.close()
+            
+            context.close()
+            browser.close()
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'processed': len(results),
+            'results': results
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @profit_guardian_bp.route('/api/profit-guardian/assign-shared-budget', methods=['POST'])
