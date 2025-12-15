@@ -629,6 +629,45 @@ def get_hourly_spend_today(client, customer_id: str, campaign_id: str) -> Dict[i
         print(f"❌ Error getting hourly spend: {e}")
         return {}
 
+def get_account_hourly_spend_today(client, customer_id: str) -> Dict[int, Dict]:
+    """Obtiene el gasto por hora del día actual agregado a NIVEL CUENTA (todas las campañas habilitadas)"""
+    try:
+        ga_service = client.get_service("GoogleAdsService")
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        query = f"""
+            SELECT
+                segments.hour,
+                metrics.impressions,
+                metrics.clicks,
+                metrics.conversions,
+                metrics.cost_micros
+            FROM campaign
+            WHERE segments.date = '{today}'
+              AND campaign.status = 'ENABLED'
+        """
+        
+        response = ga_service.search(customer_id=customer_id.replace('-', ''), query=query)
+        
+        hourly = {}
+        for row in response:
+            hour = row.segments.hour
+            if hour not in hourly:
+                hourly[hour] = {
+                    'impressions': 0,
+                    'clicks': 0,
+                    'conversions': 0,
+                    'cost_micros': 0
+                }
+            hourly[hour]['impressions'] += row.metrics.impressions
+            hourly[hour]['clicks'] += row.metrics.clicks
+            hourly[hour]['conversions'] += float(row.metrics.conversions)
+            hourly[hour]['cost_micros'] += row.metrics.cost_micros
+        
+        return hourly
+    except Exception as e:
+        print(f"❌ Error getting account hourly spend: {e}")
+        return {}
 
 # ============================================
 # MOTOR DE DECISIONES
@@ -1367,72 +1406,147 @@ def run_profit_guardian_check():
     client = get_google_ads_client()
     executor = DecisionExecutor(client)
     
+    # Agrupar campañas por cuenta
+    from collections import defaultdict
+    accounts_map = defaultdict(list)
     for customer_id, campaign_id, campaign_name, config_json in campaigns:
-        print(f"\n   📍 Campaign: {campaign_name or campaign_id}")
+        accounts_map[customer_id].append((campaign_id, campaign_name, config_json))
+    
+    # Procesar por cuenta (nivel superior)
+    for account_id, acc_campaigns in accounts_map.items():
+        print(f"\n   🧾 Cuenta: {account_id} - {len(acc_campaigns)} campañas")
         
-        # Cargar configuración
+        # Cargar configuración de la cuenta
         try:
-            config_dict = json.loads(config_json) if config_json else {}
+            # Usar la primera campaña para extraer config_json guardado
+            config_dict = json.loads(acc_campaigns[0][2]) if acc_campaigns and acc_campaigns[0][2] else {}
             config = BusinessConfig(**config_dict)
         except:
             config = BusinessConfig()
         
-        # Obtener performance
-        campaign_perf = get_campaign_performance_today(client, customer_id, campaign_id)
-        if not campaign_perf:
-            print(f"      ⚠️ No data available")
-            continue
+        # Obtener gasto a nivel cuenta por hora
+        account_hourly = get_account_hourly_spend_today(client, account_id)
+        current_hour = datetime.now().hour
+        acc_current_micros = account_hourly.get(current_hour, {}).get('cost_micros', 0)
+        acc_current_cop = acc_current_micros / 1_000_000
+        hourly_budget = config.hourly_budget_cop
         
-        total_spend = campaign_perf.get('cost_cop', 0)
-        total_conv = campaign_perf.get('conversions', 0)
+        print(f"   ⏰ Cuenta gasto hora {current_hour}: ${acc_current_cop:,.0f} / cuota ${hourly_budget:,.0f}")
         
-        print(f"      💰 Spend: ${total_spend:,.0f} COP | Conv: {total_conv}")
+        # Recopilar gasto por campaña en la hora actual
+        campaign_hour_spend = []
+        for campaign_id, campaign_name, _ in acc_campaigns:
+            hourly_spend = get_hourly_spend_today(client, account_id, campaign_id)
+            cur_micros = hourly_spend.get(current_hour, {}).get('cost_micros', 0)
+            campaign_hour_spend.append((campaign_id, campaign_name, cur_micros))
         
-        # Obtener performance por keyword
-        keywords = get_keywords_performance_today(client, customer_id, campaign_id, config)
-        
-        # Obtener gasto por hora
-        hourly_spend = get_hourly_spend_today(client, customer_id, campaign_id)
-        
-        # Motor de decisiones
-        engine = DecisionEngine(config)
-        
-        # Análisis 0: 🚀 BUDGET PACING HORARIO (prioridad máxima)
-        hourly_pacing_decisions = engine.analyze_hourly_budget_pacing(hourly_spend)
-        
-        # Análisis 1: Ritmo de presupuesto (deshabilitado - usamos hourly pacing)
-        # budget_decisions = engine.analyze_budget_pace(hourly_spend, total_spend)
-        
-        # Análisis 2: Keywords individuales
-        keyword_decisions = engine.analyze_keywords(keywords)
-        
-        # Análisis 3: Gasto sin conversión
-        waste_decisions = engine.analyze_zero_conversion_spend(keywords)
-        
-        # Combinar decisiones (hourly pacing tiene prioridad)
-        all_decisions = hourly_pacing_decisions + keyword_decisions + waste_decisions
-        
-        if not all_decisions:
-            print(f"      ✅ Todas las métricas dentro del rango aceptable")
-            continue
-        
-        print(f"      🎯 {len(all_decisions)} decisiones a ejecutar:")
-        
-        # Ejecutar decisiones
-        for decision in all_decisions:
-            decision.customer_id = customer_id
-            decision.campaign_id = campaign_id
+        # Si la CUENTA excede la cuota horaria, pausar campañas de mayor gasto hasta cumplir
+        paused_campaigns = set()
+        if acc_current_cop >= (hourly_budget * 0.95):
+            print(f"   🛑 Cuenta excedió cuota horaria. Aplicando pausas selectivas por campaña…")
+            # Ordenar por gasto descendente
+            campaign_hour_spend.sort(key=lambda x: x[2], reverse=True)
+            excess_cop = acc_current_cop - hourly_budget
+            reduced_cop = 0.0
             
-            # Log decision
-            log_decision(decision)
+            for campaign_id, campaign_name, micros in campaign_hour_spend:
+                if reduced_cop >= excess_cop:
+                    break
+                cur_cop = micros / 1_000_000
+                if cur_cop <= 0:
+                    continue
+                
+                decision = Decision(
+                    decision_type=DecisionType.PAUSE_CAMPAIGN,
+                    entity_type="campaign",
+                    entity_id="",
+                    customer_id=account_id,
+                    campaign_id=campaign_id,
+                    reason=f"Cuenta superó cuota horaria: ${acc_current_cop:,.0f}/${hourly_budget:,.0f}. Pausando campaña top gasto (${cur_cop:,.0f}).",
+                    data={
+                        'pause_type': 'account_hourly_budget_pacing',
+                        'current_hour_spend_total': acc_current_cop,
+                        'hourly_budget': hourly_budget,
+                        'campaign_hour_spend': cur_cop,
+                        'resume_at_hour': current_hour + 1,
+                        'auto_resume': True
+                    }
+                )
+                # Log + execute pausa
+                log_decision(decision)
+                if executor.execute(decision):
+                    paused_campaigns.add(campaign_id)
+                    reduced_cop += cur_cop
             
-            # Execute
-            success = executor.execute(decision)
-            decision.executed = success
+            print(f"   ✅ Pausas aplicadas: {len(paused_campaigns)} campañas")
         
-        # Resumen
-        executed = sum(1 for d in all_decisions if d.executed)
-        print(f"      📋 Ejecutado: {executed}/{len(all_decisions)}")
+        # Procesar análisis por campaña (omitir las ya pausadas por guardian)
+        for campaign_id, campaign_name, config_json in acc_campaigns:
+            if campaign_id in paused_campaigns:
+                print(f"   ⏸️ Saltando análisis para campaña pausada: {campaign_name or campaign_id}")
+                continue
+            
+            print(f"\n   📍 Campaign: {campaign_name or campaign_id}")
+            
+            # Cargar configuración (cae en la de cuenta si no hay config específica)
+            try:
+                cfg_dict = json.loads(config_json) if config_json else {}
+                cfg = BusinessConfig(**cfg_dict)
+            except:
+                cfg = config
+            
+            # Obtener performance
+            campaign_perf = get_campaign_performance_today(client, account_id, campaign_id)
+            if not campaign_perf:
+                print(f"      ⚠️ No data available")
+                continue
+            
+            total_spend = campaign_perf.get('cost_cop', 0)
+            total_conv = campaign_perf.get('conversions', 0)
+            
+            print(f"      💰 Spend: ${total_spend:,.0f} COP | Conv: {total_conv}")
+            
+            # Obtener performance por keyword
+            keywords = get_keywords_performance_today(client, account_id, campaign_id, cfg)
+            
+            # Obtener gasto por hora
+            hourly_spend = get_hourly_spend_today(client, account_id, campaign_id)
+            
+            # Motor de decisiones
+            engine = DecisionEngine(cfg)
+            
+            # Análisis 0: 🚀 BUDGET PACING HORARIO (a nivel campaña, solo si NO hay exceso de cuenta)
+            hourly_pacing_decisions = []
+            if acc_current_cop < (hourly_budget * 0.95):
+                hourly_pacing_decisions = engine.analyze_hourly_budget_pacing(hourly_spend)
+            
+            # Análisis 2: Keywords individuales
+            keyword_decisions = engine.analyze_keywords(keywords)
+            
+            # Análisis 3: Gasto sin conversión
+            waste_decisions = engine.analyze_zero_conversion_spend(keywords)
+            
+            # Combinar decisiones
+            all_decisions = hourly_pacing_decisions + keyword_decisions + waste_decisions
+            
+            if not all_decisions:
+                print(f"      ✅ Todas las métricas dentro del rango aceptable")
+                continue
+            
+            print(f"      🎯 {len(all_decisions)} decisiones a ejecutar:")
+            
+            # Ejecutar decisiones
+            executed = 0
+            for decision in all_decisions:
+                decision.customer_id = account_id
+                decision.campaign_id = campaign_id
+                
+                log_decision(decision)
+                if executor.execute(decision):
+                    executed += 1
+                    decision.executed = True
+            
+            print(f"      📋 Ejecutado: {executed}/{len(all_decisions)}")
     
     # 🔄 Reactivar campañas para nueva hora (Budget Pacing)
     resume_campaigns_for_new_hour()
@@ -1736,6 +1850,43 @@ def run_now():
 def enable_guardian():
     """Activa el Profit Guardian"""
     guardian_state.enable()
+    
+    # Auto-setup de presupuesto compartido para cuentas habilitadas
+    try:
+        client = get_google_ads_client()
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('SELECT customer_id, config_json FROM account_config WHERE enabled = 1')
+        accounts = cursor.fetchall()
+        conn.close()
+        
+        for customer_id, cfg_json in accounts:
+            cfg = json.loads(cfg_json) if cfg_json else {}
+            daily_amount = cfg.get('daily_budget_cop', 300000)
+            result = ensure_shared_budget_for_account(client, customer_id, daily_amount)
+            print(f"   🔧 Shared budget setup for {customer_id}: {result.get('status')}")
+            
+            # Fijar cuota horaria por defecto si no está definida (40,000 COP/h)
+            try:
+                conn2 = get_db()
+                cur2 = conn2.cursor()
+                cur2.execute('SELECT config_json FROM account_config WHERE customer_id = ?', (customer_id,))
+                row = cur2.fetchone()
+                conf = json.loads(row[0]) if row and row[0] else {}
+                if not conf.get('custom_hourly_budget_cop'):
+                    conf['custom_hourly_budget_cop'] = 40000
+                    cur2.execute(
+                        'UPDATE account_config SET config_json = ?, updated_at = ? WHERE customer_id = ?',
+                        (json.dumps(conf), datetime.utcnow(), customer_id)
+                    )
+                    conn2.commit()
+                conn2.close()
+                print(f"   🎯 Hourly budget default set for {customer_id}: $40,000 COP/h")
+            except Exception as e:
+                print(f"⚠️ Error setting hourly budget default for {customer_id}: {e}")
+    except Exception as e:
+        print(f"⚠️ Error en auto-setup de presupuesto compartido: {e}")
+    
     return jsonify({
         'success': True,
         'enabled': True,
@@ -1999,6 +2150,31 @@ def update_hourly_budget():
             'success': False,
             'error': str(e)
         }), 500
+
+@profit_guardian_bp.route('/api/profit-guardian/update-shared-budget', methods=['POST'])
+def update_shared_budget():
+    """Actualiza el presupuesto compartido (monto diario) para una cuenta y re-persistir en config"""
+    try:
+        data = request.get_json()
+        customer_id = data.get('customer_id')
+        daily_amount_cop = int(data.get('daily_amount_cop', 300000))
+        if not customer_id:
+            return jsonify({'success': False, 'error': 'customer_id requerido'}), 400
+        
+        client = get_google_ads_client()
+        result = ensure_shared_budget_for_account(client, customer_id, daily_amount_cop)
+        if result.get('status') != 'ok':
+            return jsonify({'success': False, 'error': result.get('error', 'Error desconocido')}), 500
+        
+        return jsonify({
+            'success': True,
+            'message': f'Presupuesto compartido actualizado a ${daily_amount_cop:,.0f} COP/día',
+            'budget_name': result.get('budget_name'),
+            'budget_resource_name': result.get('budget_resource_name'),
+            'daily_amount_cop': daily_amount_cop
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ============================================
@@ -2435,3 +2611,107 @@ def stop_profit_guardian():
     guardian_scheduler.shutdown()
     guardian_state.disable()
     print("⏹️ Profit Guardian stopped")
+
+# ============================================
+# SHARED BUDGET HELPERS
+# ============================================
+
+def ensure_shared_budget_for_account(client: GoogleAdsClient, customer_id: str, daily_amount_cop: int) -> Dict[str, str]:
+    """
+    Asegura que exista un presupuesto compartido para la cuenta:
+    - Si existe, actualiza el monto.
+    - Si no existe, lo crea y lo asigna a campañas ENABLED (excluye Performance Max).
+    - Persiste la referencia en account_config.
+    """
+    try:
+        ga_service = client.get_service("GoogleAdsService")
+        campaign_budget_service = client.get_service("CampaignBudgetService")
+        campaign_service = client.get_service("CampaignService")
+        customer_numeric = customer_id.replace('-', '')
+        
+        # Buscar presupuesto compartido existente
+        query = """
+            SELECT
+                campaign_budget.resource_name,
+                campaign_budget.name,
+                campaign_budget.amount_micros,
+                campaign_budget.explicitly_shared
+            FROM campaign_budget
+            WHERE campaign_budget.explicitly_shared = TRUE
+        """
+        response = ga_service.search(customer_id=customer_numeric, query=query)
+        
+        budget_resource_name = None
+        budget_name = None
+        for row in response:
+            budget_resource_name = row.campaign_budget.resource_name
+            budget_name = row.campaign_budget.name
+            break  # Usar el primero compartido
+        
+        if budget_resource_name:
+            # Actualizar monto
+            op = client.get_type("CampaignBudgetOperation")
+            op.update.resource_name = budget_resource_name
+            op.update.amount_micros = int(daily_amount_cop * 1_000_000)
+            op.update_mask.CopyFrom(FieldMask(paths=["amount_micros"]))
+            campaign_budget_service.mutate_campaign_budgets(customer_id=customer_numeric, operations=[op])
+        else:
+            # Crear nuevo presupuesto compartido
+            op = client.get_type("CampaignBudgetOperation")
+            budget = op.create
+            budget_name = f"Guardian Master {datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+            budget.name = budget_name
+            budget.amount_micros = int(daily_amount_cop * 1_000_000)
+            budget.delivery_method = client.enums.BudgetDeliveryMethodEnum.STANDARD
+            budget.explicitly_shared = True
+            resp = campaign_budget_service.mutate_campaign_budgets(
+                customer_id=customer_numeric,
+                operations=[op]
+            )
+            budget_resource_name = resp.results[0].resource_name
+        
+        # Asignar a campañas ENABLED (excluye Performance Max)
+        assign_query = """
+            SELECT campaign.id, campaign.name, campaign.advertising_channel_type
+            FROM campaign
+            WHERE campaign.status = 'ENABLED'
+        """
+        campaigns_resp = ga_service.search(customer_id=customer_numeric, query=assign_query)
+        ops = []
+        for row in campaigns_resp:
+            channel = row.campaign.advertising_channel_type
+            if channel == client.enums.AdvertisingChannelTypeEnum.PERFORMANCE_MAX:
+                continue  # PMax no soporta presupuestos compartidos
+            resource_name = campaign_service.campaign_path(customer_numeric, row.campaign.id)
+            cop = client.get_type("CampaignOperation")
+            cop.update.resource_name = resource_name
+            cop.update.campaign_budget = budget_resource_name
+            cop.update_mask.CopyFrom(FieldMask(paths=["campaign_budget"]))
+            ops.append(cop)
+        if ops:
+            campaign_service.mutate_campaigns(customer_id=customer_numeric, operations=ops)
+        
+        # Persistir en account_config
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("SELECT config_json FROM account_config WHERE customer_id = ?", (customer_id,))
+            row = cursor.fetchone()
+            cfg = json.loads(row[0]) if row and row[0] else {}
+            cfg['shared_budget_resource_name'] = budget_resource_name
+            cfg['shared_budget_name'] = budget_name
+            cfg['daily_budget_cop'] = int(daily_amount_cop)
+            cursor.execute(
+                "UPDATE account_config SET config_json = ?, updated_at = ? WHERE customer_id = ?",
+                (json.dumps(cfg), datetime.utcnow(), customer_id)
+            )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"⚠️ Error guardando configuración de presupuesto compartido: {e}")
+        
+        return {'status': 'ok', 'budget_resource_name': budget_resource_name, 'budget_name': budget_name}
+    except GoogleAdsException as ex:
+        return {'status': 'error', 'error': ex.failure.errors[0].message}
+    except Exception as e:
+        return {'status': 'error', 'error': str(e)}
