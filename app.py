@@ -7285,7 +7285,7 @@ def get_keyword_quality_report():
         ga = get_client_from_request()
         service = ga.get_service('GoogleAdsService')
         
-        # Query for keywords with quality metrics
+        # Query for keywords with quality metrics - DEBE usar keyword_view para obtener métricas
         query = """
             SELECT 
                 ad_group_criterion.criterion_id,
@@ -7304,7 +7304,7 @@ def get_keyword_quality_report():
                 metrics.cost_micros,
                 metrics.impressions,
                 metrics.clicks
-            FROM ad_group_criterion
+            FROM keyword_view
             WHERE 
                 ad_group_criterion.type = 'KEYWORD' 
                 AND ad_group_criterion.status = 'ENABLED'
