@@ -7337,7 +7337,7 @@ def get_keyword_quality_report():
                 'adGroupName': row.ad_group.name,
                 'campaignId': str(row.campaign.id),
                 'campaignName': row.campaign.name,
-                'qualityScore': kw.quality_info.quality_score if kw.quality_info.quality_score else 0,
+                'qualityScore': kw.quality_info.quality_score if kw.quality_info.quality_score else None,
                 'adRelevance': kw.quality_info.creative_quality_score.name,
                 'landingPageExp': kw.quality_info.post_click_quality_score.name,
                 'expectedCtr': kw.quality_info.search_predicted_ctr.name,
