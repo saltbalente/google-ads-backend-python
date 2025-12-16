@@ -7269,6 +7269,72 @@ def execute_query():
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response, 500
 
+@app.route('/api/ads/final-urls', methods=['POST', 'OPTIONS'])
+def get_ad_final_urls():
+    """
+    Obtiene las URLs finales de los anuncios de un Ad Group
+    """
+    if request.method == 'OPTIONS':
+        return cors_preflight_ok()
+    
+    try:
+        data = request.get_json()
+        customer_id = data.get('customerId', '').replace('-', '')
+        ad_group_id = data.get('adGroupId')
+        
+        if not customer_id or not ad_group_id:
+            return jsonify({"success": False, "message": "Missing parameters"}), 400
+            
+        client = get_client_from_request()
+        ga_service = client.get_service("GoogleAdsService")
+        
+        # 1. Query específica para el Ad Group
+        query = f"""
+            SELECT 
+                ad_group_ad.ad.final_urls,
+                ad_group_ad.ad.type
+            FROM ad_group_ad
+            WHERE ad_group_ad.ad_group = 'customers/{customer_id}/adGroups/{ad_group_id}'
+                AND ad_group_ad.status IN ('ENABLED', 'PAUSED')
+            LIMIT 100
+        """
+        
+        response = ga_service.search(customer_id=customer_id, query=query)
+        
+        urls = []
+        for row in response:
+            ad = row.ad_group_ad.ad
+            if ad.final_urls:
+                urls.extend(list(ad.final_urls))
+                
+        # 2. Fallback: Buscar en toda la cuenta si no hay URLs en el grupo
+        if not urls:
+            print(f"⚠️ No URLs found in AdGroup {ad_group_id}, trying fallback...")
+            fallback_query = """
+                SELECT ad_group_ad.ad.final_urls
+                FROM ad_group_ad
+                WHERE ad_group_ad.status = 'ENABLED'
+                LIMIT 50
+            """
+            fallback_response = ga_service.search(customer_id=customer_id, query=fallback_query)
+            for row in fallback_response:
+                ad = row.ad_group_ad.ad
+                if ad.final_urls:
+                    urls.extend(list(ad.final_urls))
+        
+        # Filtrar duplicados y vacíos
+        unique_urls = list(set([u for u in urls if u and (u.startswith('http') or u.startswith('https'))]))
+        
+        return jsonify({
+            "success": True,
+            "urls": unique_urls,
+            "count": len(unique_urls)
+        })
+        
+    except Exception as e:
+        print(f"❌ Error getting ad URLs: {str(e)}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
 @app.route('/api/keywords/quality-report', methods=['POST', 'OPTIONS'])
 def get_keyword_quality_report():
     if request.method == 'OPTIONS':
