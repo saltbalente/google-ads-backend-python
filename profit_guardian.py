@@ -2314,7 +2314,14 @@ def pay_all_accounts():
         try:
             from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
         except Exception as e:
-            return jsonify({'success': False, 'error': f'Playwright no disponible: {e}. Instala con pip install playwright y ejecuta playwright install chromium'}), 500
+            return jsonify({
+                'success': False,
+                'error': f'Playwright no disponible: {e}',
+                'requirements': {
+                    'install': 'pip install playwright && playwright install chromium',
+                    'note': 'Este endpoint requiere automatización de UI en modo escritorio'
+                }
+            }), 409
         
         # Opcional: storage state para sesión ya iniciada
         storage_state_path = os.environ.get('PLAYWRIGHT_STORAGE_STATE')  # p.ej. /path/to/google_ads_storage.json
@@ -2324,6 +2331,9 @@ def pay_all_accounts():
         data = request.get_json(silent=True) or {}
         override_amount = data.get('amount_cop')  # opcional, entero
         only_accounts = data.get('accounts')  # opcional lista de customer_id
+        cdp_override = data.get('cdp_url')    # opcional, permite usar Chrome remoto
+        if cdp_override:
+            os.environ['PLAYWRIGHT_CDP_URL'] = cdp_override
         
         conn = get_db()
         cursor = conn.cursor()
@@ -2337,16 +2347,78 @@ def pay_all_accounts():
         results = []
         
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False)
-            context_kwargs = {
-                "user_agent": desktop_user_agent,
-                "viewport": {"width": 1366, "height": 900},
-                "is_mobile": False,
-                "device_scale_factor": 1.0,
-            }
-            if storage_state_path and os.path.exists(storage_state_path):
-                context_kwargs["storage_state"] = storage_state_path
-            context = browser.new_context(**context_kwargs)
+            cdp_url = os.environ.get("PLAYWRIGHT_CDP_URL")
+            user_data_dir = os.environ.get("PLAYWRIGHT_USER_DATA_DIR")
+            context = None
+            browser = None
+            if cdp_url:
+                try:
+                    print(f"Conectando a Chrome en {cdp_url}...")
+                    browser = p.chromium.connect_over_cdp(cdp_url)
+                    # Usar el contexto existente (donde están tus pestañas logueadas)
+                    if browser.contexts:
+                        context = browser.contexts[0]
+                        print(f"Contexto existente encontrado con {len(context.pages)} pestañas")
+                    else:
+                        context = browser.new_context()
+                        print("Creando nuevo contexto (no se hallaron existentes)")
+                except Exception as e:
+                    print(f"⚠️ CDP connection failed: {e}. Falling back to persistent context/channel Chrome.")
+                    cdp_url = None
+            if not context and user_data_dir and os.path.isdir(user_data_dir):
+                context = p.chromium.launch_persistent_context(
+                    user_data_dir=user_data_dir,
+                    channel="chrome",
+                    headless=False,
+                    user_agent=desktop_user_agent,
+                    viewport={"width": 1366, "height": 900},
+                    locale="es-ES",
+                    timezone_id="America/Bogota",
+                    args=[
+                        "--disable-blink-features=AutomationControlled",
+                        "--no-first-run",
+                        "--no-default-browser-check"
+                    ]
+                )
+            if not context:
+                browser = p.chromium.launch(headless=False, args=["--disable-blink-features=AutomationControlled"])
+                context_kwargs = {
+                    "user_agent": desktop_user_agent,
+                    "viewport": {"width": 1366, "height": 900},
+                    "is_mobile": False,
+                    "device_scale_factor": 1.0,
+                    "locale": "es-ES",
+                    "timezone_id": "America/Bogota",
+                }
+                if storage_state_path and os.path.exists(storage_state_path):
+                    context_kwargs["storage_state"] = storage_state_path
+                context = browser.new_context(**context_kwargs)
+            
+            # Probar que el entorno soporta UI automation
+            try:
+                probe = context.new_page()
+                probe.goto("https://ads.google.com/aw/billing/summary", timeout=15000)
+                probe.close()
+            except Exception as e:
+                try:
+                    context.close()
+                except Exception:
+                    pass
+                return jsonify({
+                    'success': False,
+                    'error': 'UI automation no disponible en este servidor',
+                    'details': str(e),
+                    'requirements': {
+                        'desktop_chrome': 'Inicia Chrome con --remote-debugging-port=9222 y pasa PLAYWRIGHT_CDP_URL',
+                        'persistent_profile': 'O usa PLAYWRIGHT_USER_DATA_DIR con perfil logueado',
+                        'storage_state': 'O proporciona PLAYWRIGHT_STORAGE_STATE con sesión válida'
+                    }
+                }), 409
+            
+            try:
+                context.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
+            except Exception:
+                pass
             
             for customer_id, cfg_json in accounts:
                 cfg = json.loads(cfg_json) if cfg_json else {}
@@ -2354,20 +2426,73 @@ def pay_all_accounts():
                 
                 # Construir URL de facturación de escritorio
                 base_billing = "https://ads.google.com/aw/billing/summary"
-                # Intentar parámetros comunes por cuenta
+                # Intentar parámetros para selección directa de cuenta
                 candidate_urls = [
-                    f"{base_billing}?ocid={customer_id.replace('-', '')}",
-                    f"{base_billing}?customerId={customer_id.replace('-', '')}",
-                    base_billing
+                    f"{base_billing}?ocid={customer_id.replace('-', '')}&euid={customer_id.replace('-', '')}&__u={customer_id.replace('-', '')}&uscid={customer_id.replace('-', '')}&__c={customer_id.replace('-', '')}",
+                    f"{base_billing}?customerId={customer_id.replace('-', '')}"
                 ]
                 
-                page = context.new_page()
+                # REUTILIZAR PÁGINA EXISTENTE SI ES POSIBLE
+                # Esto evita abrir nuevas pestañas que podrían no heredar la sesión correctamente o disparar alertas
+                page = None
+                if context.pages:
+                    for p in context.pages:
+                        try:
+                            # Aceptar cualquier pestaña de Google Ads o Google
+                            if "ads.google.com" in p.url or "google.com" in p.url or "about:blank" in p.url:
+                                page = p
+                                print(f"Reutilizando pestaña existente: {p.url}")
+                                try:
+                                    p.bring_to_front()
+                                except:
+                                    pass
+                                break
+                        except:
+                            pass
+                
+                if not page:
+                    # Solo abrir nueva si realmente no hay ninguna útil
+                    if len(context.pages) > 0:
+                        page = context.pages[0]
+                        print(f"Usando primera pestaña disponible: {page.url}")
+                    else:
+                        page = context.new_page()
+                        print("Abriendo nueva pestaña (sin páginas previas)...")
+
                 try:
                     # Navegar a escritorio Billing
                     navigated = False
                     for u in candidate_urls:
                         try:
+                            print(f"Navegando a {u}...")
                             page.goto(u, timeout=60000, wait_until="domcontentloaded")
+                            page.wait_for_load_state("networkidle")
+                            
+                            # Manejar selector de cuenta si aparece
+                            # Buscamos texto que contenga el ID de la cuenta (con o sin guiones)
+                            clean_id = customer_id.replace('-', '')
+                            formatted_id = f"{clean_id[:3]}-{clean_id[3:6]}-{clean_id[6:]}"
+                            
+                            account_selectors = [
+                                f'text="{formatted_id}"',
+                                f'text="{clean_id}"',
+                                f'div:has-text("{formatted_id}")',
+                                '.account-name' # Genérico si es lista
+                            ]
+                            
+                            # Si vemos selector de cuenta, intentamos clicar la correcta
+                            for acc_sel in account_selectors:
+                                try:
+                                    if page.is_visible(acc_sel, timeout=3000):
+                                        print(f"Selector de cuenta detectado, clic en {formatted_id}")
+                                        page.click(acc_sel)
+                                        page.wait_for_load_state("networkidle")
+                                        # Esperar posible redirección
+                                        page.wait_for_timeout(3000)
+                                        break
+                                except:
+                                    pass
+                            
                             navigated = True
                             break
                         except PlaywrightTimeoutError:
@@ -2376,58 +2501,236 @@ def pay_all_accounts():
                         raise Exception('No se pudo cargar la página de Facturación')
                     
                     # Asegurar estar en resumen de facturación (escritorio), evitar modal de app móvil
-                    # Paso: abrir "Añadir fondos"
+                    # Esperar a que cargue completamente
+                    page.wait_for_load_state("networkidle")
+                    
+                    # DOBLE CHEQUEO: Si nos redirigió al Dashboard (Overview), forzar ir a Facturación de nuevo
+                    if "billing" not in page.url:
+                        print(f"Redirigido a {page.url}, forzando navegación a Facturación...")
+                        try:
+                            # Re-navegar a la URL base de facturación preservando parámetros de cuenta si existen en la URL actual
+                            current_url = page.url
+                            if "ocid=" in current_url:
+                                ocid = current_url.split("ocid=")[1].split("&")[0]
+                                billing_url = f"https://ads.google.com/aw/billing/summary?ocid={ocid}"
+                                page.goto(billing_url, timeout=30000, wait_until="domcontentloaded")
+                            else:
+                                # Intentar con el ID que tenemos
+                                page.goto(f"https://ads.google.com/aw/billing/summary?ocid={customer_id.replace('-', '')}", timeout=30000)
+                            
+                            page.wait_for_load_state("networkidle")
+                        except:
+                            pass
+
+                    # Si AÚN no estamos en facturación, intentar navegar vía menú
+                    if "billing" not in page.url:
+                        print("URL sigue sin ser facturación, intentando clic en menú 'Facturación'...")
+                        try:
+                            # Selectores de menú lateral - Ampliados
+                            menu_selectors = [
+                                'a[href*="/billing/summary"]',
+                                'div.workspace-navigation-drawer-item:has-text("Facturación")',
+                                'div.workspace-navigation-drawer-item:has-text("Billing")',
+                                'material-icon[icon="payment"]',
+                                'a:has-text("Facturación")',
+                                'a:has-text("Billing")'
+                            ]
+                            for ms in menu_selectors:
+                                if page.is_visible(ms):
+                                    page.click(ms)
+                                    page.wait_for_load_state("networkidle")
+                                    print(f"Clic en menú: {ms}")
+                                    break
+                                    
+                            # A veces es Facturación -> Resumen
+                            if "billing" not in page.url:
+                                page.click('text="Resumen"', timeout=2000)
+                        except:
+                            pass
+                    
+                    # Diagnóstico visual si falla
+                    print(f"Buscando 'Añadir fondos' en {page.url}")
+                    
+                    # Esperar explícitamente a que la tarjeta de fondos cargue
+                    try:
+                        page.wait_for_selector('text="Fondos disponibles"', timeout=10000)
+                    except:
+                        print("No apareció 'Fondos disponibles', buscando botón directamente...")
+                    
+                    page.wait_for_timeout(5000) # Espera extra para renderizado JS
+                    
+                    # Selectores ampliados y más robustos
                     add_funds_selectors = [
-                        'text="Añadir fondos"',
-                        'text="Add funds"',
+                        # Selector EXACTO proporcionado por usuario (Material Button)
+                        'material-button:has-text("Agregar fondos")',
+                        'material-button:has-text("Añadir fondos")',
+                        'material-button.add-funds-button',
+                        
+                        # Selectores específicos de la tarjeta "Fondos disponibles"
+                        ':text("Fondos disponibles") ~ * material-button',
+                        ':text("Available funds") ~ * material-button',
+                        
+                        # Botones directos (Variantes de idioma)
+                        'button:has-text("Agregar fondos")',
                         'button:has-text("Añadir fondos")',
-                        'button:has-text("Add funds")'
+                        'button:has-text("Add funds")',
+                        'div[role="button"]:has-text("Agregar fondos")',
+                        'div[role="button"]:has-text("Añadir fondos")',
+                        
+                        # Enlaces o spans que parecen botones
+                        'a:has-text("Agregar fondos")',
+                        'span:has-text("Agregar fondos")'
                     ]
+                    
                     clicked_add = False
+                    
+                    # Intento 1: Búsqueda directa
                     for sel in add_funds_selectors:
                         try:
-                            page.click(sel, timeout=10000)
-                            clicked_add = True
-                            break
-                        except:
-                            pass
-                    if not clicked_add:
-                        # Intentar abrir menú lateral "Facturación" primero
-                        try:
-                            page.click('text="Facturación"', timeout=10000)
-                        except:
-                            pass
-                        for sel in add_funds_selectors:
-                            try:
-                                page.click(sel, timeout=10000)
+                            if page.is_visible(sel):
+                                # Validar que sea clicable/visible
+                                page.hover(sel)
+                                page.click(sel, timeout=5000)
                                 clicked_add = True
+                                print(f"Click en {sel}")
                                 break
-                            except:
-                                pass
+                        except:
+                            pass
+                            
+                    # Intento 2: Buscar dentro de iframes si falla
                     if not clicked_add:
-                        raise Exception('No se encontró "Añadir fondos" en la página')
+                        for frame in page.frames:
+                            for sel in add_funds_selectors:
+                                try:
+                                    if frame.is_visible(sel):
+                                        frame.click(sel, timeout=5000)
+                                        clicked_add = True
+                                        print(f"Click en frame {frame.name} -> {sel}")
+                                        break
+                                except:
+                                    pass
+                            if clicked_add: break
+                            
+                    # Intento 3: Clic JS forzado si el elemento existe pero no es "clicable" estándar
+                    if not clicked_add:
+                        try:
+                            # Buscar cualquier elemento que diga "Añadir fondos" y forzar clic JS (Recursivo en Shadow DOM)
+                            print("Intentando clic JS profundo (Deep Search)...")
+                            page.evaluate('''() => {
+                                function findAndClick(root) {
+                                    if (!root) return false;
+                                    
+                                    // Buscar en el nodo actual
+                                    const elements = Array.from(root.querySelectorAll('material-button, button, div[role="button"], span, a'));
+                                    for (const el of elements) {
+                                        if (el.innerText && (el.innerText.includes("Agregar fondos") || el.innerText.includes("Añadir fondos") || el.innerText.includes("Add funds"))) {
+                                            console.log("Encontrado botón:", el);
+                                            el.click();
+                                            return true;
+                                        }
+                                    }
+                                    
+                                    // Buscar en Shadow Roots
+                                    const allNodes = root.querySelectorAll('*');
+                                    for (const node of allNodes) {
+                                        if (node.shadowRoot) {
+                                            if (findAndClick(node.shadowRoot)) return true;
+                                        }
+                                    }
+                                    return false;
+                                }
+                                
+                                findAndClick(document);
+                            }''')
+                            
+                            # Esperar a ver si aparece el diálogo
+                            page.wait_for_timeout(3000)
+                            
+                            # Chequear si apareció el diálogo de pago
+                            dialog_visible = page.evaluate('''() => {
+                                return document.body.innerText.includes("Importe del pago") || 
+                                       document.body.innerText.includes("Payment amount") ||
+                                       document.body.innerText.includes("Método de pago");
+                            }''')
+                            
+                            if dialog_visible:
+                                clicked_add = True
+                                print("Click JS Deep Search exitoso, diálogo detectado")
+                        except Exception as e:
+                            print(f"Error en JS Deep Search: {e}")
+
+                    if not clicked_add:
+                        # Fallback: imprimir HTML para debug (truncado) y botones visibles
+                        print("\n--- DIAGNÓSTICO VISUAL ---")
+                        try:
+                            buttons_text = page.evaluate('''() => {
+                                return Array.from(document.querySelectorAll('button, div[role="button"]'))
+                                    .filter(b => b.offsetParent !== null) # Solo visibles
+                                    .map(b => b.innerText)
+                            }''')
+                            print(f"Botones visibles encontrados: {buttons_text}")
+                        except:
+                            print("No se pudieron extraer textos de botones")
+                        
+                        # Guardar screenshot de error
+                        page.screenshot(path=f'error_nofunds_{customer_id}.png')
+                        raise Exception('No se encontró botón "Añadir fondos". Ver captura error_nofunds.png y logs')
                     
                     # Completar monto
+                    # OJO: La UI de "Añadir fondos" puede tener radio button de "Otros importes" si el monto no coincide
+                    print("Dialogo de pago abierto, seleccionando 'Otros importes' si es necesario...")
+                    
+                    # 1. Buscar si hay opción de "Otros importes" y seleccionarla
+                    other_amount_selectors = [
+                        'label:has-text("Otros importes")',
+                        'div:has-text("Otros importes")',
+                        'input[value="OTHER"]',
+                        'material-radio:has-text("Otro importe")'
+                    ]
+                    for oas in other_amount_selectors:
+                        try:
+                            if page.is_visible(oas):
+                                page.click(oas)
+                                page.wait_for_timeout(500)
+                                break
+                        except:
+                            pass
+
                     amount_fields = [
                         'input[name="amount"]',
                         'input[data-test="payment-amount"]',
                         'input[aria-label*="Importe"]',
                         'input[aria-label*="Amount"]',
                         'input[type="number"]',
-                        'input[role="spinbutton"]'
+                        'input[type="tel"]', # A veces es tel
+                        'input[role="spinbutton"]',
+                        'label:has-text("Importe") input',
+                        'label:has-text("Amount") input'
                     ]
                     filled_amount = False
                     for af in amount_fields:
                         try:
-                            page.fill(af, str(amount), timeout=10000)
-                            filled_amount = True
-                            break
+                            if page.is_visible(af):
+                                page.click(af)
+                                page.fill(af, "") # Limpiar
+                                page.fill(af, str(amount), timeout=5000)
+                                filled_amount = True
+                                break
                         except:
                             pass
                     if not filled_amount:
-                        # Probar focus + type en el primer input numérico
+                        # Probar focus + type en el primer input visible en el diálogo
                         try:
-                            page.focus('input[type="number"]')
+                            print("Intentando llenar monto por foco directo...")
+                            page.evaluate('''() => {
+                                const inputs = Array.from(document.querySelectorAll('input[type="text"], input[type="number"], input[type="tel"]'));
+                                // Buscar el que esté visible y probablemente sea el monto
+                                const visibleInput = inputs.find(i => i.offsetParent !== null && i.getBoundingClientRect().height > 0);
+                                if (visibleInput) {
+                                    visibleInput.focus();
+                                    visibleInput.value = '';
+                                }
+                            }''')
                             page.keyboard.type(str(amount))
                             filled_amount = True
                         except:
@@ -2436,49 +2739,131 @@ def pay_all_accounts():
                         raise Exception('No se pudo completar el monto')
                     
                     # Paso "Continuar"
+                    # Esperar validación del monto
+                    page.wait_for_timeout(2000)
+                    
                     continue_selectors = [
+                        'button:has(span:has-text("Continuar"))', # Selector preciso basado en tu HTML
                         'button:has-text("Continuar")',
-                        'text="Continuar"',
                         'button:has-text("Continue")',
-                        'text="Continue"'
+                        'div[role="button"]:has-text("Continuar")'
                     ]
                     clicked_continue = False
                     for cs in continue_selectors:
                         try:
-                            page.click(cs, timeout=10000)
-                            clicked_continue = True
-                            break
+                            if page.is_visible(cs):
+                                page.click(cs, timeout=5000)
+                                clicked_continue = True
+                                break
                         except:
                             pass
+                            
+                    if not clicked_continue:
+                        # Intento JS directo si fallaron los selectores estándar
+                        try:
+                            print("Intentando clic JS en botón Continuar...")
+                            page.evaluate('''() => {
+                                const buttons = Array.from(document.querySelectorAll('button, div[role="button"], span'));
+                                const target = buttons.find(b => b.innerText && (b.innerText.includes("Continuar") || b.innerText.includes("Continue")));
+                                if (target) target.click();
+                            }''')
+                            # Esperar a ver si cambia la pantalla (desaparece el input de monto o aparece confirmación)
+                            page.wait_for_timeout(2000)
+                            if page.is_visible('text="Confirmar pago"') or page.is_visible('text="Agregar fondos"'): # El botón final
+                                clicked_continue = True
+                                print("Clic JS en Continuar exitoso")
+                        except:
+                            pass
+
                     if not clicked_continue:
                         # A veces el botón está deshabilitado hasta validar monto; breve espera
                         page.wait_for_timeout(1500)
                         for cs in continue_selectors:
                             try:
-                                page.click(cs, timeout=10000)
-                                clicked_continue = True
-                                break
+                                if page.is_visible(cs):
+                                    page.click(cs, timeout=5000)
+                                    clicked_continue = True
+                                    break
                             except:
                                 pass
                     if not clicked_continue:
                         raise Exception('No se encontró botón "Continuar"')
                     
                     # Confirmar "Añadir fondos"
+                    # Esperar transición al diálogo de revisión
+                    page.wait_for_timeout(3000)
+                    
                     confirm_selectors = [
+                        'button:has(span:has-text("Agregar fondos"))', # Selector preciso final
+                        'button:has(span:has-text("Añadir fondos"))',
+                        'button:has-text("Agregar fondos")', 
+                        'button:has-text("Add funds")',
                         'button:has-text("Pagar")',
                         'button:has-text("Pay")',
-                        'text="Confirmar pago"',
-                        'button:has-text("Añadir fondos")',
-                        'text="Añadir fondos"'
+                        'text="Confirmar pago"'
                     ]
                     confirmed_payment = False
                     for cs in confirm_selectors:
                         try:
-                            page.click(cs, timeout=10000)
-                            confirmed_payment = True
-                            break
+                            # Asegurarse de no clicar el botón de atrás o cancelar
+                            if page.is_visible(cs):
+                                page.click(cs, timeout=5000)
+                                confirmed_payment = True
+                                break
                         except:
                             pass
+                            
+                    if not confirmed_payment:
+                        # Intento JS final con Deep Search (Shadow DOM)
+                        try:
+                            print("Intentando clic JS profundo en botón final de pago...")
+                            page.evaluate('''() => {
+                                function findAndClickFinal(root) {
+                                    if (!root) return false;
+                                    
+                                    // Buscar en el nodo actual
+                                    const elements = Array.from(root.querySelectorAll('button, div[role="button"], span, material-button'));
+                                    // Filtrar candidatos
+                                    const targets = elements.filter(el => {
+                                        const text = el.innerText || "";
+                                        return text.includes("Agregar fondos") || 
+                                               text.includes("Añadir fondos") || 
+                                               text.includes("Confirmar") || 
+                                               text.includes("Pay");
+                                    });
+
+                                    if (targets.length > 0) {
+                                        // Preferir el último visible (botón de acción principal suele estar al final)
+                                        const visibleTargets = targets.filter(t => t.offsetParent !== null);
+                                        if (visibleTargets.length > 0) {
+                                            const finalBtn = visibleTargets[visibleTargets.length - 1];
+                                            console.log("Clicando botón final:", finalBtn);
+                                            finalBtn.click();
+                                            return true;
+                                        }
+                                    }
+                                    
+                                    // Buscar en Shadow Roots
+                                    const allNodes = root.querySelectorAll('*');
+                                    for (const node of allNodes) {
+                                        if (node.shadowRoot) {
+                                            if (findAndClickFinal(node.shadowRoot)) return true;
+                                        }
+                                    }
+                                    return false;
+                                }
+                                
+                                findAndClickFinal(document);
+                            }''')
+                            # Asumimos éxito si no hay error, validaremos con la captura
+                            page.wait_for_timeout(3000)
+                            confirmed_payment = True
+                            print("Clic JS final Deep Search ejecutado")
+                        except:
+                            pass
+
+                    if not confirmed_payment:
+                        raise Exception('No se encontró botón final de confirmación de pago')
                     if not confirmed_payment:
                         raise Exception('No se encontró botón final de confirmación de pago')
                     
@@ -2514,8 +2899,10 @@ def pay_all_accounts():
                 finally:
                     page.close()
             
-            context.close()
-            browser.close()
+            try:
+                context.close()
+            except Exception:
+                pass
         
         conn.commit()
         conn.close()

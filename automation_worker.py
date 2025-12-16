@@ -848,109 +848,144 @@ No escribas títulos largos esperando que los truncen después.
 
 AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
         
-        # Llamar al proveedor de IA correspondiente
-        if provider == 'openai':
-            from openai import OpenAI
-            import httpx
-            
-            # Limpiar variables de entorno de proxy que puedan interferir
-            # Esto es más seguro que pasar proxies=None que falla en algunas versiones de httpx
-            for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
-                if proxy_var in os.environ:
-                    del os.environ[proxy_var]
-            
-            # Crear cliente HTTP sin proxy explícito
-            http_client = httpx.Client(
-                timeout=30.0,
-                transport=httpx.HTTPTransport(retries=2)
-            )
-            
-            # Crear cliente OpenAI con configuración explícita
-            client_openai = OpenAI(
-                api_key=os.environ.get('OPENAI_API_KEY'),
-                http_client=http_client
-            )
-            
-            response = client_openai.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system", 
-                        "content": "Eres un experto en marketing digital y copywriting. Generas anuncios altamente efectivos y optimizados para Google Ads. SIEMPRE respetas los límites de caracteres: 30 para títulos, 90 para descripciones."
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=2500,
-                presence_penalty=0.3,
-                frequency_penalty=0.5
-            )
-            
-            content = response.choices[0].message.content
-            print(f"✅ Respuesta recibida de OpenAI ({len(content)} caracteres)")
-            print(f"Primeros 200 chars: {content[:200]}...")
-            result = self._parse_ad_content(content)
-            print(f"📊 Parseado: {len(result.get('headlines', []))} títulos, {len(result.get('descriptions', []))} descripciones")
-            return result
+        # Lógica de reintento con validación de relevancia
+        max_retries = 3
+        last_result = None
         
-        elif provider == 'gemini':
-            import google.generativeai as genai
-            genai.configure(api_key=os.environ.get('GOOGLE_API_KEY'))
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    print(f"🔄 Reintento de generación ({attempt+1}/{max_retries})...")
+                
+                content = self._execute_ai_call(provider, prompt, config)
+                
+                if content:
+                    result = self._parse_ad_content(content, keywords)
+                    last_result = result
+                    
+                    # Validar relevancia
+                    metrics = result.get('relevance_metrics')
+                    if metrics:
+                        score = metrics['score']
+                        if score >= 50.0:
+                            print(f"✅ Relevancia suficiente ({score:.1f}% >= 50%)")
+                            return result
+                        else:
+                            print(f"⚠️ Relevancia insuficiente ({score:.1f}% < 50%)")
+                    else:
+                        return result
+            except Exception as e:
+                print(f"❌ Error en intento {attempt+1}: {str(e)}")
+                
+        if last_result:
+            print("⚠️ Usando último resultado disponible a pesar de baja relevancia")
+            return last_result
             
-            model = genai.GenerativeModel(
-                'gemini-pro',
-                generation_config={
-                    'temperature': 0.7,
-                    'max_output_tokens': 2500,
-                }
-            )
-            response = model.generate_content(prompt)
-            print(f"✅ Respuesta recibida de Gemini ({len(response.text)} caracteres)")
-            result = self._parse_ad_content(response.text)
-            print(f"📊 Parseado: {len(result.get('headlines', []))} títulos, {len(result.get('descriptions', []))} descripciones")
-            return result
+        # Fallback manual si todo falla
+        return self._generate_fallback_ad(keywords)
+
+    def _execute_ai_call(self, provider: str, prompt: str, config: Dict) -> str:
+        """Ejecuta la llamada a la API del proveedor específico"""
+        import os
         
-        elif provider == 'deepseek':
-            # DeepSeek usa OpenAI-compatible API
-            from openai import OpenAI
-            import httpx
+        try:
+            if provider == 'openai':
+                from openai import OpenAI
+                import httpx
+                
+                # Limpiar variables de entorno de proxy
+                for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
+                    if proxy_var in os.environ:
+                        del os.environ[proxy_var]
+                
+                http_client = httpx.Client(
+                    timeout=30.0,
+                    transport=httpx.HTTPTransport(retries=2)
+                )
+                
+                client_openai = OpenAI(
+                    api_key=os.environ.get('OPENAI_API_KEY'),
+                    http_client=http_client
+                )
+                
+                response = client_openai.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system", 
+                            "content": "Eres un experto en marketing digital y copywriting. Generas anuncios altamente efectivos y optimizados para Google Ads. SIEMPRE respetas los límites de caracteres: 30 para títulos, 90 para descripciones."
+                        },
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=2500,
+                    presence_penalty=0.3,
+                    frequency_penalty=0.5
+                )
+                
+                content = response.choices[0].message.content
+                print(f"✅ Respuesta recibida de OpenAI ({len(content)} caracteres)")
+                return content
             
-            # Limpiar variables de entorno de proxy
-            for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
-                if proxy_var in os.environ:
-                    del os.environ[proxy_var]
+            elif provider == 'gemini':
+                import google.generativeai as genai
+                genai.configure(api_key=os.environ.get('GOOGLE_API_KEY'))
+                
+                model = genai.GenerativeModel(
+                    'gemini-pro',
+                    generation_config={
+                        'temperature': 0.7,
+                        'max_output_tokens': 2500,
+                    }
+                )
+                response = model.generate_content(prompt)
+                print(f"✅ Respuesta recibida de Gemini ({len(response.text)} caracteres)")
+                return response.text
             
-            http_client = httpx.Client(
-                timeout=30.0,
-                transport=httpx.HTTPTransport(retries=2)
-            )
+            elif provider == 'deepseek':
+                from openai import OpenAI
+                import httpx
+                
+                for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
+                    if proxy_var in os.environ:
+                        del os.environ[proxy_var]
+                
+                http_client = httpx.Client(
+                    timeout=30.0,
+                    transport=httpx.HTTPTransport(retries=2)
+                )
+                
+                client_deepseek = OpenAI(
+                    api_key=os.environ.get('DEEPSEEK_API_KEY'),
+                    base_url="https://api.deepseek.com",
+                    http_client=http_client
+                )
+                
+                response = client_deepseek.chat.completions.create(
+                    model="deepseek-chat",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "Eres un experto en marketing digital y copywriting. Generas anuncios altamente efectivos y optimizados para Google Ads. SIEMPRE respetas los límites de caracteres: 30 para títulos, 90 para descripciones."
+                        },
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=2500
+                )
+                
+                content = response.choices[0].message.content
+                print(f"✅ Respuesta recibida de DeepSeek ({len(content)} caracteres)")
+                return content
+                
+        except Exception as e:
+            print(f"❌ Error en llamada a proveedor {provider}: {str(e)}")
+            return None
             
-            client_deepseek = OpenAI(
-                api_key=os.environ.get('DEEPSEEK_API_KEY'),
-                base_url="https://api.deepseek.com",
-                http_client=http_client
-            )
-            
-            response = client_deepseek.chat.completions.create(
-                model="deepseek-chat",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Eres un experto en marketing digital y copywriting. Generas anuncios altamente efectivos y optimizados para Google Ads. SIEMPRE respetas los límites de caracteres: 30 para títulos, 90 para descripciones."
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=2500
-            )
-            
-            content = response.choices[0].message.content
-            print(f"✅ Respuesta recibida de DeepSeek ({len(content)} caracteres)")
-            result = self._parse_ad_content(content)
-            print(f"📊 Parseado: {len(result.get('headlines', []))} títulos, {len(result.get('descriptions', []))} descripciones")
-            return result
-        
-        # Fallback: Si no hay proveedor configurado o falla
+        return None
+
+    def _generate_fallback_ad(self, keywords: List[str]) -> Dict:
+        """Genera un anuncio de respaldo sin IA"""
         # Crear título base truncado inteligentemente
         base_keyword = keywords[0]
         base_keyword_title = base_keyword.title()
@@ -995,17 +1030,18 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
             ][:4]
         }
     
-    def _parse_ad_content(self, content: str) -> Dict:
+    def _parse_ad_content(self, content: str, keywords: List[str] = None) -> Dict:
         """
         Parsea el contenido de IA para extraer títulos y descripciones.
         Basado en el formato: TÍTULO 1: ..., DESCRIPCIÓN 1: ...
+        También valida la relevancia si se proporcionan keywords.
         """
         import re
         
         print(f"🔍 Parseando contenido de IA...")
-        print(f"Contenido completo ({len(content)} chars):")
-        print(content)
-        print("=" * 80)
+        # print(f"Contenido completo ({len(content)} chars):")
+        # print(content)
+        # print("=" * 80)
         
         headlines = []
         descriptions = []
@@ -1025,7 +1061,6 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
             
             # Truncar a 30 caracteres si excede
             if len(cleaned) > 30:
-                print(f"⚠️ Título muy largo ({len(cleaned)} chars): '{cleaned}' -> truncando")
                 # Truncar de forma inteligente: cortar en el último espacio antes de 30 chars
                 truncated = cleaned[:30]
                 last_space = truncated.rfind(' ')
@@ -1033,7 +1068,6 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
                     cleaned = truncated[:last_space].strip()
                 else:  # Si no hay espacios, cortar directo
                     cleaned = truncated.strip()
-                print(f"   Truncado: {cleaned}")
             
             if cleaned:
                 headlines.append(cleaned)
@@ -1045,21 +1079,18 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
             cleaned = match.strip()
             
             # Capitalizar primera letra de cada oración
-            # Dividir por puntos y capitalizar cada oración
             sentences = cleaned.split('. ')
             cleaned = '. '.join([s.capitalize() for s in sentences if s])
             
             # Truncar a 90 caracteres si excede
             if len(cleaned) > 90:
-                print(f"⚠️ Descripción muy larga ({len(cleaned)} chars) -> truncando")
-                # Truncar de forma inteligente: cortar en el último espacio antes de 90 chars
+                # Truncar de forma inteligente
                 truncated = cleaned[:90]
                 last_space = truncated.rfind(' ')
                 if last_space > 0:  # Si hay un espacio, cortar ahí
                     cleaned = truncated[:last_space].strip()
                 else:  # Si no hay espacios, cortar directo
                     cleaned = truncated.strip()
-                print(f"   Truncado: {cleaned}")
             
             if cleaned:
                 descriptions.append(cleaned)
@@ -1074,7 +1105,43 @@ AHORA GENERA EL ANUNCIO CON TÍTULOS PERFECTAMENTE AJUSTADOS:"""
             'headlines': headlines[:15],  # Max 15 headlines
             'descriptions': descriptions[:4]  # Max 4 descriptions
         }
-        print(f"✅ Parser resultado final: {len(result['headlines'])} headlines, {len(result['descriptions'])} descriptions")
+        
+        # Validación de Relevancia (Nueva lógica)
+        if keywords:
+            relevant_count = 0
+            # print(f"🔍 Validando relevancia contra {len(keywords)} keywords...")
+            
+            for headline in result['headlines']:
+                is_relevant = False
+                headline_lower = headline.lower()
+                
+                for kw in keywords:
+                    kw_lower = kw.lower()
+                    # 1. Coincidencia exacta (substring)
+                    if kw_lower in headline_lower:
+                        is_relevant = True
+                        break
+                    
+                    # 2. Coincidencia de primera palabra significativa (para keywords largas)
+                    parts = kw_lower.split()
+                    if parts:
+                        first_word = parts[0]
+                        if len(first_word) > 3 and first_word in headline_lower:
+                            is_relevant = True
+                            break
+                            
+                if is_relevant:
+                    relevant_count += 1
+            
+            relevance_percentage = (relevant_count / len(result['headlines'])) * 100 if result['headlines'] else 0
+            print(f"📊 Relevancia: {relevant_count}/{len(result['headlines'])} títulos ({relevance_percentage:.1f}%)")
+            
+            result['relevance_metrics'] = {
+                'score': relevance_percentage,
+                'relevant_count': relevant_count,
+                'total_headlines': len(result['headlines'])
+            }
+            
         return result
     
     def _create_ad(self, client, customer_id: str, ad_group_id: str, ad_content: Dict, final_url: str) -> str:
